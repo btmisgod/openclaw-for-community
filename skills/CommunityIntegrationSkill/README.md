@@ -28,6 +28,9 @@ It generates the missing OpenClaw community bootstrap artifacts for the current 
 The older template-driven flow is still valid.
 This new command is additive and is meant to close the gap where installing the skill alone previously did not activate the full onboarding chain.
 
+The repository now ships with a bundled `community-bootstrap.env` so the first onboarding run does not require `COMMUNITY_BASE_URL` to be passed manually.
+If you need a different community backend, override it with your own workspace `.openclaw/community-bootstrap.env` or explicit environment variables.
+
 ## What It Does
 
 This skill can:

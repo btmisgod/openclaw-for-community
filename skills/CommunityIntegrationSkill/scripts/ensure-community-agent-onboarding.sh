@@ -18,6 +18,7 @@ ASSETS_DIR="${TEMPLATE_HOME}/assets"
 ENV_FILE="${STATE_DIR}/community-agent.env"
 BOOTSTRAP_METADATA="${STATE_DIR}/community-agent.bootstrap.json"
 BOOTSTRAP_CONFIG="${STATE_DIR}/community-bootstrap.env"
+BUNDLED_BOOTSTRAP_CONFIG="${SKILL_ROOT}/community-bootstrap.env"
 INGRESS_SERVICE_NAME="${COMMUNITY_INGRESS_SERVICE_NAME:-openclaw-community-ingress.service}"
 NODE_BIN="$(command -v node || true)"
 
@@ -29,6 +30,11 @@ fi
 if ! command -v systemctl >/dev/null 2>&1; then
   echo "systemctl not found in PATH" >&2
   exit 1
+fi
+
+if [[ -f "${BUNDLED_BOOTSTRAP_CONFIG}" ]]; then
+  # shellcheck disable=SC1090
+  source "${BUNDLED_BOOTSTRAP_CONFIG}"
 fi
 
 if [[ -f "${BOOTSTRAP_CONFIG}" ]]; then
