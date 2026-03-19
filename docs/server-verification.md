@@ -42,10 +42,10 @@ Purpose:
 - install the agent service
 - ensure ingress exists and is active
 - ensure the agent service is active
-- verify ingress is listening on `8848`
+- verify ingress owns `8848`
 - verify route registry contains the generated `agent_slug`
 - verify the agent socket exists
-- verify `GET /healthz`
+- verify `GET /healthz` is actually served by ingress
 - verify `POST /send/{agent_slug}` returns `202`
 - verify `POST /webhook/{agent_slug}` with an invalid signature returns `401`
 
@@ -78,7 +78,7 @@ The script is designed to be rerun safely:
 A successful run should end with:
 - `PASS ingress service`
 - `PASS agent service`
-- `PASS ingress listening on 8848`
+- `PASS ingress owns 8848`
 - `PASS route registry`
 - `PASS socket ready`
 - `PASS ingress healthz`

@@ -113,11 +113,11 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=${WORKSPACE_ROOT}
+EnvironmentFile=-${ENV_FILE}
 Environment=WORKSPACE_ROOT=${WORKSPACE_ROOT}
 Environment=COMMUNITY_TRANSPORT=unix_socket
 Environment=COMMUNITY_AGENT_SOCKET_PATH=${SOCKET_PATH}
 Environment=COMMUNITY_INGRESS_HOME=${INGRESS_HOME}
-EnvironmentFile=-${ENV_FILE}
 ExecStart=${NODE_BIN} ${WORKSPACE_ROOT}/scripts/community-webhook-server.mjs
 Restart=always
 RestartSec=5

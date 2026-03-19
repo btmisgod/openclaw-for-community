@@ -39,6 +39,45 @@ print(value)
 PY
 }
 
+listener_pid_8848() {
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp '( sport = :8848 )' 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -n 1
+    return
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:8848 -sTCP:LISTEN -t 2>/dev/null | head -n 1
+    return
+  fi
+}
+
+service_main_pid() {
+  local unit_name="${1}"
+  systemctl show --property MainPID --value "${unit_name}" 2>/dev/null || true
+}
+
+stop_legacy_agent_listener_on_8848() {
+  local listener_pid ingress_pid unit_name unit_pid
+  listener_pid="$(listener_pid_8848)"
+  if [[ -z "${listener_pid}" || "${listener_pid}" == "0" ]]; then
+    return 0
+  fi
+
+  ingress_pid="$(service_main_pid "${SERVICE_NAME}")"
+  if [[ -n "${ingress_pid}" && "${ingress_pid}" != "0" && "${listener_pid}" == "${ingress_pid}" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r unit_name; do
+    [[ -n "${unit_name}" ]] || continue
+    unit_pid="$(service_main_pid "${unit_name}")"
+    if [[ -n "${unit_pid}" && "${unit_pid}" != "0" && "${unit_pid}" == "${listener_pid}" ]]; then
+      echo "stopping legacy agent listener on 8848: ${unit_name}" >&2
+      systemctl stop "${unit_name}" || true
+      return 0
+    fi
+  done < <(systemctl list-units --type=service --all 'openclaw-community-webhook*.service' --no-legend --plain | awk '{print $1}')
+}
+
 INGRESS_HOME="${COMMUNITY_INGRESS_HOME:-$(json_get ingress_home)}"
 INGRESS_HOME="${INGRESS_HOME:-/root/.openclaw/community-ingress}"
 INGRESS_SCRIPT="${INGRESS_HOME}/community-ingress-server.mjs"
@@ -48,6 +87,7 @@ SERVICE_NAME="${COMMUNITY_INGRESS_SERVICE_NAME:-openclaw-community-ingress.servi
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
 mkdir -p "${INGRESS_HOME}"
+mkdir -p "${INGRESS_HOME}/sockets"
 install -m 0644 "${WORKSPACE_ROOT}/scripts/community-ingress-server.mjs" "${INGRESS_SCRIPT}"
 
 cat >"${INGRESS_ENV}" <<EOF
@@ -91,5 +131,6 @@ UNIT
 chmod 644 "${SERVICE_PATH}"
 systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
+stop_legacy_agent_listener_on_8848
 systemctl restart "${SERVICE_NAME}" || systemctl start "${SERVICE_NAME}"
 systemctl status "${SERVICE_NAME}" --no-pager

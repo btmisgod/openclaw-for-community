@@ -6,7 +6,8 @@ TEMPLATE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEST_ROOT="${1:-/root/openclaw-server-verify-agent-onboarding}"
 WORKSPACE_ROOT="${TEST_ROOT}/workspace"
 INGRESS_SERVICE_NAME="${COMMUNITY_INGRESS_SERVICE_NAME:-openclaw-community-ingress.service}"
-HEALTHZ_URL="${COMMUNITY_INGRESS_HEALTHZ_URL:-http://127.0.0.1:8848/healthz}"
+INGRESS_BASE_URL="${COMMUNITY_INGRESS_BASE_URL:-http://127.0.0.1:8848}"
+HEALTHZ_URL="${COMMUNITY_INGRESS_HEALTHZ_URL:-${INGRESS_BASE_URL}/healthz}"
 FAILURES=0
 
 log_pass() {
@@ -99,16 +100,43 @@ wait_for_http() {
   return 1
 }
 
-check_port_8848() {
+listener_pid_8848() {
   if command -v ss >/dev/null 2>&1; then
-    ss -ltn '( sport = :8848 )' | grep -q ':8848'
+    ss -ltnp '( sport = :8848 )' 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -n 1
     return
   fi
-  if command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null | grep -q ':8848 '
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:8848 -sTCP:LISTEN -t 2>/dev/null | head -n 1
     return
   fi
-  return 1
+}
+
+service_main_pid() {
+  local service_name="$1"
+  systemctl show --property MainPID --value "$service_name" 2>/dev/null || true
+}
+
+check_ingress_owns_8848() {
+  local listener_pid ingress_pid
+  listener_pid="$(listener_pid_8848)"
+  ingress_pid="$(service_main_pid "$INGRESS_SERVICE_NAME")"
+  [[ -n "$listener_pid" && "$listener_pid" != "0" && -n "$ingress_pid" && "$ingress_pid" != "0" && "$listener_pid" == "$ingress_pid" ]]
+}
+
+verify_ingress_healthz() {
+  local healthz_path="$1"
+  python3 - "$healthz_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+if data.get("mode") != "community_ingress":
+    raise SystemExit(1)
+if not data.get("listen"):
+    raise SystemExit(1)
+PY
 }
 
 run_step() {
@@ -170,19 +198,22 @@ fi
 
 run_step "ingress service" systemctl is-active --quiet "$INGRESS_SERVICE_NAME"
 run_step "agent service" systemctl is-active --quiet "$AGENT_SERVICE_NAME"
-run_step "ingress listening on 8848" check_port_8848
+run_step "ingress owns 8848" check_ingress_owns_8848
 
 if [[ -n "$TEST_SLUG" && -f "$ROUTE_REGISTRY" ]]; then
-  if python3 - "$ROUTE_REGISTRY" "$TEST_SLUG" <<'PY'
+  if python3 - "$ROUTE_REGISTRY" "$TEST_SLUG" "$SOCKET_PATH" <<'PY'
 import json
 import sys
 
 path = sys.argv[1]
 slug = sys.argv[2]
+expected_socket_path = sys.argv[3]
 with open(path, "r", encoding="utf-8") as fh:
     data = json.load(fh)
 route = (data.get("agents") or {}).get(slug)
 if not route:
+    raise SystemExit(1)
+if route.get("socket_path") != expected_socket_path:
     raise SystemExit(1)
 print(json.dumps(route, ensure_ascii=False))
 PY
@@ -201,17 +232,17 @@ else
   log_fail "socket missing"
 fi
 
-if wait_for_http "$HEALTHZ_URL" 50 0.2 "$HEALTHZ_RESPONSE_BODY"; then
+if wait_for_http "$HEALTHZ_URL" 50 0.2 "$HEALTHZ_RESPONSE_BODY" && verify_ingress_healthz "$HEALTHZ_RESPONSE_BODY"; then
   log_pass "ingress healthz"
 else
-  log_fail "healthz unreachable"
+  log_fail "healthz not served by ingress"
 fi
 
 SEND_CODE="000"
 if [[ -n "$SEND_PATH" ]]; then
   SEND_CODE="$(curl -sS -o "$SEND_RESPONSE_BODY" -w "%{http_code}" \
     -H 'Content-Type: application/json' \
-    -X POST "http://127.0.0.1:8848${SEND_PATH}" \
+    -X POST "${INGRESS_BASE_URL}${SEND_PATH}" \
     -d '{"group_id":"54b12c32-dbd3-46d8-97ee-22bf8a499709","content":{"text":"server verify onboarding smoke"}}' || true)"
 fi
 if [[ "$SEND_CODE" == "202" ]]; then
@@ -225,7 +256,7 @@ if [[ -n "$WEBHOOK_PATH" ]]; then
   WEBHOOK_CODE="$(curl -sS -o "$WEBHOOK_RESPONSE_BODY" -w "%{http_code}" \
     -H 'Content-Type: application/json' \
     -H 'x-community-webhook-signature: invalid' \
-    -X POST "http://127.0.0.1:8848${WEBHOOK_PATH}" \
+    -X POST "${INGRESS_BASE_URL}${WEBHOOK_PATH}" \
     -d '{}' || true)"
 fi
 if [[ "$WEBHOOK_CODE" == "401" ]]; then
