@@ -85,6 +85,55 @@ function loadEnvFile(envPath) {
 
 let runtimePromise = null;
 let loadedContext = null;
+const COMMAND_TIMEOUT_MS = Number(process.env.COMMUNITY_CLI_TIMEOUT_MS || '45000');
+let currentCommand = 'status';
+let currentPhase = 'startup';
+
+function trace(phase, extra = {}) {
+  currentPhase = phase;
+  console.error(
+    JSON.stringify(
+      {
+        ok: true,
+        cli_trace: true,
+        command: currentCommand,
+        phase,
+        ...extra,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function flushStreams() {
+  await Promise.all([
+    new Promise((resolve) => process.stdout.write('', resolve)),
+    new Promise((resolve) => process.stderr.write('', resolve)),
+  ]);
+}
+
+function startCommandWatchdog() {
+  const timer = setTimeout(async () => {
+    console.error(
+      JSON.stringify(
+        {
+          ok: false,
+          timeout: true,
+          command: currentCommand,
+          phase: currentPhase,
+          timeoutMs: COMMAND_TIMEOUT_MS,
+        },
+        null,
+        2,
+      ),
+    );
+    await flushStreams();
+    process.exit(124);
+  }, COMMAND_TIMEOUT_MS);
+  timer.unref();
+  return timer;
+}
 
 async function getRuntime() {
   if (runtimePromise) {
@@ -136,7 +185,9 @@ async function requireSavedState(requirements = {}) {
 }
 
 async function cmdStatus() {
+  trace('status.load_runtime');
   const runtime = await getRuntime();
+  trace('status.read_state');
   const state = runtime.loadSavedCommunityState();
   console.log(
     JSON.stringify(
@@ -159,10 +210,12 @@ async function cmdStatus() {
 }
 
 async function cmdSend(options) {
+  trace("send.validate_input");
   const text = String(options.text || "").trim();
   if (!text) {
     throw new Error("send requires --text");
   }
+  trace("send.load_saved_state");
   const { runtime, state } = await requireSavedState({ token: true, groupId: true });
   const payload = {
     group_id: options["group-id"] || state.groupId || null,
@@ -176,13 +229,20 @@ async function cmdSend(options) {
       text,
     },
   };
+  trace("send.api_request_sending", { groupId: payload.group_id, messageType: payload.message_type });
   const result = await runtime.sendCommunityMessage(state, null, payload);
+  trace("send.api_request_returned");
   console.log(JSON.stringify({ ok: true, command: "send", result }, null, 2));
+  trace("send.success");
 }
 
 async function cmdProfileSync() {
+  trace('profile-sync.ensure_state_start');
   const { runtime, state } = await ensureState();
+  trace('profile-sync.ensure_state_done', { hasToken: Boolean(state.token), groupId: state.groupId || null });
+  trace('profile-sync.api_request_sending');
   const updated = await runtime.updateCommunityProfile(state);
+  trace('profile-sync.api_request_returned');
   runtime.saveCommunityState(updated);
   console.log(
     JSON.stringify(
@@ -197,9 +257,11 @@ async function cmdProfileSync() {
       2,
     ),
   );
+  trace("profile-sync.success");
 }
 
 async function cmdProfileUpdate(options) {
+  trace('profile-update.load_saved_state');
   const { runtime, state } = await requireSavedState({ token: true });
   const overrides = pruneEmpty({
     display_name: options["display-name"],
@@ -217,7 +279,9 @@ async function cmdProfileUpdate(options) {
       : undefined,
     home_group_slug: options["home-group-slug"],
   });
+  trace('profile-update.api_request_sending');
   const updated = await runtime.updateCommunityProfile(state, overrides);
+  trace('profile-update.api_request_returned');
   runtime.saveCommunityState(updated);
   console.log(
     JSON.stringify(
@@ -232,11 +296,13 @@ async function cmdProfileUpdate(options) {
       2,
     ),
   );
+  trace("profile-update.success");
 }
 
 async function main() {
   const { positional, options } = parseArgs(process.argv.slice(2));
   const command = positional[0] || "status";
+  currentCommand = command;
   if (command === "status") {
     await cmdStatus();
     return;
@@ -256,7 +322,18 @@ async function main() {
   throw new Error(`unknown command: ${command}`);
 }
 
-main().catch((error) => {
-  console.error(JSON.stringify({ ok: false, error: error.message }, null, 2));
-  process.exit(1);
-});
+const watchdog = startCommandWatchdog();
+
+main()
+  .then(async () => {
+    clearTimeout(watchdog);
+    trace('command_exit', { code: 0 });
+    await flushStreams();
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    clearTimeout(watchdog);
+    console.error(JSON.stringify({ ok: false, command: currentCommand, phase: currentPhase, error: error.message }, null, 2));
+    await flushStreams();
+    process.exit(1);
+  });
