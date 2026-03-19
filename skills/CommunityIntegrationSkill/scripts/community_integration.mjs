@@ -18,21 +18,29 @@ function slugifyHandle(value) {
   return base || `agent-${Date.now().toString().slice(-6)}`;
 }
 
+function shortSocketPath(ingressHome, agentSlug) {
+  const normalizedSlug = slugifyHandle(agentSlug);
+  const slugPrefix = normalizedSlug.slice(0, 24) || "agent";
+  const hash = crypto.createHash("sha256").update(normalizedSlug).digest("hex").slice(0, 12);
+  return path.join(ingressHome, "sockets", `${slugPrefix}-${hash}.sock`);
+}
+
 const WORKSPACE = process.env.WORKSPACE_ROOT || "/root/.openclaw/workspace";
 const TEMPLATE_HOME =
   process.env.COMMUNITY_TEMPLATE_HOME || path.join(WORKSPACE, ".openclaw", "community-agent-template");
+const INGRESS_HOME = process.env.COMMUNITY_INGRESS_HOME || "/root/.openclaw/community-ingress";
 const BASE_URL = process.env.COMMUNITY_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const GROUP_SLUG = process.env.COMMUNITY_GROUP_SLUG || "public-lobby";
 const AGENT_NAME = process.env.COMMUNITY_AGENT_NAME || `openclaw-agent-${os.hostname()}`;
 const AGENT_SLUG = slugifyHandle(process.env.COMMUNITY_AGENT_HANDLE || AGENT_NAME);
 const AGENT_DESCRIPTION = process.env.COMMUNITY_AGENT_DESCRIPTION || "OpenClaw community-enabled agent";
-const TRANSPORT_MODE = process.env.COMMUNITY_TRANSPORT || "tcp";
+const TRANSPORT_MODE = process.env.COMMUNITY_TRANSPORT || "unix_socket";
 const LISTEN_HOST = process.env.COMMUNITY_WEBHOOK_HOST || "0.0.0.0";
 const LISTEN_PORT = Number(process.env.COMMUNITY_WEBHOOK_PORT || "8848");
 const WEBHOOK_PATH = process.env.COMMUNITY_WEBHOOK_PATH || `/webhook/${AGENT_SLUG}`;
 const SEND_PATH = process.env.COMMUNITY_SEND_PATH || `/send/${AGENT_SLUG}`;
 const AGENT_SOCKET_PATH =
-  process.env.COMMUNITY_AGENT_SOCKET_PATH || path.join(TEMPLATE_HOME, "run", `${AGENT_SLUG}.sock`);
+  process.env.COMMUNITY_AGENT_SOCKET_PATH || shortSocketPath(INGRESS_HOME, AGENT_SLUG);
 const WEBHOOK_PUBLIC_HOST = process.env.COMMUNITY_WEBHOOK_PUBLIC_HOST || "127.0.0.1";
 const WEBHOOK_PUBLIC_URL = process.env.COMMUNITY_WEBHOOK_PUBLIC_URL || "";
 const RESET_STATE_ON_START = process.env.COMMUNITY_RESET_STATE_ON_START === "1";
@@ -660,7 +668,84 @@ function structuredMentionForTarget(targetAgentId, targetAgent) {
   };
 }
 
+function responseModeLabel(mode) {
+  return (
+    {
+      task: "??",
+      status: "??",
+      discussion: "??",
+      decision: "??",
+      chat: "??",
+      unknown: "??",
+      system: "????",
+      protocol_violation: "????",
+      workflow_contract: "????",
+      channel_context: "?????",
+    }[String(mode || "").trim()] || "??"
+  );
+}
+
+function decideCommunityResponse(obligation, mode, decisionContext = {}) {
+  const contextFlags = decisionContext?.contextFlags || {};
+
+  if (mode === "task" && obligation !== "observe_only" && (contextFlags.targeted_self || contextFlags.assigned_self || contextFlags.authorize)) {
+    return { action: "task_execution", reason: "directed_task" };
+  }
+
+  if (obligation === "required") {
+    return { action: mode === "task" ? "task_execution" : contextFlags.question ? "full_reply" : "brief_reply", reason: "required_obligation" };
+  }
+  if (obligation === "required_ack") {
+    return { action: contextFlags.question ? "brief_reply" : "ack", reason: "required_ack" };
+  }
+  if (obligation === "optional") {
+    if (["discussion", "decision", "chat"].includes(mode)) {
+      return { action: contextFlags.question ? "full_reply" : "brief_reply", reason: "optional_dialogue" };
+    }
+    if (["status", "unknown", "system"].includes(mode)) {
+      return {
+        action: contextFlags.addressed || contextFlags.question || contextFlags.need_ack ? "ack" : "observe_only",
+        reason: "optional_signal",
+      };
+    }
+    if (mode === "task") {
+      return {
+        action: contextFlags.addressed || contextFlags.assignment ? "brief_reply" : "observe_only",
+        reason: "optional_task",
+      };
+    }
+  }
+  return { action: "observe_only", reason: "observe_only_default" };
+}
+
+function buildFallbackReplyText(message, state, runtimeContext, dispatchContext = {}) {
+  const responseDecision = dispatchContext?.responseDecision || { action: "observe_only" };
+  const contextFlags = dispatchContext?.contextFlags || {};
+  const mode = dispatchContext?.mode || dispatchContext?.category || "unknown";
+  const label = responseModeLabel(mode);
+  const displayName = state?.profile?.display_name || state?.agentName || "OpenClaw Agent";
+
+  if (responseDecision.action === "ack") {
+    return `?????${label}???????????????????????? ${displayName} ??????`;
+  }
+  if (responseDecision.action === "brief_reply") {
+    if (contextFlags.question) {
+      return `?????${label}??????????????????????????????????????????`;
+    }
+    return `?????${label}??????????????????????????????`;
+  }
+  if (responseDecision.action === "full_reply") {
+    return `?????${label}?????????????????????????????????????`;
+  }
+  return "";
+}
+
+async function generateCommunityReply(message, state, runtimeContext, dispatchContext = {}) {
+  return buildFallbackReplyText(message, state, runtimeContext, dispatchContext);
+}
+
 function pruneNullish(value) {
+
   if (Array.isArray(value)) {
     return value
       .map((item) => pruneNullish(item))
@@ -845,6 +930,9 @@ export async function receiveCommunityEvent(state, event) {
       handleProtocolViolation,
       loadWorkflowContract,
       loadChannelContext,
+      decideResponse: decideCommunityResponse,
+      generateReply: generateCommunityReply,
+      buildFallbackReplyText,
     },
     state,
     event,
@@ -864,17 +952,62 @@ async function bootstrapState() {
 }
 
 export async function startCommunityIntegration() {
-  const state = await bootstrapState();
+  let currentState = null;
+  let bootstrapReady = false;
+  let bootstrapFailure = null;
+
+  const statePromise = bootstrapState();
+  statePromise.then(
+    (state) => {
+      currentState = state;
+      bootstrapReady = true;
+      console.log(
+        JSON.stringify(
+          {
+            ok: true,
+            bootstrap: "completed",
+            agentName: state.agentName,
+            agentId: state.agentId,
+            socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
+          },
+          null,
+          2,
+        ),
+      );
+    },
+    (error) => {
+      bootstrapFailure = error;
+      console.error(
+        JSON.stringify(
+          {
+            ok: false,
+            phase: "bootstrap_state",
+            error: error.message,
+            transport: TRANSPORT_MODE,
+            socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
+          },
+          null,
+          2,
+        ),
+      );
+      process.exitCode = 1;
+      setImmediate(() => process.exit(1));
+    },
+  );
+
   const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/healthz") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           status: "ok",
-          agent: state.agentName,
-          agentId: state.agentId,
+          ready: bootstrapReady,
+          agent: currentState?.agentName || AGENT_NAME,
+          agentId: currentState?.agentId || null,
           webhookPath: WEBHOOK_PATH,
           listen: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : `${LISTEN_HOST}:${LISTEN_PORT}`,
+          socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
+          bootstrapError: bootstrapFailure?.message || null,
           skill: "CommunityIntegrationSkill",
           runtimePath: WORKSPACE_RUNTIME_PATH,
           agentProtocolPath: INSTALLED_AGENT_PROTOCOL_PATH,
@@ -889,6 +1022,7 @@ export async function startCommunityIntegration() {
       req.on("data", (chunk) => chunks.push(chunk));
       req.on("end", async () => {
         try {
+          const state = await statePromise;
           const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
           const result = await handleActiveSend(state, payload);
           res.writeHead(202, { "Content-Type": "application/json" });
@@ -910,14 +1044,15 @@ export async function startCommunityIntegration() {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", async () => {
-      const rawBody = Buffer.concat(chunks);
-      const signature = req.headers["x-community-webhook-signature"];
-      if (typeof signature !== "string" || !verifySignature(state.webhookSecret, rawBody, signature)) {
-        res.writeHead(401).end("invalid signature");
-        return;
-      }
-
       try {
+        const state = await statePromise;
+        const rawBody = Buffer.concat(chunks);
+        const signature = req.headers["x-community-webhook-signature"];
+        if (typeof signature !== "string" || !verifySignature(state.webhookSecret, rawBody, signature)) {
+          res.writeHead(401).end("invalid signature");
+          return;
+        }
+
         const payload = JSON.parse(rawBody.toString("utf8"));
         const result = await receiveCommunityEvent(state, payload);
         console.log(JSON.stringify({ ok: true, webhook: true, event_type: payload?.event?.event_type || "", result }, null, 2));
@@ -931,20 +1066,39 @@ export async function startCommunityIntegration() {
     });
   });
 
+  server.on("error", (error) => {
+    console.error(
+      JSON.stringify(
+        {
+          ok: false,
+          listening: false,
+          transport: TRANSPORT_MODE,
+          socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
+          listen: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : `${LISTEN_HOST}:${LISTEN_PORT}`,
+          error: error.message,
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(1);
+  });
+
   const onListening = () => {
     console.log(
       JSON.stringify(
         {
           ok: true,
           listening: true,
-          agentName: state.agentName,
-          groupSlug: state.groupSlug,
-          webhookUrl: state.webhookUrl,
+          agentName: currentState?.agentName || AGENT_NAME,
+          groupSlug: currentState?.groupSlug || GROUP_SLUG,
+          webhookUrl: currentState?.webhookUrl || buildWebhookUrl(),
           webhookPath: WEBHOOK_PATH,
           sendPath: SEND_PATH,
           skill: "CommunityIntegrationSkill",
           mode: TRANSPORT_MODE === "unix_socket" ? "agent_socket" : "agent_webhook",
           socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
+          message: TRANSPORT_MODE === "unix_socket" ? `listening on socket_path=${AGENT_SOCKET_PATH}` : `listening on ${LISTEN_HOST}:${LISTEN_PORT}`,
         },
         null,
         2,
@@ -970,3 +1124,4 @@ export async function startCommunityIntegration() {
 
   server.listen(LISTEN_PORT, LISTEN_HOST, onListening);
 }
+
