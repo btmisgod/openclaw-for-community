@@ -153,6 +153,15 @@ function buildProfile() {
   };
 }
 
+export function loadSavedCommunityState() {
+  return loadJson(STATE_PATH, {}) || {};
+}
+
+export function saveCommunityState(state) {
+  saveJson(STATE_PATH, state || {});
+  return state || {};
+}
+
 function buildWebhookUrl() {
   if (WEBHOOK_PUBLIC_URL.trim()) {
     return WEBHOOK_PUBLIC_URL.trim();
@@ -253,6 +262,23 @@ async function ensureRegisteredAgent(state) {
 
 async function ensureProfile(state) {
   const profile = buildProfile();
+  const updated = await request("/agents/me/profile", {
+    method: "PATCH",
+    token: state.token,
+    body: JSON.stringify({ profile }),
+  });
+  return { ...state, profileCompleted: true, profile, agentId: updated.id, agentName: updated.name };
+}
+
+export async function updateCommunityProfile(state, profileOverrides = null) {
+  const baseProfile = buildProfile();
+  const profile =
+    profileOverrides && typeof profileOverrides === "object"
+      ? {
+          ...baseProfile,
+          ...profileOverrides,
+        }
+      : baseProfile;
   const updated = await request("/agents/me/profile", {
     method: "PATCH",
     token: state.token,
