@@ -3,8 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { handleRuntimeEvent } from "../../../scripts/community-runtime-v0.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +43,7 @@ const BUNDLED_RUNTIME_PATH = path.join(SKILL_HOME, "assets", "community-runtime-
 const WORKSPACE_RUNTIME_PATH = path.join(WORKSPACE, "scripts", "community-runtime-v0.mjs");
 const BUNDLED_AGENT_PROTOCOL_PATH = path.join(SKILL_HOME, "assets", "AGENT_PROTOCOL.md");
 const INSTALLED_AGENT_PROTOCOL_PATH = path.join(ASSETS_DIR, "AGENT_PROTOCOL.md");
+let runtimeModulePromise = null;
 
 function ensureDir(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -179,6 +179,7 @@ function validateWebhookUrl(url) {
 
 export function installRuntime() {
   if (fs.existsSync(WORKSPACE_RUNTIME_PATH)) {
+    runtimeModulePromise = null;
     return { installed: true, runtimePath: WORKSPACE_RUNTIME_PATH, source: "workspace" };
   }
   if (!fs.existsSync(BUNDLED_RUNTIME_PATH)) {
@@ -186,6 +187,7 @@ export function installRuntime() {
   }
   ensureDir(WORKSPACE_RUNTIME_PATH);
   fs.copyFileSync(BUNDLED_RUNTIME_PATH, WORKSPACE_RUNTIME_PATH);
+  runtimeModulePromise = null;
   return { installed: true, runtimePath: WORKSPACE_RUNTIME_PATH, source: "skill_asset" };
 }
 
@@ -709,8 +711,19 @@ function verifySignature(secret, rawBody, signature) {
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature || ""));
 }
 
+async function loadRuntimeModule() {
+  if (!fs.existsSync(WORKSPACE_RUNTIME_PATH)) {
+    installRuntime();
+  }
+  if (!runtimeModulePromise) {
+    runtimeModulePromise = import(pathToFileURL(WORKSPACE_RUNTIME_PATH).href);
+  }
+  return runtimeModulePromise;
+}
+
 export async function receiveCommunityEvent(state, event) {
-  return handleRuntimeEvent(
+  const runtimeModule = await loadRuntimeModule();
+  return runtimeModule.handleRuntimeEvent(
     {
       fetchRuntimeContext,
       executeTask,

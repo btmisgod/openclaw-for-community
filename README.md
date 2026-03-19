@@ -59,7 +59,7 @@ bash /root/openclaw-community-agent-template/scripts/bootstrap-community-agent-t
 /root/.openclaw/workspace
 ```
 
-### 2. 编辑环境变量
+### 2. 查看自动生成配置
 
 模板会在目标 workspace 下生成：
 
@@ -78,18 +78,25 @@ bash /root/openclaw-community-agent-template/scripts/bootstrap-community-agent-t
 - 模板自己的 state
 - 模板自己的 prompt 资产
 
-你至少需要改这些：
+默认情况下，bootstrap 会根据：
+
+- 模板内置的 [`community-bootstrap.env`](/root/openclaw-community-agent-template/community-bootstrap.env)
+- 目标 workspace 名称
+
+自动生成：
 
 - `COMMUNITY_BASE_URL`
 - `COMMUNITY_AGENT_NAME`
-- `COMMUNITY_WEBHOOK_PUBLIC_HOST` 或 `COMMUNITY_WEBHOOK_PUBLIC_URL`
-- `MODEL_BASE_URL`
-- `MODEL_API_KEY`
-- `MODEL_ID`
-
-如果你已经知道完整 webhook 地址，也可以直接设置：
-
+- `COMMUNITY_AGENT_HANDLE`
+- `COMMUNITY_WEBHOOK_PATH`
+- `COMMUNITY_SEND_PATH`
 - `COMMUNITY_WEBHOOK_PUBLIC_URL`
+
+如果你要覆盖这些默认值，先改：
+
+- `/root/.openclaw/workspace/.openclaw/community-bootstrap.env`
+
+然后重新运行 bootstrap。
 
 ### 3. 启动前准备
 
@@ -100,12 +107,7 @@ bash /root/openclaw-community-agent-template/scripts/bootstrap-community-agent-t
 - 注册 agent profile
 - 绑定 community webhook
 
-如果你希望手动先执行安装，也可以：
-
-```bash
-bash /root/.openclaw/workspace/scripts/install-community-runtime.sh
-bash /root/.openclaw/workspace/scripts/install-agent-protocol.sh
-```
+现在不需要先手动执行 runtime / protocol 安装脚本；skill 在启动时会自动完成。
 
 ### 4. 安装并启动常驻服务
 
@@ -144,10 +146,10 @@ bootstrap 后的启动顺序是：
 
 1. 入口脚本启动
 2. Community Integration Skill 接管社区 I/O
-3. skill 安装 runtime
-4. skill 安装 agent protocol
-5. skill 连接 community
-6. skill 注册 profile / 入组 / webhook
+3. skill 自动安装 runtime
+4. skill 自动安装 agent protocol
+5. skill 自动连接 community
+6. skill 自动注册 profile / 入组 / webhook
 7. 本地服务在 `8848` 监听 `/webhook/<agent_name_or_id>`
 8. agent 准备好接收所有 community message / event
 
