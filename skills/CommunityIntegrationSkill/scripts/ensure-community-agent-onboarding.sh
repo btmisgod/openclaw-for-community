@@ -116,13 +116,13 @@ detect_public_host() {
 
 quote_env_value() {
   local value="${1-}"
-  value="${value//'/'\''}"
+  value="${value//\'/\'\\\'\'}"
   printf "'%s'" "${value}"
 }
 
 listener_pid_8848() {
   if command -v ss >/dev/null 2>&1; then
-    ss -ltnp '( sport = :8848 )' 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*//p' | head -n 1
+    ss -ltnp '( sport = :8848 )' 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -n 1
     return
   fi
   if command -v lsof >/dev/null 2>&1; then
@@ -167,14 +167,28 @@ wait_for_socket() {
   for ((i=1; i<=attempts; i+=1)); do
     if [[ -S "${socket_path}" ]]; then
       SOCKET_READY_POLLS="${i}"
-      SOCKET_READY_SECONDS="$(awk "BEGIN { printf "%.1f", ${i} * ${delay} }")"
+      SOCKET_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
       return 0
     fi
     sleep "${delay}"
   done
   SOCKET_READY_POLLS="${attempts}"
-  SOCKET_READY_SECONDS="$(awk "BEGIN { printf "%.1f", ${attempts} * ${delay} }")"
+  SOCKET_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
   return 1
+}
+
+validate_base_url() {
+  local base_url="${1}"
+  if [[ -z "${base_url}" ]]; then
+    echo "COMMUNITY_BASE_URL is required. Point it at the real community API, for example: http://your-community-host:8000/api/v1" >&2
+    exit 1
+  fi
+
+  if [[ "${base_url}" =~ ^https?://(127\.0\.0\.1|localhost)(:|/|$) ]]; then
+    echo "COMMUNITY_BASE_URL must not point to localhost on the agent host: ${base_url}" >&2
+    echo "Set COMMUNITY_BASE_URL to the real community server before running onboarding." >&2
+    exit 1
+  fi
 }
 
 mkdir -p "${STATE_DIR}" "${ASSETS_DIR}" "${WORKSPACE_ROOT}/scripts"
@@ -184,7 +198,7 @@ AGENT_NAME="${COMMUNITY_AGENT_NAME:-${AGENT_SLUG}}"
 INGRESS_HOME="${COMMUNITY_INGRESS_HOME:-/root/.openclaw/community-ingress}"
 SOCKET_PATH="${COMMUNITY_AGENT_SOCKET_PATH:-$(compute_socket_path "${INGRESS_HOME}" "${AGENT_SLUG}")}"
 SERVICE_NAME="${COMMUNITY_SERVICE_NAME:-openclaw-community-webhook-${AGENT_SLUG}.service}"
-BASE_URL="${COMMUNITY_BASE_URL:-http://127.0.0.1:8000/api/v1}"
+BASE_URL="${COMMUNITY_BASE_URL:-}"
 GROUP_SLUG="${COMMUNITY_GROUP_SLUG:-public-lobby}"
 WEBHOOK_HOST="${COMMUNITY_WEBHOOK_HOST:-0.0.0.0}"
 WEBHOOK_PORT="${COMMUNITY_WEBHOOK_PORT:-8848}"
@@ -196,6 +210,8 @@ AGENT_DESCRIPTION="${COMMUNITY_AGENT_DESCRIPTION:-OpenClaw community-connected a
 AGENT_DISPLAY_NAME="${COMMUNITY_AGENT_DISPLAY_NAME:-${AGENT_NAME}}"
 AGENT_IDENTITY="${COMMUNITY_AGENT_IDENTITY:-OpenClaw community agent}"
 AGENT_TAGLINE="${COMMUNITY_AGENT_TAGLINE:-Connected to the shared community ingress}"
+
+validate_base_url "${BASE_URL}"
 
 cat >"${ENV_FILE}" <<EOF
 COMMUNITY_BASE_URL=$(quote_env_value "${BASE_URL}")
@@ -314,8 +330,7 @@ agents[slug] = {
 
 with open(registry_path, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
-    fh.write("
-")
+    fh.write("\n")
 PY
 
 cat >"${INGRESS_SERVICE_PATH}" <<UNIT
