@@ -9,6 +9,8 @@ TARGET_STATE_DIR="${TARGET_WORKSPACE}/.openclaw"
 TARGET_TEMPLATE_HOME="${TARGET_STATE_DIR}/community-agent-template"
 TARGET_ASSETS="${TARGET_TEMPLATE_HOME}/assets"
 TARGET_SKILLS="${TARGET_WORKSPACE}/skills"
+BOOTSTRAP_METADATA_PATH="${TARGET_STATE_DIR}/community-agent.bootstrap.json"
+ENV_FILE_PATH="${TARGET_STATE_DIR}/community-agent.env"
 
 if [[ -f "${BOOTSTRAP_CONFIG}" ]]; then
   # shellcheck disable=SC1090
@@ -26,6 +28,12 @@ derive_agent_slug() {
     candidate="openclaw-agent"
   fi
   printf '%s' "${candidate}"
+}
+
+quote_env_value() {
+  local value="${1-}"
+  value="${value//\'/\'\\\'\'}"
+  printf "'%s'" "${value}"
 }
 
 AGENT_SLUG="${COMMUNITY_AGENT_HANDLE:-$(derive_agent_slug)}"
@@ -61,31 +69,42 @@ rm -rf "${TARGET_SKILLS}/CommunityIntegrationSkill"
 cp -R "${TEMPLATE_ROOT}/skills/CommunityIntegrationSkill" "${TARGET_SKILLS}/CommunityIntegrationSkill"
 install -m 0644 "${TEMPLATE_ROOT}/community-agent.env.example" "${TARGET_STATE_DIR}/community-agent.env.example"
 
-cat >"${TARGET_STATE_DIR}/community-agent.env" <<EOF
-COMMUNITY_BASE_URL=${COMMUNITY_BASE_URL_VALUE}
-COMMUNITY_GROUP_SLUG=${COMMUNITY_GROUP_SLUG_VALUE}
-COMMUNITY_SERVICE_NAME=${COMMUNITY_SERVICE_NAME_VALUE}
-COMMUNITY_AGENT_NAME=${AGENT_NAME}
-COMMUNITY_AGENT_DESCRIPTION=${COMMUNITY_AGENT_DESCRIPTION_VALUE}
-COMMUNITY_TEMPLATE_HOME=${TARGET_TEMPLATE_HOME}
-COMMUNITY_WEBHOOK_HOST=${COMMUNITY_WEBHOOK_HOST_VALUE}
-COMMUNITY_WEBHOOK_PORT=${COMMUNITY_WEBHOOK_PORT_VALUE}
-COMMUNITY_WEBHOOK_PATH=${COMMUNITY_WEBHOOK_PATH_VALUE}
-COMMUNITY_SEND_PATH=${COMMUNITY_SEND_PATH_VALUE}
-COMMUNITY_WEBHOOK_PUBLIC_HOST=${COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE}
-COMMUNITY_WEBHOOK_PUBLIC_URL=${COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE}
-COMMUNITY_RESET_STATE_ON_START=0
-COMMUNITY_AGENT_DISPLAY_NAME=${COMMUNITY_AGENT_DISPLAY_NAME_VALUE}
-COMMUNITY_AGENT_HANDLE=${AGENT_SLUG}
-COMMUNITY_AGENT_IDENTITY=${COMMUNITY_AGENT_IDENTITY_VALUE}
-COMMUNITY_AGENT_TAGLINE=${COMMUNITY_AGENT_TAGLINE_VALUE}
-COMMUNITY_AGENT_BIO=${COMMUNITY_AGENT_BIO:-}
-COMMUNITY_AGENT_AVATAR_TEXT=${COMMUNITY_AGENT_AVATAR_TEXT:-}
-COMMUNITY_AGENT_ACCENT_COLOR=${COMMUNITY_AGENT_ACCENT_COLOR:-}
-COMMUNITY_AGENT_EXPERTISE=${COMMUNITY_AGENT_EXPERTISE:-}
-MODEL_BASE_URL=${MODEL_BASE_URL_VALUE}
-MODEL_API_KEY=${MODEL_API_KEY_VALUE}
-MODEL_ID=${MODEL_ID_VALUE}
+{
+  printf 'COMMUNITY_BASE_URL=%s\n' "$(quote_env_value "${COMMUNITY_BASE_URL_VALUE}")"
+  printf 'COMMUNITY_GROUP_SLUG=%s\n' "$(quote_env_value "${COMMUNITY_GROUP_SLUG_VALUE}")"
+  printf 'COMMUNITY_SERVICE_NAME=%s\n' "$(quote_env_value "${COMMUNITY_SERVICE_NAME_VALUE}")"
+  printf 'COMMUNITY_AGENT_NAME=%s\n' "$(quote_env_value "${AGENT_NAME}")"
+  printf 'COMMUNITY_AGENT_DESCRIPTION=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_DESCRIPTION_VALUE}")"
+  printf 'COMMUNITY_TEMPLATE_HOME=%s\n' "$(quote_env_value "${TARGET_TEMPLATE_HOME}")"
+  printf 'COMMUNITY_WEBHOOK_HOST=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_HOST_VALUE}")"
+  printf 'COMMUNITY_WEBHOOK_PORT=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PORT_VALUE}")"
+  printf 'COMMUNITY_WEBHOOK_PATH=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PATH_VALUE}")"
+  printf 'COMMUNITY_SEND_PATH=%s\n' "$(quote_env_value "${COMMUNITY_SEND_PATH_VALUE}")"
+  printf 'COMMUNITY_WEBHOOK_PUBLIC_HOST=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE}")"
+  printf 'COMMUNITY_WEBHOOK_PUBLIC_URL=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE}")"
+  printf 'COMMUNITY_RESET_STATE_ON_START=%s\n' "$(quote_env_value "0")"
+  printf 'COMMUNITY_AGENT_DISPLAY_NAME=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_DISPLAY_NAME_VALUE}")"
+  printf 'COMMUNITY_AGENT_HANDLE=%s\n' "$(quote_env_value "${AGENT_SLUG}")"
+  printf 'COMMUNITY_AGENT_IDENTITY=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_IDENTITY_VALUE}")"
+  printf 'COMMUNITY_AGENT_TAGLINE=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_TAGLINE_VALUE}")"
+  printf 'COMMUNITY_AGENT_BIO=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_BIO:-}")"
+  printf 'COMMUNITY_AGENT_AVATAR_TEXT=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_AVATAR_TEXT:-}")"
+  printf 'COMMUNITY_AGENT_ACCENT_COLOR=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_ACCENT_COLOR:-}")"
+  printf 'COMMUNITY_AGENT_EXPERTISE=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_EXPERTISE:-}")"
+  printf 'MODEL_BASE_URL=%s\n' "$(quote_env_value "${MODEL_BASE_URL_VALUE}")"
+  printf 'MODEL_API_KEY=%s\n' "$(quote_env_value "${MODEL_API_KEY_VALUE}")"
+  printf 'MODEL_ID=%s\n' "$(quote_env_value "${MODEL_ID_VALUE}")"
+} >"${ENV_FILE_PATH}"
+
+cat >"${BOOTSTRAP_METADATA_PATH}" <<EOF
+{
+  "agent_slug": "${AGENT_SLUG}",
+  "service_name": "${COMMUNITY_SERVICE_NAME_VALUE}",
+  "community_base_url": "${COMMUNITY_BASE_URL_VALUE}",
+  "webhook_port": ${COMMUNITY_WEBHOOK_PORT_VALUE},
+  "webhook_path": "${COMMUNITY_WEBHOOK_PATH_VALUE}",
+  "send_path": "${COMMUNITY_SEND_PATH_VALUE}"
+}
 EOF
 
 install -m 0644 "${TEMPLATE_ROOT}/community-bootstrap.env" "${TARGET_STATE_DIR}/community-bootstrap.env"
@@ -104,7 +123,10 @@ Skill:
   ${TARGET_SKILLS}/CommunityIntegrationSkill
 
 Env file:
-  ${TARGET_STATE_DIR}/community-agent.env
+  ${ENV_FILE_PATH}
+
+Bootstrap metadata:
+  ${BOOTSTRAP_METADATA_PATH}
 
 Template home:
   ${TARGET_TEMPLATE_HOME}

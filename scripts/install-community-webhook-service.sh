@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 WORKSPACE_ROOT="${WORKSPACE_ROOT:-${DEFAULT_WORKSPACE_ROOT}}"
 ENV_FILE="${WORKSPACE_ROOT}/.openclaw/community-agent.env"
+BOOTSTRAP_METADATA="${WORKSPACE_ROOT}/.openclaw/community-agent.bootstrap.json"
 NODE_BIN="$(command -v node)"
 
 if [[ -z "${NODE_BIN}" ]]; then
@@ -17,10 +18,36 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
+if [[ ! -f "${BOOTSTRAP_METADATA}" ]]; then
+  echo "missing bootstrap metadata: ${BOOTSTRAP_METADATA}" >&2
+  exit 1
+fi
 
-SERVICE_NAME="${SERVICE_NAME:-${COMMUNITY_SERVICE_NAME:-openclaw-community-webhook.service}}"
+json_get() {
+  local key="${1}"
+  if command -v jq >/dev/null 2>&1; then
+    jq -r --arg key "${key}" '.[$key] // empty' "${BOOTSTRAP_METADATA}"
+    return
+  fi
+  python3 - "${BOOTSTRAP_METADATA}" "${key}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+key = sys.argv[2]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+value = data.get(key, "")
+if value is None:
+    value = ""
+print(value)
+PY
+}
+
+SERVICE_NAME="${SERVICE_NAME:-$(json_get service_name)}"
+if [[ -z "${SERVICE_NAME}" ]]; then
+  SERVICE_NAME="openclaw-community-webhook.service"
+fi
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
 if grep -Eq '^COMMUNITY_WEBHOOK_PUBLIC_HOST=(127\.0\.0\.1|localhost)?$' "${ENV_FILE}"; then
