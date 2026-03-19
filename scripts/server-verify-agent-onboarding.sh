@@ -38,6 +38,22 @@ print(data.get(key, "") or "")
 PY
 }
 
+registry_socket_path() {
+  local registry_path="$1"
+  local slug="$2"
+  python3 - "$registry_path" "$slug" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+slug = sys.argv[2]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+route = (data.get("agents") or {}).get(slug) or {}
+print(route.get("socket_path", "") or "")
+PY
+}
+
 cleanup_agent_service() {
   local service_name="$1"
   local service_path="/etc/systemd/system/${service_name}"
@@ -168,6 +184,10 @@ remove_route_slug "$ROUTE_REGISTRY" "$TEST_SLUG"
 rm -rf "$TEST_ROOT"
 rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY"
 systemctl daemon-reload >/dev/null 2>&1 || true
+REGISTRY_SOCKET_PATH=""
+EXPECTED_SOCKET_PATH=""
+ACTUAL_SOCKET_PATH="missing"
+SOCKET_READY=0
 log_pass "fresh workspace prepared"
 
 if bash "$TEMPLATE_ROOT/scripts/bootstrap-community-agent-template.sh" "$WORKSPACE_ROOT" >/tmp/${TEST_SLUG}.bootstrap.log 2>&1; then
@@ -180,6 +200,7 @@ if [[ -f "$BOOTSTRAP_METADATA" ]]; then
   AGENT_SERVICE_NAME="$(json_get "$BOOTSTRAP_METADATA" service_name)"
   TEST_SLUG="$(json_get "$BOOTSTRAP_METADATA" agent_slug)"
   SOCKET_PATH="$(json_get "$BOOTSTRAP_METADATA" socket_path)"
+  EXPECTED_SOCKET_PATH="$SOCKET_PATH"
   SEND_PATH="$(json_get "$BOOTSTRAP_METADATA" send_path)"
   WEBHOOK_PATH="$(json_get "$BOOTSTRAP_METADATA" webhook_path)"
   INGRESS_HOME="$(json_get "$BOOTSTRAP_METADATA" ingress_home)"
@@ -201,23 +222,8 @@ run_step "agent service" systemctl is-active --quiet "$AGENT_SERVICE_NAME"
 run_step "ingress owns 8848" check_ingress_owns_8848
 
 if [[ -n "$TEST_SLUG" && -f "$ROUTE_REGISTRY" ]]; then
-  if python3 - "$ROUTE_REGISTRY" "$TEST_SLUG" "$SOCKET_PATH" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-slug = sys.argv[2]
-expected_socket_path = sys.argv[3]
-with open(path, "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-route = (data.get("agents") or {}).get(slug)
-if not route:
-    raise SystemExit(1)
-if route.get("socket_path") != expected_socket_path:
-    raise SystemExit(1)
-print(json.dumps(route, ensure_ascii=False))
-PY
-  then
+  REGISTRY_SOCKET_PATH="$(registry_socket_path "$ROUTE_REGISTRY" "$TEST_SLUG")"
+  if [[ -n "$REGISTRY_SOCKET_PATH" && "$REGISTRY_SOCKET_PATH" == "$EXPECTED_SOCKET_PATH" ]]; then
     log_pass "route registry"
   else
     log_fail "route registry missing slug"
@@ -226,10 +232,16 @@ else
   log_fail "route registry missing slug"
 fi
 
-if wait_for_socket "$SOCKET_PATH" 50 0.2; then
+if wait_for_socket "$EXPECTED_SOCKET_PATH" 50 0.2; then
+  SOCKET_READY=1
+  ACTUAL_SOCKET_PATH="$EXPECTED_SOCKET_PATH"
   log_pass "socket ready"
 else
-  log_fail "socket missing"
+  if systemctl is-active --quiet "$AGENT_SERVICE_NAME"; then
+    log_fail "agent service running but socket not created"
+  else
+    log_fail "socket missing"
+  fi
 fi
 
 if wait_for_http "$HEALTHZ_URL" 50 0.2 "$HEALTHZ_RESPONSE_BODY" && verify_ingress_healthz "$HEALTHZ_RESPONSE_BODY"; then
@@ -270,7 +282,9 @@ echo "INFO test_root ${TEST_ROOT}"
 echo "INFO ingress_service ${INGRESS_SERVICE_NAME}"
 echo "INFO agent_service ${AGENT_SERVICE_NAME}"
 echo "INFO route_registry ${ROUTE_REGISTRY}"
-echo "INFO socket_path ${SOCKET_PATH}"
+echo "INFO socket_path_expected ${EXPECTED_SOCKET_PATH}"
+echo "INFO socket_path_registry ${REGISTRY_SOCKET_PATH}"
+echo "INFO socket_path_filesystem ${ACTUAL_SOCKET_PATH}"
 echo "INFO healthz_url ${HEALTHZ_URL}"
 
 if [[ "$FAILURES" -eq 0 ]]; then
