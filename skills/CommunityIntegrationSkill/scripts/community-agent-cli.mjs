@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -86,6 +87,8 @@ function loadEnvFile(envPath) {
 let runtimePromise = null;
 let loadedContext = null;
 const COMMAND_TIMEOUT_MS = Number(process.env.COMMUNITY_CLI_TIMEOUT_MS || '45000');
+const COMMAND_REQUEST_TIMEOUT_MS = Number(process.env.COMMUNITY_CLI_REQUEST_TIMEOUT_MS || '90000');
+const SEND_IDEMPOTENCY_TTL_MS = Number(process.env.COMMUNITY_SEND_IDEMPOTENCY_TTL_MS || '600000');
 let currentCommand = 'status';
 let currentPhase = 'startup';
 
@@ -111,6 +114,105 @@ async function flushStreams() {
     new Promise((resolve) => process.stdout.write('', resolve)),
     new Promise((resolve) => process.stderr.write('', resolve)),
   ]);
+}
+
+function sendCacheFilePath() {
+  const workspaceRoot = loadedContext?.workspaceRoot || resolveWorkspaceRoot();
+  return path.join(workspaceRoot, ".openclaw", "community-send-idempotency.json");
+}
+
+function loadSendCache() {
+  const cachePath = sendCacheFilePath();
+  try {
+    return JSON.parse(fs.readFileSync(cachePath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function saveSendCache(cache) {
+  const cachePath = sendCacheFilePath();
+  fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+  fs.writeFileSync(cachePath, `${JSON.stringify(cache, null, 2)}
+`);
+}
+
+function pruneSendCache(cache) {
+  const cutoff = Date.now() - SEND_IDEMPOTENCY_TTL_MS;
+  const next = {};
+  for (const [key, entry] of Object.entries(cache || {})) {
+    const updatedAt = Number(entry?.updatedAt || 0);
+    if (updatedAt >= cutoff) {
+      next[key] = entry;
+    }
+  }
+  return next;
+}
+
+function computeSendIdempotencyKey(payload) {
+  return crypto.createHash("sha256").update(JSON.stringify(payload || {})).digest("hex");
+}
+
+function upsertSendCacheEntry(idempotencyKey, patch) {
+  const cache = pruneSendCache(loadSendCache());
+  cache[idempotencyKey] = {
+    ...(cache[idempotencyKey] || {}),
+    ...patch,
+    updatedAt: Date.now(),
+  };
+  saveSendCache(cache);
+  return cache[idempotencyKey];
+}
+
+function recentSendCacheEntry(idempotencyKey) {
+  const cache = pruneSendCache(loadSendCache());
+  const entry = cache[idempotencyKey] || null;
+  saveSendCache(cache);
+  return entry;
+}
+
+function buildSyntheticSuccessResponse(status, data) {
+  return new Response(JSON.stringify({ success: true, data }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function withSendRequestSuccessHandling(idempotencyKey, callback) {
+  const originalFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input?.url || "";
+    const method = String(init?.method || input?.method || "GET").toUpperCase();
+    if (method === "POST" && /\/messages(?:\?|$)/.test(url)) {
+      const headers = new Headers(init?.headers || (typeof input !== "string" ? input?.headers : undefined) || {});
+      headers.set("Idempotency-Key", idempotencyKey);
+      const response = await originalFetch(input, {
+        ...init,
+        headers,
+        signal: AbortSignal.timeout(COMMAND_REQUEST_TIMEOUT_MS),
+      });
+      trace("send.api_response_headers", { status: response.status, ok: response.ok, idempotencyKey });
+      if (response.ok) {
+        upsertSendCacheEntry(idempotencyKey, {
+          state: "sent",
+          status: response.status,
+        });
+        return buildSyntheticSuccessResponse(response.status, {
+          accepted: true,
+          status: response.status,
+          idempotency_key: idempotencyKey,
+        });
+      }
+      return response;
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    return await callback();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 }
 
 function startCommandWatchdog() {
@@ -210,7 +312,7 @@ async function cmdStatus() {
 }
 
 async function cmdSend(options) {
-  trace("send.validate_input");
+  trace("send.command_start");
   const text = String(options.text || "").trim();
   if (!text) {
     throw new Error("send requires --text");
@@ -229,21 +331,63 @@ async function cmdSend(options) {
       text,
     },
   };
-  trace("send.api_request_sending", { groupId: payload.group_id, messageType: payload.message_type });
-  const result = await runtime.sendCommunityMessage(state, null, payload);
-  trace("send.api_request_returned");
-  console.log(JSON.stringify({ ok: true, command: "send", result }, null, 2));
-  trace("send.success");
+  const idempotencyKey = computeSendIdempotencyKey({
+    agentId: state.agentId || null,
+    group_id: payload.group_id,
+    thread_id: payload.thread_id,
+    parent_message_id: payload.parent_message_id,
+    task_id: payload.task_id,
+    target_agent_id: payload.target_agent_id,
+    target_agent: payload.target_agent,
+    message_type: payload.message_type,
+    text,
+  });
+  payload.content = {
+    ...(payload.content || {}),
+    metadata: {
+      ...((payload.content?.metadata && typeof payload.content.metadata === "object") ? payload.content.metadata : {}),
+      idempotency_key: idempotencyKey,
+    },
+  };
+
+  const existing = recentSendCacheEntry(idempotencyKey);
+  if (existing && (existing.state === "pending" || existing.state === "sent")) {
+    trace("send.success_condition_satisfied", { duplicate: true, idempotencyKey, cacheState: existing.state });
+    console.log(JSON.stringify({ ok: true, command: "send", duplicate: true, idempotencyKey, cacheState: existing.state }, null, 2));
+    trace("send.command_exit");
+    return;
+  }
+
+  upsertSendCacheEntry(idempotencyKey, {
+    state: "pending",
+    groupId: payload.group_id,
+    messageType: payload.message_type,
+  });
+
+  trace("send.request_start", { groupId: payload.group_id, messageType: payload.message_type, idempotencyKey });
+  try {
+    const result = await withSendRequestSuccessHandling(idempotencyKey, () => runtime.sendCommunityMessage(state, null, payload));
+    trace("send.request_response_received", { idempotencyKey });
+    trace("send.success_condition_satisfied", { idempotencyKey });
+    console.log(JSON.stringify({ ok: true, command: "send", result, idempotencyKey }, null, 2));
+    trace("send.command_exit");
+  } catch (error) {
+    upsertSendCacheEntry(idempotencyKey, {
+      state: "uncertain",
+      error: error.message,
+    });
+    throw error;
+  }
 }
 
 async function cmdProfileSync() {
-  trace('profile-sync.ensure_state_start');
-  const { runtime, state } = await ensureState();
-  trace('profile-sync.ensure_state_done', { hasToken: Boolean(state.token), groupId: state.groupId || null });
-  trace('profile-sync.api_request_sending');
+  trace("profile-sync.command_start");
+  const { runtime, state } = await requireSavedState({ token: true });
+  trace("profile-sync.request_start", { hasToken: Boolean(state.token), groupId: state.groupId || null });
   const updated = await runtime.updateCommunityProfile(state);
-  trace('profile-sync.api_request_returned');
+  trace("profile-sync.request_response_received");
   runtime.saveCommunityState(updated);
+  trace("profile-sync.success_condition_satisfied");
   console.log(
     JSON.stringify(
       {
@@ -257,7 +401,7 @@ async function cmdProfileSync() {
       2,
     ),
   );
-  trace("profile-sync.success");
+  trace("profile-sync.command_exit");
 }
 
 async function cmdProfileUpdate(options) {
@@ -327,7 +471,7 @@ const watchdog = startCommandWatchdog();
 main()
   .then(async () => {
     clearTimeout(watchdog);
-    trace('command_exit', { code: 0 });
+    trace("command_exit", { code: 0 });
     await flushStreams();
     process.exit(0);
   })
