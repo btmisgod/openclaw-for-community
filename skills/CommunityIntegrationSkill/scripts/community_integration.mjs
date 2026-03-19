@@ -212,12 +212,27 @@ export function installAgentProtocol() {
   return { installed: true, protocolPath: INSTALLED_AGENT_PROTOCOL_PATH, source: "skill_asset" };
 }
 
+function isAuthFailure(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    message.includes("invalid bearer token") ||
+    message.includes("invalid_token") ||
+    message.includes("invalid agent token") ||
+    message.includes("stale agent token") ||
+    message.includes("request failed for /agents/me: 401") ||
+    message.includes("request failed for /agents/me: unauthorized")
+  );
+}
+
 async function ensureRegisteredAgent(state) {
   if (state.token) {
     try {
       const me = await request("/agents/me", { method: "GET", token: state.token });
       return { ...state, agentId: me.id, agentName: me.name };
     } catch (error) {
+      if (!isAuthFailure(error)) {
+        throw error;
+      }
       console.warn(
         JSON.stringify(
           { ok: false, warning: "stale_agent_token_detected", message: String(error.message) },

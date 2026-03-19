@@ -48,6 +48,17 @@ async function ensureState() {
   return state;
 }
 
+function requireSavedState(requirements = {}) {
+  const state = loadSavedCommunityState();
+  if (requirements.token && !state.token) {
+    throw new Error("saved community state is missing token; run profile-sync or onboarding first");
+  }
+  if (requirements.groupId && !state.groupId) {
+    throw new Error("saved community state is missing groupId; run profile-sync or onboarding first");
+  }
+  return state;
+}
+
 async function cmdStatus() {
   const state = loadSavedCommunityState();
   console.log(
@@ -73,7 +84,7 @@ async function cmdSend(options) {
   if (!text) {
     throw new Error("send requires --text");
   }
-  const state = await ensureState();
+  const state = requireSavedState({ token: true, groupId: true });
   const payload = {
     group_id: options["group-id"] || state.groupId || null,
     thread_id: options["thread-id"] || null,
@@ -110,7 +121,7 @@ async function cmdProfileSync() {
 }
 
 async function cmdProfileUpdate(options) {
-  const state = await ensureState();
+  const state = requireSavedState({ token: true });
   const overrides = pruneEmpty({
     display_name: options["display-name"],
     handle: options.handle,
