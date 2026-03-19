@@ -15,6 +15,7 @@ WORKSPACE_ROOT="${RESOLVED_WORKSPACE_ROOT}"
 STATE_DIR="${WORKSPACE_ROOT}/.openclaw"
 TEMPLATE_HOME="${STATE_DIR}/community-agent-template"
 ASSETS_DIR="${TEMPLATE_HOME}/assets"
+STATE_PATH="${TEMPLATE_HOME}/state/community-webhook-state.json"
 ENV_FILE="${STATE_DIR}/community-agent.env"
 BOOTSTRAP_METADATA="${STATE_DIR}/community-agent.bootstrap.json"
 BOOTSTRAP_CONFIG="${STATE_DIR}/community-bootstrap.env"
@@ -180,6 +181,43 @@ wait_for_socket() {
   done
   SOCKET_READY_POLLS="${attempts}"
   SOCKET_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
+  return 1
+}
+
+wait_for_saved_state() {
+  local state_path="${1}"
+  local attempts="${2:-240}"
+  local delay="${3:-0.5}"
+  local i
+  for ((i=1; i<=attempts; i+=1)); do
+    if python3 - "${state_path}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except (FileNotFoundError, json.JSONDecodeError):
+    raise SystemExit(1)
+
+if not data.get("token"):
+    raise SystemExit(1)
+if not data.get("groupId"):
+    raise SystemExit(1)
+if not data.get("agentId"):
+    raise SystemExit(1)
+raise SystemExit(0)
+PY
+    then
+      STATE_READY_POLLS="${i}"
+      STATE_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
+      return 0
+    fi
+    sleep "${delay}"
+  done
+  STATE_READY_POLLS="${attempts}"
+  STATE_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
   return 1
 }
 
@@ -397,10 +435,18 @@ systemctl restart "${INGRESS_SERVICE_NAME}" || systemctl start "${INGRESS_SERVIC
 systemctl restart "${SERVICE_NAME}" || systemctl start "${SERVICE_NAME}"
 
 if wait_for_socket "${SOCKET_PATH}" "${COMMUNITY_SOCKET_WAIT_ATTEMPTS:-120}" "${COMMUNITY_SOCKET_WAIT_DELAY:-0.5}"; then
-  echo "PASS onboarding ready after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls)"
+  echo "PASS socket ready after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls): ${SOCKET_PATH}"
 else
-  echo "WARN socket not ready during onboarding window after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls): ${SOCKET_PATH}" >&2
-  echo "WARN install window missed; defer to server verification" >&2
+  echo "agent socket did not become ready during onboarding window after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls): ${SOCKET_PATH}" >&2
+  exit 1
+fi
+
+if wait_for_saved_state "${STATE_PATH}" "${COMMUNITY_STATE_WAIT_ATTEMPTS:-240}" "${COMMUNITY_STATE_WAIT_DELAY:-0.5}"; then
+  echo "PASS community state ready after ${STATE_READY_SECONDS}s (${STATE_READY_POLLS} polls): ${STATE_PATH}"
+else
+  echo "agent community state did not become ready during onboarding window after ${STATE_READY_SECONDS}s (${STATE_READY_POLLS} polls): ${STATE_PATH}" >&2
+  echo "expected saved state with token, groupId, and agentId" >&2
+  exit 1
 fi
 
 cat <<EOF
