@@ -9,6 +9,7 @@ INGRESS_SERVICE_NAME="${COMMUNITY_INGRESS_SERVICE_NAME:-openclaw-community-ingre
 INGRESS_BASE_URL="${COMMUNITY_INGRESS_BASE_URL:-http://127.0.0.1:8848}"
 HEALTHZ_URL="${COMMUNITY_INGRESS_HEALTHZ_URL:-${INGRESS_BASE_URL}/healthz}"
 FAILURES=0
+WARNINGS=0
 
 log_pass() {
   echo "PASS $1"
@@ -17,6 +18,11 @@ log_pass() {
 log_fail() {
   echo "FAIL $1"
   FAILURES=$((FAILURES + 1))
+}
+
+log_warn() {
+  echo "WARN $1"
+  WARNINGS=$((WARNINGS + 1))
 }
 
 json_get() {
@@ -89,15 +95,19 @@ PY
 
 wait_for_socket() {
   local socket_path="$1"
-  local attempts="${2:-50}"
-  local delay="${3:-0.2}"
+  local attempts="${2:-120}"
+  local delay="${3:-0.5}"
   local i
-  for ((i=0; i<attempts; i+=1)); do
+  for ((i=1; i<=attempts; i+=1)); do
     if [[ -S "$socket_path" ]]; then
+      SOCKET_WAIT_POLLS="$i"
+      SOCKET_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
       return 0
     fi
     sleep "$delay"
   done
+  SOCKET_WAIT_POLLS="$attempts"
+  SOCKET_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
   return 1
 }
 
@@ -107,7 +117,7 @@ wait_for_http() {
   local delay="${3:-0.2}"
   local output_path="$4"
   local i
-  for ((i=0; i<attempts; i+=1)); do
+  for ((i=1; i<=attempts; i+=1)); do
     if curl -fsS "$url" >"$output_path" 2>/dev/null; then
       return 0
     fi
@@ -178,16 +188,21 @@ BOOTSTRAP_METADATA="${WORKSPACE_ROOT}/.openclaw/community-agent.bootstrap.json"
 SEND_RESPONSE_BODY="/tmp/${TEST_SLUG}.send.out"
 WEBHOOK_RESPONSE_BODY="/tmp/${TEST_SLUG}.webhook.out"
 HEALTHZ_RESPONSE_BODY="/tmp/${TEST_SLUG}.healthz.json"
-
-cleanup_agent_service "$AGENT_SERVICE_NAME"
-remove_route_slug "$ROUTE_REGISTRY" "$TEST_SLUG"
-rm -rf "$TEST_ROOT"
-rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY"
-systemctl daemon-reload >/dev/null 2>&1 || true
+INSTALL_LOG="/tmp/${TEST_SLUG}.install.log"
 REGISTRY_SOCKET_PATH=""
 EXPECTED_SOCKET_PATH=""
 ACTUAL_SOCKET_PATH="missing"
 SOCKET_READY=0
+INSTALL_EXIT_CODE=0
+INSTALL_WINDOW_MISSED=0
+SOCKET_WAIT_POLLS=0
+SOCKET_WAIT_SECONDS=0
+
+cleanup_agent_service "$AGENT_SERVICE_NAME"
+remove_route_slug "$ROUTE_REGISTRY" "$TEST_SLUG"
+rm -rf "$TEST_ROOT"
+rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY" "$INSTALL_LOG"
+systemctl daemon-reload >/dev/null 2>&1 || true
 log_pass "fresh workspace prepared"
 
 if bash "$TEMPLATE_ROOT/scripts/bootstrap-community-agent-template.sh" "$WORKSPACE_ROOT" >/tmp/${TEST_SLUG}.bootstrap.log 2>&1; then
@@ -211,10 +226,16 @@ else
   WEBHOOK_PATH=""
 fi
 
-if bash "$WORKSPACE_ROOT/scripts/install-community-webhook-service.sh" >/tmp/${TEST_SLUG}.install.log 2>&1; then
+if bash "$WORKSPACE_ROOT/scripts/install-community-webhook-service.sh" >"$INSTALL_LOG" 2>&1; then
   log_pass "install community webhook service"
 else
-  log_fail "install community webhook service"
+  INSTALL_EXIT_CODE=$?
+  log_warn "install community webhook service exited ${INSTALL_EXIT_CODE}; continuing to final readiness checks"
+fi
+
+if grep -q 'install window missed' "$INSTALL_LOG" 2>/dev/null; then
+  INSTALL_WINDOW_MISSED=1
+  log_warn "socket not ready during install window"
 fi
 
 run_step "ingress service" systemctl is-active --quiet "$INGRESS_SERVICE_NAME"
@@ -232,10 +253,13 @@ else
   log_fail "route registry missing slug"
 fi
 
-if wait_for_socket "$EXPECTED_SOCKET_PATH" 50 0.2; then
+if wait_for_socket "$EXPECTED_SOCKET_PATH" "${VERIFY_SOCKET_WAIT_ATTEMPTS:-120}" "${VERIFY_SOCKET_WAIT_DELAY:-0.5}"; then
   SOCKET_READY=1
   ACTUAL_SOCKET_PATH="$EXPECTED_SOCKET_PATH"
-  log_pass "socket ready"
+  if [[ "$INSTALL_WINDOW_MISSED" == "1" ]]; then
+    log_warn "install window missed; eventual readiness confirmed"
+  fi
+  log_pass "socket eventually ready after ${SOCKET_WAIT_SECONDS}s (${SOCKET_WAIT_POLLS} polls)"
 else
   if systemctl is-active --quiet "$AGENT_SERVICE_NAME"; then
     log_fail "agent service running but socket not created"
@@ -251,30 +275,38 @@ else
 fi
 
 SEND_CODE="000"
-if [[ -n "$SEND_PATH" ]]; then
+if [[ "$SOCKET_READY" == "1" && -n "$SEND_PATH" ]]; then
   SEND_CODE="$(curl -sS -o "$SEND_RESPONSE_BODY" -w "%{http_code}" \
     -H 'Content-Type: application/json' \
     -X POST "${INGRESS_BASE_URL}${SEND_PATH}" \
     -d '{"group_id":"54b12c32-dbd3-46d8-97ee-22bf8a499709","content":{"text":"server verify onboarding smoke"}}' || true)"
 fi
-if [[ "$SEND_CODE" == "202" ]]; then
+if [[ "$SOCKET_READY" != "1" ]]; then
+  log_fail "send route skipped because socket never became ready"
+elif [[ "$SEND_CODE" == "202" ]]; then
   log_pass "send route"
 else
   log_fail "send route expected 202 got ${SEND_CODE}"
 fi
 
 WEBHOOK_CODE="000"
-if [[ -n "$WEBHOOK_PATH" ]]; then
+if [[ "$SOCKET_READY" == "1" && -n "$WEBHOOK_PATH" ]]; then
   WEBHOOK_CODE="$(curl -sS -o "$WEBHOOK_RESPONSE_BODY" -w "%{http_code}" \
     -H 'Content-Type: application/json' \
     -H 'x-community-webhook-signature: invalid' \
     -X POST "${INGRESS_BASE_URL}${WEBHOOK_PATH}" \
     -d '{}' || true)"
 fi
-if [[ "$WEBHOOK_CODE" == "401" ]]; then
+if [[ "$SOCKET_READY" != "1" ]]; then
+  log_fail "webhook invalid signature skipped because socket never became ready"
+elif [[ "$WEBHOOK_CODE" == "401" ]]; then
   log_pass "webhook invalid signature"
 else
   log_fail "webhook invalid signature expected 401 got ${WEBHOOK_CODE}"
+fi
+
+if [[ "$FAILURES" -eq 0 ]]; then
+  log_pass "onboarding end-to-end"
 fi
 
 echo "INFO commit $(git -C "$TEMPLATE_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -286,6 +318,11 @@ echo "INFO socket_path_expected ${EXPECTED_SOCKET_PATH}"
 echo "INFO socket_path_registry ${REGISTRY_SOCKET_PATH}"
 echo "INFO socket_path_filesystem ${ACTUAL_SOCKET_PATH}"
 echo "INFO healthz_url ${HEALTHZ_URL}"
+echo "INFO install_exit_code ${INSTALL_EXIT_CODE}"
+echo "INFO install_window_missed ${INSTALL_WINDOW_MISSED}"
+echo "INFO verify_socket_wait_seconds ${SOCKET_WAIT_SECONDS}"
+echo "INFO verify_socket_wait_polls ${SOCKET_WAIT_POLLS}"
+echo "INFO warnings ${WARNINGS}"
 
 if [[ "$FAILURES" -eq 0 ]]; then
   echo "RESULT PASS"

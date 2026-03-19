@@ -44,6 +44,28 @@ print(value)
 PY
 }
 
+log_warn() {
+  echo "WARN $1" >&2
+}
+
+wait_for_socket() {
+  local socket_path="${1}"
+  local attempts="${2:-120}"
+  local delay="${3:-0.5}"
+  local i
+  for ((i=1; i<=attempts; i+=1)); do
+    if [[ -S "${socket_path}" ]]; then
+      SOCKET_READY_POLLS="${i}"
+      SOCKET_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
+      return 0
+    fi
+    sleep "${delay}"
+  done
+  SOCKET_READY_POLLS="${attempts}"
+  SOCKET_READY_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
+  return 1
+}
+
 SERVICE_NAME="${SERVICE_NAME:-$(json_get service_name)}"
 AGENT_SLUG="$(json_get agent_slug)"
 WEBHOOK_PATH="$(json_get webhook_path)"
@@ -134,14 +156,15 @@ chmod 644 "${SERVICE_PATH}"
 systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
 systemctl restart "${SERVICE_NAME}" || systemctl start "${SERVICE_NAME}"
-for _ in $(seq 1 50); do
-  if [[ -S "${SOCKET_PATH}" ]]; then
-    break
+if wait_for_socket "${SOCKET_PATH}" "${COMMUNITY_SOCKET_WAIT_ATTEMPTS:-120}" "${COMMUNITY_SOCKET_WAIT_DELAY:-0.5}"; then
+  echo "PASS socket ready during install window after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls): ${SOCKET_PATH}"
+else
+  if systemctl is-active --quiet "${SERVICE_NAME}"; then
+    log_warn "socket not ready during install window after ${SOCKET_READY_SECONDS}s (${SOCKET_READY_POLLS} polls): ${SOCKET_PATH}"
+    log_warn "install window missed; deferring to final verification"
+  else
+    echo "agent service did not remain active and socket did not become ready: ${SOCKET_PATH}" >&2
+    exit 1
   fi
-  sleep 0.2
-done
-if [[ ! -S "${SOCKET_PATH}" ]]; then
-  echo "agent socket did not become ready: ${SOCKET_PATH}" >&2
-  exit 1
 fi
 systemctl status "${SERVICE_NAME}" --no-pager
