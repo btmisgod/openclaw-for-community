@@ -32,10 +32,12 @@ PY
 }
 
 SERVICE_NAME="$(json_get service_name)"
+INGRESS_SERVICE_NAME="openclaw-community-ingress.service"
 if [[ -z "${SERVICE_NAME}" ]]; then
   echo "missing service_name in ${BOOTSTRAP_METADATA}" >&2
   exit 1
 fi
 
+systemctl status "${INGRESS_SERVICE_NAME}" --no-pager
 systemctl status "${SERVICE_NAME}" --no-pager
-echo "zero-config smoke test completed for ${SERVICE_NAME}"
+echo "zero-config smoke test completed for ${INGRESS_SERVICE_NAME} + ${SERVICE_NAME}"

@@ -11,6 +11,8 @@ TARGET_ASSETS="${TARGET_TEMPLATE_HOME}/assets"
 TARGET_SKILLS="${TARGET_WORKSPACE}/skills"
 BOOTSTRAP_METADATA_PATH="${TARGET_STATE_DIR}/community-agent.bootstrap.json"
 ENV_FILE_PATH="${TARGET_STATE_DIR}/community-agent.env"
+AGENT_RUN_DIR="${TARGET_STATE_DIR}/run"
+INGRESS_HOME_VALUE="${COMMUNITY_INGRESS_HOME:-/root/.openclaw/community-ingress}"
 
 if [[ -f "${BOOTSTRAP_CONFIG}" ]]; then
   # shellcheck disable=SC1090
@@ -56,9 +58,12 @@ MODEL_API_KEY_VALUE="${MODEL_API_KEY:-}"
 MODEL_ID_VALUE="${MODEL_ID:-}"
 
 mkdir -p "${TARGET_SCRIPTS}" "${TARGET_STATE_DIR}" "${TARGET_TEMPLATE_HOME}" "${TARGET_ASSETS}" "${TARGET_SKILLS}"
+mkdir -p "${AGENT_RUN_DIR}"
 
 install -m 0644 "${TEMPLATE_ROOT}/scripts/community-webhook-server.mjs" "${TARGET_SCRIPTS}/community-webhook-server.mjs"
+install -m 0644 "${TEMPLATE_ROOT}/scripts/community-ingress-server.mjs" "${TARGET_SCRIPTS}/community-ingress-server.mjs"
 install -m 0755 "${TEMPLATE_ROOT}/scripts/install-community-webhook-service.sh" "${TARGET_SCRIPTS}/install-community-webhook-service.sh"
+install -m 0755 "${TEMPLATE_ROOT}/scripts/install-community-ingress-service.sh" "${TARGET_SCRIPTS}/install-community-ingress-service.sh"
 install -m 0755 "${TEMPLATE_ROOT}/scripts/install-community-runtime.sh" "${TARGET_SCRIPTS}/install-community-runtime.sh"
 install -m 0755 "${TEMPLATE_ROOT}/scripts/install-agent-protocol.sh" "${TARGET_SCRIPTS}/install-agent-protocol.sh"
 install -m 0644 "${TEMPLATE_ROOT}/community-agent.env.example" "${TARGET_STATE_DIR}/community-agent.env.example"
@@ -76,6 +81,9 @@ install -m 0644 "${TEMPLATE_ROOT}/community-agent.env.example" "${TARGET_STATE_D
   printf 'COMMUNITY_AGENT_NAME=%s\n' "$(quote_env_value "${AGENT_NAME}")"
   printf 'COMMUNITY_AGENT_DESCRIPTION=%s\n' "$(quote_env_value "${COMMUNITY_AGENT_DESCRIPTION_VALUE}")"
   printf 'COMMUNITY_TEMPLATE_HOME=%s\n' "$(quote_env_value "${TARGET_TEMPLATE_HOME}")"
+  printf 'COMMUNITY_INGRESS_HOME=%s\n' "$(quote_env_value "${INGRESS_HOME_VALUE}")"
+  printf 'COMMUNITY_TRANSPORT=%s\n' "$(quote_env_value "unix_socket")"
+  printf 'COMMUNITY_AGENT_SOCKET_PATH=%s\n' "$(quote_env_value "${AGENT_RUN_DIR}/${AGENT_SLUG}.sock")"
   printf 'COMMUNITY_WEBHOOK_HOST=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_HOST_VALUE}")"
   printf 'COMMUNITY_WEBHOOK_PORT=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PORT_VALUE}")"
   printf 'COMMUNITY_WEBHOOK_PATH=%s\n' "$(quote_env_value "${COMMUNITY_WEBHOOK_PATH_VALUE}")"
@@ -101,6 +109,8 @@ cat >"${BOOTSTRAP_METADATA_PATH}" <<EOF
   "agent_slug": "${AGENT_SLUG}",
   "service_name": "${COMMUNITY_SERVICE_NAME_VALUE}",
   "community_base_url": "${COMMUNITY_BASE_URL_VALUE}",
+  "ingress_home": "${INGRESS_HOME_VALUE}",
+  "socket_path": "${AGENT_RUN_DIR}/${AGENT_SLUG}.sock",
   "webhook_port": ${COMMUNITY_WEBHOOK_PORT_VALUE},
   "webhook_path": "${COMMUNITY_WEBHOOK_PATH_VALUE}",
   "send_path": "${COMMUNITY_SEND_PATH_VALUE}"
@@ -115,7 +125,9 @@ Template installed.
 Workspace: ${TARGET_WORKSPACE}
 Scripts:
   ${TARGET_SCRIPTS}/community-webhook-server.mjs
+  ${TARGET_SCRIPTS}/community-ingress-server.mjs
   ${TARGET_SCRIPTS}/install-community-webhook-service.sh
+  ${TARGET_SCRIPTS}/install-community-ingress-service.sh
   ${TARGET_SCRIPTS}/install-community-runtime.sh
   ${TARGET_SCRIPTS}/install-agent-protocol.sh
 

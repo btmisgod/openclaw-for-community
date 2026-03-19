@@ -26,10 +26,13 @@ const GROUP_SLUG = process.env.COMMUNITY_GROUP_SLUG || "public-lobby";
 const AGENT_NAME = process.env.COMMUNITY_AGENT_NAME || `openclaw-agent-${os.hostname()}`;
 const AGENT_SLUG = slugifyHandle(process.env.COMMUNITY_AGENT_HANDLE || AGENT_NAME);
 const AGENT_DESCRIPTION = process.env.COMMUNITY_AGENT_DESCRIPTION || "OpenClaw community-enabled agent";
+const TRANSPORT_MODE = process.env.COMMUNITY_TRANSPORT || "tcp";
 const LISTEN_HOST = process.env.COMMUNITY_WEBHOOK_HOST || "0.0.0.0";
 const LISTEN_PORT = Number(process.env.COMMUNITY_WEBHOOK_PORT || "8848");
 const WEBHOOK_PATH = process.env.COMMUNITY_WEBHOOK_PATH || `/webhook/${AGENT_SLUG}`;
 const SEND_PATH = process.env.COMMUNITY_SEND_PATH || `/send/${AGENT_SLUG}`;
+const AGENT_SOCKET_PATH =
+  process.env.COMMUNITY_AGENT_SOCKET_PATH || path.join(TEMPLATE_HOME, "run", `${AGENT_SLUG}.sock`);
 const WEBHOOK_PUBLIC_HOST = process.env.COMMUNITY_WEBHOOK_PUBLIC_HOST || "127.0.0.1";
 const WEBHOOK_PUBLIC_URL = process.env.COMMUNITY_WEBHOOK_PUBLIC_URL || "";
 const RESET_STATE_ON_START = process.env.COMMUNITY_RESET_STATE_ON_START === "1";
@@ -760,7 +763,7 @@ export async function startCommunityIntegration() {
           agent: state.agentName,
           agentId: state.agentId,
           webhookPath: WEBHOOK_PATH,
-          listen: `${LISTEN_HOST}:${LISTEN_PORT}`,
+          listen: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : `${LISTEN_HOST}:${LISTEN_PORT}`,
           skill: "CommunityIntegrationSkill",
           runtimePath: WORKSPACE_RUNTIME_PATH,
           agentProtocolPath: INSTALLED_AGENT_PROTOCOL_PATH,
@@ -817,7 +820,7 @@ export async function startCommunityIntegration() {
     });
   });
 
-  server.listen(LISTEN_PORT, LISTEN_HOST, () => {
+  const onListening = () => {
     console.log(
       JSON.stringify(
         {
@@ -829,11 +832,30 @@ export async function startCommunityIntegration() {
           webhookPath: WEBHOOK_PATH,
           sendPath: SEND_PATH,
           skill: "CommunityIntegrationSkill",
-          mode: "agent_webhook",
+          mode: TRANSPORT_MODE === "unix_socket" ? "agent_socket" : "agent_webhook",
+          socketPath: TRANSPORT_MODE === "unix_socket" ? AGENT_SOCKET_PATH : undefined,
         },
         null,
         2,
       ),
     );
-  });
+  };
+
+  if (TRANSPORT_MODE === "unix_socket") {
+    ensureDir(AGENT_SOCKET_PATH);
+    deleteFileIfExists(AGENT_SOCKET_PATH);
+    server.listen(AGENT_SOCKET_PATH, onListening);
+    process.on("exit", () => deleteFileIfExists(AGENT_SOCKET_PATH));
+    process.on("SIGINT", () => {
+      deleteFileIfExists(AGENT_SOCKET_PATH);
+      process.exit(0);
+    });
+    process.on("SIGTERM", () => {
+      deleteFileIfExists(AGENT_SOCKET_PATH);
+      process.exit(0);
+    });
+    return;
+  }
+
+  server.listen(LISTEN_PORT, LISTEN_HOST, onListening);
 }
