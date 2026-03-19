@@ -486,7 +486,7 @@ function inferIntentFromText(text) {
   if (/请|开始|继续|执行|修复|确认|提交|补充|跟进/.test(source)) {
     return "request_action";
   }
-  if (/通过|验收|concluded|关闭|闭环|决定/.test(source)) {
+  if (/验收|concluded|关闭|闭环|决定|批准|授权/.test(source)) {
     return "decide";
   }
   return "inform";
@@ -509,6 +509,29 @@ function inferFlowType(messageType, intent) {
   return "discussion";
 }
 
+function normalizeOutboundMessageType(messageType) {
+  const loweredType = String(messageType || "").trim().toLowerCase();
+  const allowed = new Set([
+    "proposal",
+    "analysis",
+    "question",
+    "claim",
+    "progress",
+    "handoff",
+    "review",
+    "decision",
+    "summary",
+    "meta",
+  ]);
+  if (allowed.has(loweredType)) {
+    return loweredType;
+  }
+  if (loweredType === "chat") {
+    return "analysis";
+  }
+  return "analysis";
+}
+
 function structuredMentionForTarget(targetAgentId, targetAgent) {
   if (!targetAgentId) {
     return null;
@@ -519,6 +542,27 @@ function structuredMentionForTarget(targetAgentId, targetAgent) {
     mention_id: targetAgentId,
     display_text: displayText,
   };
+}
+
+function pruneNullish(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => pruneNullish(item))
+      .filter((item) => item !== undefined);
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .map(([key, item]) => [key, pruneNullish(item)])
+      .filter(([, item]) => item !== undefined);
+    if (!entries.length) {
+      return undefined;
+    }
+    return Object.fromEntries(entries);
+  }
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  return value;
 }
 
 function buildSendContext(state, incomingMessage, payload) {
@@ -546,7 +590,7 @@ function buildSendContext(state, incomingMessage, payload) {
 export function buildCommunityMessage(state, sendContext, payload) {
   const baseContent = payload?.content && typeof payload.content === "object" ? { ...payload.content } : {};
   const metadata = baseContent.metadata && typeof baseContent.metadata === "object" ? { ...baseContent.metadata } : {};
-  const messageType = payload?.message_type || "analysis";
+  const messageType = normalizeOutboundMessageType(payload?.message_type || "analysis");
   const text = String(baseContent.text || "");
 
   baseContent.metadata = metadata;
@@ -594,7 +638,7 @@ export function buildCommunityMessage(state, sendContext, payload) {
 export function buildDirectedCollaborationMessage(state, sendContext, payload) {
   const normalizedPayload = {
     ...payload,
-    message_type: payload?.message_type || "analysis",
+    message_type: normalizeOutboundMessageType(payload?.message_type || "analysis"),
     content: {
       ...(payload?.content || {}),
       metadata: {
@@ -610,7 +654,7 @@ export function buildDirectedCollaborationMessage(state, sendContext, payload) {
 export async function sendCommunityMessage(state, incomingMessage, payload) {
   const sendContext = buildSendContext(state, incomingMessage, payload);
   const structuredPayload = buildCommunityMessage(state, sendContext, payload);
-  const requestBody = {
+  const requestBody = pruneNullish({
     group_id: sendContext.group_id,
     thread_id: sendContext.thread_id,
     parent_message_id: sendContext.parent_message_id,
@@ -621,7 +665,7 @@ export async function sendCommunityMessage(state, incomingMessage, payload) {
       source: "CommunityIntegrationSkill",
       reply_to: sendContext.parent_message_id,
     },
-  };
+  });
   console.log(JSON.stringify({ ok: true, outbound_structured_message: true, body: requestBody }, null, 2));
   return request("/messages", {
     method: "POST",
