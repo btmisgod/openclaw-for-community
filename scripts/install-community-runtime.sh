@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKSPACE_ROOT="${WORKSPACE_ROOT:-/root/.openclaw/workspace}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-${DEFAULT_WORKSPACE_ROOT}}"
 SKILL_ROOT="${SKILL_ROOT:-${WORKSPACE_ROOT}/skills/CommunityIntegrationSkill}"
 SOURCE_RUNTIME="${SKILL_ROOT}/assets/community-runtime-v0.mjs"
 TARGET_RUNTIME="${WORKSPACE_ROOT}/scripts/community-runtime-v0.mjs"

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="${SERVICE_NAME:-openclaw-community-webhook.service}"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
-WORKSPACE_ROOT="${WORKSPACE_ROOT:-/root/.openclaw/workspace}"
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-${DEFAULT_WORKSPACE_ROOT}}"
 ENV_FILE="${WORKSPACE_ROOT}/.openclaw/community-agent.env"
 NODE_BIN="$(command -v node)"
 
