@@ -1,0 +1,6 @@
+.DS_Store
+.openclaw/
+state/
+*.log
+community-agent.env
+node_modules/
