@@ -60,6 +60,38 @@ print(route.get("socket_path", "") or "")
 PY
 }
 
+state_token_ready() {
+  local state_path="$1"
+  python3 - "$state_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+if not data.get("token"):
+    raise SystemExit(1)
+if not data.get("groupId"):
+    raise SystemExit(1)
+if not data.get("agentId"):
+    raise SystemExit(1)
+PY
+}
+
+cli_status_has_token() {
+  local cli_output="$1"
+  python3 - "$cli_output" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+if data.get("hasToken") is not True:
+    raise SystemExit(1)
+PY
+}
+
 cleanup_agent_service() {
   local service_name="$1"
   local service_path="/etc/systemd/system/${service_name}"
@@ -108,6 +140,24 @@ wait_for_socket() {
   done
   SOCKET_WAIT_POLLS="$attempts"
   SOCKET_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
+  return 1
+}
+
+wait_for_saved_state() {
+  local state_path="$1"
+  local attempts="${2:-240}"
+  local delay="${3:-0.5}"
+  local i
+  for ((i=1; i<=attempts; i+=1)); do
+    if [[ -f "$state_path" ]] && state_token_ready "$state_path"; then
+      STATE_WAIT_POLLS="$i"
+      STATE_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
+      return 0
+    fi
+    sleep "$delay"
+  done
+  STATE_WAIT_POLLS="$attempts"
+  STATE_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
   return 1
 }
 
@@ -185,6 +235,10 @@ INGRESS_HOME="${COMMUNITY_INGRESS_HOME:-/root/.openclaw/community-ingress}"
 ROUTE_REGISTRY="${INGRESS_HOME}/route-registry.json"
 SOCKET_PATH="${TEST_ROOT}/workspace/.openclaw/run/${TEST_SLUG}.sock"
 BOOTSTRAP_METADATA="${WORKSPACE_ROOT}/.openclaw/community-agent.bootstrap.json"
+ENV_FILE="${WORKSPACE_ROOT}/.openclaw/community-agent.env"
+TEMPLATE_HOME="${WORKSPACE_ROOT}/.openclaw/community-agent-template"
+STATE_PATH="${TEMPLATE_HOME}/state/community-webhook-state.json"
+CLI_STATUS_OUTPUT="/tmp/${TEST_SLUG}.cli-status.json"
 SEND_RESPONSE_BODY="/tmp/${TEST_SLUG}.send.out"
 WEBHOOK_RESPONSE_BODY="/tmp/${TEST_SLUG}.webhook.out"
 HEALTHZ_RESPONSE_BODY="/tmp/${TEST_SLUG}.healthz.json"
@@ -197,11 +251,13 @@ INSTALL_EXIT_CODE=0
 INSTALL_WINDOW_MISSED=0
 SOCKET_WAIT_POLLS=0
 SOCKET_WAIT_SECONDS=0
+STATE_WAIT_POLLS=0
+STATE_WAIT_SECONDS=0
 
 cleanup_agent_service "$AGENT_SERVICE_NAME"
 remove_route_slug "$ROUTE_REGISTRY" "$TEST_SLUG"
 rm -rf "$TEST_ROOT"
-rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY" "$INSTALL_LOG"
+rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY" "$INSTALL_LOG" "$CLI_STATUS_OUTPUT"
 systemctl daemon-reload >/dev/null 2>&1 || true
 log_pass "fresh workspace prepared"
 
@@ -225,6 +281,13 @@ else
   SEND_PATH=""
   WEBHOOK_PATH=""
 fi
+
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
+TEMPLATE_HOME="${COMMUNITY_TEMPLATE_HOME:-$TEMPLATE_HOME}"
+STATE_PATH="${TEMPLATE_HOME}/state/community-webhook-state.json"
 
 if bash "$WORKSPACE_ROOT/scripts/install-community-webhook-service.sh" >"$INSTALL_LOG" 2>&1; then
   log_pass "install community webhook service"
@@ -266,6 +329,18 @@ else
   else
     log_fail "socket missing"
   fi
+fi
+
+if wait_for_saved_state "$STATE_PATH" "${VERIFY_STATE_WAIT_ATTEMPTS:-240}" "${VERIFY_STATE_WAIT_DELAY:-0.5}"; then
+  log_pass "community state ready after ${STATE_WAIT_SECONDS}s (${STATE_WAIT_POLLS} polls)"
+else
+  log_fail "community state not ready"
+fi
+
+if node "$WORKSPACE_ROOT/skills/CommunityIntegrationSkill/scripts/community-agent-cli.mjs" status >"$CLI_STATUS_OUTPUT" 2>/dev/null && cli_status_has_token "$CLI_STATUS_OUTPUT"; then
+  log_pass "cli status has token"
+else
+  log_fail "cli status missing token"
 fi
 
 if wait_for_http "$HEALTHZ_URL" 50 0.2 "$HEALTHZ_RESPONSE_BODY" && verify_ingress_healthz "$HEALTHZ_RESPONSE_BODY"; then
@@ -317,11 +392,14 @@ echo "INFO route_registry ${ROUTE_REGISTRY}"
 echo "INFO socket_path_expected ${EXPECTED_SOCKET_PATH}"
 echo "INFO socket_path_registry ${REGISTRY_SOCKET_PATH}"
 echo "INFO socket_path_filesystem ${ACTUAL_SOCKET_PATH}"
+echo "INFO state_path ${STATE_PATH}"
 echo "INFO healthz_url ${HEALTHZ_URL}"
 echo "INFO install_exit_code ${INSTALL_EXIT_CODE}"
 echo "INFO install_window_missed ${INSTALL_WINDOW_MISSED}"
 echo "INFO verify_socket_wait_seconds ${SOCKET_WAIT_SECONDS}"
 echo "INFO verify_socket_wait_polls ${SOCKET_WAIT_POLLS}"
+echo "INFO verify_state_wait_seconds ${STATE_WAIT_SECONDS}"
+echo "INFO verify_state_wait_polls ${STATE_WAIT_POLLS}"
 echo "INFO warnings ${WARNINGS}"
 
 if [[ "$FAILURES" -eq 0 ]]; then

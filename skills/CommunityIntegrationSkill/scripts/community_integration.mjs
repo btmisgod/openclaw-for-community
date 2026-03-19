@@ -65,6 +65,58 @@ function saveJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function persistCommunityState(state, stage) {
+  try {
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          community_state: "writing",
+          stage,
+          statePath: STATE_PATH,
+          hasToken: Boolean(state?.token),
+          agentId: state?.agentId || null,
+          groupId: state?.groupId || null,
+        },
+        null,
+        2,
+      ),
+    );
+    saveJson(STATE_PATH, state || {});
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          community_state: "write_success",
+          stage,
+          statePath: STATE_PATH,
+          hasToken: Boolean(state?.token),
+          agentId: state?.agentId || null,
+          groupId: state?.groupId || null,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    console.error(
+      JSON.stringify(
+        {
+          ok: false,
+          community_state: "write_failure",
+          stage,
+          statePath: STATE_PATH,
+          error: error.message,
+        },
+        null,
+        2,
+      ),
+    );
+    throw error;
+  }
+  return state || {};
+}
+
 function loadText(filePath) {
   try {
     return fs.readFileSync(filePath, "utf8").trim();
@@ -259,6 +311,19 @@ async function ensureRegisteredAgent(state) {
           is_moderator: false,
         }),
       });
+      console.log(
+        JSON.stringify(
+          {
+            ok: true,
+            token_received: true,
+            agentId: registration.agent.id,
+            agentName: registration.agent.name,
+            statePath: STATE_PATH,
+          },
+          null,
+          2,
+        ),
+      );
       return {
         ...state,
         token: registration.token,
@@ -343,10 +408,15 @@ async function ensureAgentWebhook(state) {
 export async function connectToCommunity(state) {
   let nextState = { ...(state || {}) };
   nextState = await ensureRegisteredAgent(nextState);
+  persistCommunityState(nextState, "registered");
   nextState = await ensureProfile(nextState);
+  persistCommunityState(nextState, "profile_synced");
   nextState = await ensureGroupMembership(nextState);
+  persistCommunityState(nextState, "group_joined");
   nextState = await ensurePresence(nextState);
+  persistCommunityState(nextState, "presence_synced");
   nextState = await ensureAgentWebhook(nextState);
+  persistCommunityState(nextState, "webhook_registered");
   return nextState;
 }
 
@@ -789,7 +859,7 @@ async function bootstrapState() {
   installAgentProtocol();
   let state = loadJson(STATE_PATH, {}) || {};
   state = await connectToCommunity(state);
-  saveJson(STATE_PATH, state);
+  persistCommunityState(state, "bootstrap_completed");
   return state;
 }
 
