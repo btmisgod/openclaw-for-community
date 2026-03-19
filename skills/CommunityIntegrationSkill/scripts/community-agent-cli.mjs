@@ -1,10 +1,10 @@
-import {
-  connectToCommunity,
-  loadSavedCommunityState,
-  saveCommunityState,
-  sendCommunityMessage,
-  updateCommunityProfile,
-} from "./community_integration.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SKILL_ROOT = path.resolve(__dirname, "..");
 
 function parseArgs(argv) {
   const positional = [];
@@ -41,26 +41,103 @@ function pruneEmpty(value) {
   return next;
 }
 
-async function ensureState() {
-  const saved = loadSavedCommunityState();
-  const state = await connectToCommunity(saved);
-  saveCommunityState(state);
-  return state;
+function resolveWorkspaceRoot() {
+  if (process.env.WORKSPACE_ROOT) {
+    return path.resolve(process.env.WORKSPACE_ROOT);
+  }
+  if (path.basename(path.dirname(SKILL_ROOT)) === "skills") {
+    return path.resolve(SKILL_ROOT, "..", "..");
+  }
+  return path.resolve(SKILL_ROOT);
 }
 
-function requireSavedState(requirements = {}) {
-  const state = loadSavedCommunityState();
+function parseEnvValue(raw) {
+  const value = String(raw || "").trim();
+  if (!value) {
+    return "";
+  }
+  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+    const inner = value.slice(1, -1);
+    return inner.replace(/\'/g, "'").replace(/\"/g, '"');
+  }
+  return value;
+}
+
+function loadEnvFile(envPath) {
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+  const text = fs.readFileSync(envPath, "utf8");
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) {
+      continue;
+    }
+    const key = trimmed.slice(0, eq).trim();
+    const value = parseEnvValue(trimmed.slice(eq + 1));
+    process.env[key] = value;
+  }
+}
+
+let runtimePromise = null;
+let loadedContext = null;
+
+async function getRuntime() {
+  if (runtimePromise) {
+    return runtimePromise;
+  }
+
+  const workspaceRoot = resolveWorkspaceRoot();
+  const stateDir = path.join(workspaceRoot, ".openclaw");
+  const bundledBootstrap = path.join(SKILL_ROOT, "community-bootstrap.env");
+  const workspaceBootstrap = path.join(stateDir, "community-bootstrap.env");
+  const workspaceEnv = path.join(stateDir, "community-agent.env");
+
+  process.env.WORKSPACE_ROOT = workspaceRoot;
+  loadEnvFile(bundledBootstrap);
+  loadEnvFile(workspaceBootstrap);
+  loadEnvFile(workspaceEnv);
+  process.env.WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || workspaceRoot;
+
+  loadedContext = {
+    workspaceRoot,
+    stateDir,
+    bundledBootstrap,
+    workspaceBootstrap,
+    workspaceEnv,
+  };
+
+  runtimePromise = import(pathToFileURL(path.join(SKILL_ROOT, "scripts", "community_integration.mjs")).href);
+  return runtimePromise;
+}
+
+async function ensureState() {
+  const runtime = await getRuntime();
+  const saved = runtime.loadSavedCommunityState();
+  const state = await runtime.connectToCommunity(saved);
+  runtime.saveCommunityState(state);
+  return { runtime, state };
+}
+
+async function requireSavedState(requirements = {}) {
+  const runtime = await getRuntime();
+  const state = runtime.loadSavedCommunityState();
   if (requirements.token && !state.token) {
     throw new Error("saved community state is missing token; run profile-sync or onboarding first");
   }
   if (requirements.groupId && !state.groupId) {
     throw new Error("saved community state is missing groupId; run profile-sync or onboarding first");
   }
-  return state;
+  return { runtime, state };
 }
 
 async function cmdStatus() {
-  const state = loadSavedCommunityState();
+  const runtime = await getRuntime();
+  const state = runtime.loadSavedCommunityState();
   console.log(
     JSON.stringify(
       {
@@ -72,6 +149,8 @@ async function cmdStatus() {
         groupId: state.groupId || null,
         groupSlug: state.groupSlug || null,
         webhookUrl: state.webhookUrl || null,
+        workspaceRoot: loadedContext?.workspaceRoot || null,
+        envFile: loadedContext?.workspaceEnv || null,
       },
       null,
       2,
@@ -84,7 +163,7 @@ async function cmdSend(options) {
   if (!text) {
     throw new Error("send requires --text");
   }
-  const state = requireSavedState({ token: true, groupId: true });
+  const { runtime, state } = await requireSavedState({ token: true, groupId: true });
   const payload = {
     group_id: options["group-id"] || state.groupId || null,
     thread_id: options["thread-id"] || null,
@@ -97,14 +176,14 @@ async function cmdSend(options) {
       text,
     },
   };
-  const result = await sendCommunityMessage(state, null, payload);
+  const result = await runtime.sendCommunityMessage(state, null, payload);
   console.log(JSON.stringify({ ok: true, command: "send", result }, null, 2));
 }
 
 async function cmdProfileSync() {
-  const state = await ensureState();
-  const updated = await updateCommunityProfile(state);
-  saveCommunityState(updated);
+  const { runtime, state } = await ensureState();
+  const updated = await runtime.updateCommunityProfile(state);
+  runtime.saveCommunityState(updated);
   console.log(
     JSON.stringify(
       {
@@ -121,7 +200,7 @@ async function cmdProfileSync() {
 }
 
 async function cmdProfileUpdate(options) {
-  const state = requireSavedState({ token: true });
+  const { runtime, state } = await requireSavedState({ token: true });
   const overrides = pruneEmpty({
     display_name: options["display-name"],
     handle: options.handle,
@@ -138,8 +217,8 @@ async function cmdProfileUpdate(options) {
       : undefined,
     home_group_slug: options["home-group-slug"],
   });
-  const updated = await updateCommunityProfile(state, overrides);
-  saveCommunityState(updated);
+  const updated = await runtime.updateCommunityProfile(state, overrides);
+  runtime.saveCommunityState(updated);
   console.log(
     JSON.stringify(
       {
