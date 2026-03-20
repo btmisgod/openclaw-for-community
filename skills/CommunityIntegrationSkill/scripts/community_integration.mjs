@@ -49,6 +49,12 @@ const STATE_PATH = path.join(TEMPLATE_HOME, "state", "community-webhook-state.js
 const CHANNEL_CONTEXT_PATH = path.join(TEMPLATE_HOME, "state", "community-channel-contexts.json");
 const WORKFLOW_CONTRACT_PATH = path.join(TEMPLATE_HOME, "state", "community-workflow-contracts.json");
 const PROTOCOL_VIOLATION_PATH = path.join(TEMPLATE_HOME, "state", "community-protocol-violations.json");
+const OUTBOUND_RECEIPTS_PATH = path.join(TEMPLATE_HOME, "state", "community-outbound-receipts.json");
+const OUTBOUND_DEBUG_PATH = path.join(TEMPLATE_HOME, "state", "community-outbound-debug.json");
+const OUTBOUND_GUARD_PATH = path.join(TEMPLATE_HOME, "state", "community-outbound-guard.json");
+const INVALID_OUTBOUND_WINDOW_MS = Number(process.env.COMMUNITY_INVALID_OUTBOUND_WINDOW_MS || "60000");
+const INVALID_OUTBOUND_THRESHOLD = Number(process.env.COMMUNITY_INVALID_OUTBOUND_THRESHOLD || "3");
+const INVALID_OUTBOUND_PAUSE_MS = Number(process.env.COMMUNITY_INVALID_OUTBOUND_PAUSE_MS || "120000");
 const ASSETS_DIR = path.join(TEMPLATE_HOME, "assets");
 const BUNDLED_RUNTIME_PATH = path.join(SKILL_HOME, "assets", "community-runtime-v0.mjs");
 const WORKSPACE_RUNTIME_PATH = path.join(WORKSPACE, "scripts", "community-runtime-v0.mjs");
@@ -70,7 +76,184 @@ function loadJson(filePath, fallback = null) {
 
 function saveJson(filePath, value) {
   ensureDir(filePath);
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}
+`);
+}
+
+function appendJsonArray(filePath, entry, limit = 100) {
+  const current = loadJson(filePath, []);
+  const list = Array.isArray(current) ? current : [];
+  list.push(entry);
+  saveJson(filePath, list.slice(-limit));
+  return entry;
+}
+
+function outboundRequestId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function loadOutboundGuard() {
+  return (
+    loadJson(OUTBOUND_GUARD_PATH, {
+      invalid_attempts: [],
+      paused_until: null,
+      last_error: null,
+      updated_at: null,
+    }) || {}
+  );
+}
+
+function saveOutboundGuard(state) {
+  saveJson(OUTBOUND_GUARD_PATH, state || {});
+  return state || {};
+}
+
+function assertOutboundSendAllowed() {
+  const guard = loadOutboundGuard();
+  const pausedUntil = String(guard?.paused_until || "").trim();
+  if (pausedUntil) {
+    const pausedAt = Date.parse(pausedUntil);
+    if (Number.isFinite(pausedAt) && pausedAt > Date.now()) {
+      throw new Error(`automatic outbound sending paused until ${pausedUntil}`);
+    }
+  }
+}
+
+function recordInvalidOutbound(reason, details = {}) {
+  const now = Date.now();
+  const cutoff = now - INVALID_OUTBOUND_WINDOW_MS;
+  const guard = loadOutboundGuard();
+  const attempts = Array.isArray(guard?.invalid_attempts)
+    ? guard.invalid_attempts.filter((item) => Date.parse(item?.timestamp || "") >= cutoff)
+    : [];
+  const entry = {
+    timestamp: new Date(now).toISOString(),
+    reason,
+    details,
+  };
+  attempts.push(entry);
+  const next = {
+    invalid_attempts: attempts,
+    paused_until:
+      attempts.length >= INVALID_OUTBOUND_THRESHOLD ? new Date(now + INVALID_OUTBOUND_PAUSE_MS).toISOString() : null,
+    last_error: entry,
+    updated_at: new Date(now).toISOString(),
+  };
+  saveOutboundGuard(next);
+  console.error(
+    JSON.stringify(
+      { ok: false, outbound_guard: "invalid_outbound", reason, details, pausedUntil: next.paused_until },
+      null,
+      2,
+    ),
+  );
+  return next;
+}
+
+function resetOutboundGuard() {
+  const guard = loadOutboundGuard();
+  saveOutboundGuard({
+    invalid_attempts: Array.isArray(guard?.invalid_attempts) ? guard.invalid_attempts.slice(-10) : [],
+    paused_until: null,
+    last_error: null,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+function isOutboundReceiptEventType(eventType) {
+  return ["message.accepted", "message.rejected", "message.projected", "message.delivery_failed"].includes(
+    String(eventType || "").trim(),
+  );
+}
+
+function isOutboundDebugEventType(eventType) {
+  return String(eventType || "").trim() === "outbound.canonicalized";
+}
+
+function receiptPayloadOf(event) {
+  return event?.entity?.receipt || event?.event?.payload?.receipt || {};
+}
+
+function handleOutboundReceiptEvent(state, event) {
+  const eventType = String(event?.event?.event_type || "").trim();
+  const receipt = receiptPayloadOf(event);
+  appendJsonArray(
+    OUTBOUND_RECEIPTS_PATH,
+    {
+      received_at: new Date().toISOString(),
+      event_type: eventType,
+      receipt,
+      group_id: event?.group_id || event?.event?.group_id || null,
+      agent_id: state?.agentId || null,
+    },
+    200,
+  );
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        outbound_receipt: true,
+        event_type: eventType,
+        status: receipt?.status || null,
+        clientRequestId: receipt?.client_request_id || null,
+        communityMessageId: receipt?.community_message_id || null,
+      },
+      null,
+      2,
+    ),
+  );
+  return {
+    ignored: false,
+    handled: true,
+    category: "outbound_receipt",
+    non_intake: true,
+    event_type: eventType,
+    status: receipt?.status || null,
+    client_request_id: receipt?.client_request_id || null,
+    community_message_id: receipt?.community_message_id || null,
+  };
+}
+
+function handleOutboundCanonicalizedEvent(state, event) {
+  const receipt = receiptPayloadOf(event);
+  const canonicalizedMessage = event?.entity?.canonicalized_message || event?.event?.payload?.canonicalized_message || null;
+  appendJsonArray(
+    OUTBOUND_DEBUG_PATH,
+    {
+      received_at: new Date().toISOString(),
+      event_type: "outbound.canonicalized",
+      receipt,
+      canonicalized_message: canonicalizedMessage,
+      group_id: event?.group_id || event?.event?.group_id || null,
+      agent_id: state?.agentId || null,
+    },
+    100,
+  );
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        outbound_debug: true,
+        event_type: "outbound.canonicalized",
+        clientRequestId: receipt?.client_request_id || null,
+        communityMessageId: receipt?.community_message_id || null,
+      },
+      null,
+      2,
+    ),
+  );
+  return {
+    ignored: false,
+    handled: true,
+    category: "outbound_debug",
+    non_intake: true,
+    event_type: "outbound.canonicalized",
+    client_request_id: receipt?.client_request_id || null,
+    community_message_id: receipt?.community_message_id || null,
+  };
 }
 
 function persistCommunityState(state, stage) {
@@ -685,6 +868,123 @@ function responseModeLabel(mode) {
   );
 }
 
+function dictValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function listValue(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function canonicalMessageFromPayload(sendContext, payload, state) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const body = dictValue(source.body);
+  const semantics = dictValue(source.semantics);
+  const routing = dictValue(source.routing);
+  const target = dictValue(routing.target);
+  const extensions = dictValue(source.extensions);
+  const custom = dictValue(extensions.custom);
+
+  const legacyContent = dictValue(source.content);
+  const legacyMetadata = dictValue(legacyContent.metadata);
+  const legacyCustom = { ...legacyMetadata };
+  delete legacyCustom.target_agent_id;
+  delete legacyCustom.target_agent;
+  delete legacyCustom.assignees;
+  delete legacyCustom.assignment;
+  delete legacyCustom.targets;
+  delete legacyCustom.intent;
+  delete legacyCustom.flow_type;
+  delete legacyCustom.message_type;
+  delete legacyCustom.client_request_id;
+  delete legacyCustom.outbound_correlation_id;
+  delete legacyCustom.idempotency_key;
+  delete legacyCustom.source;
+  delete legacyCustom.mentions;
+  delete legacyCustom.task_id;
+  delete legacyCustom.topic;
+  delete legacyCustom.reply_to;
+  const normalizedText = firstNonEmpty(body.text, legacyContent.text);
+  const normalizedKind = normalizeOutboundMessageType(source.message_type || semantics.kind || "analysis");
+  const normalizedIntent = firstNonEmpty(semantics.intent, legacyContent.intent, legacyMetadata.intent, inferIntentFromText(normalizedText));
+  const outboundCorrelationId = firstNonEmpty(
+    extensions.outbound_correlation_id,
+    extensions.client_request_id,
+    custom.idempotency_key,
+    legacyMetadata.outbound_correlation_id,
+    legacyMetadata.client_request_id,
+    legacyMetadata.idempotency_key,
+    outboundRequestId(),
+  );
+
+  const targetAgentId =
+    firstNonEmpty(target.agent_id, source.target_agent_id, legacyMetadata.target_agent_id, sendContext?.target_agent_id) || null;
+  const targetAgentLabel =
+    firstNonEmpty(target.agent_label, source.target_agent, legacyMetadata.target_agent, sendContext?.target_agent) || null;
+  const assignees = listValue(routing.assignees).length
+    ? listValue(routing.assignees)
+    : listValue(source.assignees).length
+      ? listValue(source.assignees)
+      : listValue(legacyMetadata.assignees).length
+        ? listValue(legacyMetadata.assignees)
+        : listValue(sendContext?.assignees).length
+          ? listValue(sendContext.assignees)
+          : targetAgentId || targetAgentLabel
+            ? [targetAgentId || targetAgentLabel]
+            : [];
+
+  const mentions = listValue(routing.mentions).length ? [...listValue(routing.mentions)] : [...listValue(legacyContent.mentions)];
+  const mention = structuredMentionForTarget(targetAgentId, targetAgentLabel);
+  if (mention && !mentions.some((item) => item && item.mention_id === mention.mention_id)) {
+    mentions.push(mention);
+  }
+
+  return pruneNullish({
+    container: {
+      group_id: sendContext.group_id,
+    },
+    author: {
+      agent_id: state?.agentId || null,
+    },
+    relations: {
+      thread_id: sendContext.thread_id,
+      parent_message_id: sendContext.parent_message_id,
+      task_id: sendContext.task_id,
+    },
+    body: {
+      text: normalizedText,
+      blocks: listValue(body.blocks),
+      attachments: listValue(body.attachments),
+    },
+    semantics: {
+      kind: normalizedKind,
+      intent: normalizedIntent,
+      topic: firstNonEmpty(semantics.topic, legacyMetadata.topic) || null,
+    },
+    routing: {
+      target: {
+        scope: targetAgentId || targetAgentLabel ? firstNonEmpty(target.scope, "agent") : null,
+        agent_id: targetAgentId,
+        agent_label: targetAgentLabel,
+      },
+      mentions,
+      assignees,
+    },
+    extensions: {
+      client_request_id: firstNonEmpty(extensions.client_request_id, legacyMetadata.client_request_id, outboundCorrelationId),
+      outbound_correlation_id: outboundCorrelationId,
+      source: firstNonEmpty(extensions.source, legacyContent.source, legacyMetadata.source, "CommunityIntegrationSkill"),
+      custom: {
+        ...legacyCustom,
+        ...custom,
+        ...(firstNonEmpty(legacyMetadata.reply_to, sendContext.parent_message_id)
+          ? { reply_to: firstNonEmpty(legacyMetadata.reply_to, sendContext.parent_message_id) }
+          : {}),
+      },
+    },
+  });
+}
+
 function decideCommunityResponse(obligation, mode, decisionContext = {}) {
   const contextFlags = decisionContext?.contextFlags || {};
 
@@ -768,84 +1068,52 @@ function pruneNullish(value) {
 
 function buildSendContext(state, incomingMessage, payload) {
   const metadata = payload?.content?.metadata && typeof payload.content.metadata === "object" ? payload.content.metadata : {};
+  const relations = dictValue(payload?.relations);
+  const container = dictValue(payload?.container);
+  const routing = dictValue(payload?.routing);
+  const target = dictValue(routing.target);
   return {
-    group_id: payload?.group_id || incomingMessage?.group_id || state.groupId,
-    thread_id: payload?.thread_id || incomingMessage?.thread_id || incomingMessage?.id || null,
-    parent_message_id: payload?.parent_message_id || incomingMessage?.id || null,
-    task_id: payload?.task_id || incomingMessage?.task_id || null,
-    target_agent_id: payload?.target_agent_id || metadata.target_agent_id || incomingMessage?.agent_id || null,
+    group_id: payload?.group_id || container.group_id || incomingMessage?.group_id || state.groupId,
+    thread_id: payload?.thread_id || relations.thread_id || incomingMessage?.thread_id || incomingMessage?.id || null,
+    parent_message_id: payload?.parent_message_id || relations.parent_message_id || incomingMessage?.id || null,
+    task_id: payload?.task_id || relations.task_id || incomingMessage?.task_id || null,
+    target_agent_id: payload?.target_agent_id || target.agent_id || metadata.target_agent_id || incomingMessage?.agent_id || null,
     target_agent:
       payload?.target_agent ||
+      target.agent_label ||
       metadata.target_agent ||
       incomingMessage?.agent_name ||
       incomingMessage?.source_agent_name ||
       null,
     assignees: Array.isArray(payload?.assignees)
       ? payload.assignees
-      : Array.isArray(metadata.assignees)
-        ? metadata.assignees
-        : null,
+      : Array.isArray(routing.assignees)
+        ? routing.assignees
+        : Array.isArray(metadata.assignees)
+          ? metadata.assignees
+          : null,
   };
 }
 
 export function buildCommunityMessage(state, sendContext, payload) {
-  const baseContent = payload?.content && typeof payload.content === "object" ? { ...payload.content } : {};
-  const metadata = baseContent.metadata && typeof baseContent.metadata === "object" ? { ...baseContent.metadata } : {};
-  const messageType = normalizeOutboundMessageType(payload?.message_type || "analysis");
-  const text = String(baseContent.text || "");
-
-  baseContent.metadata = metadata;
-  const targetAgentId =
-    sendContext?.target_agent_id && sendContext.target_agent_id !== state.agentId ? sendContext.target_agent_id : null;
-  const targetAgent =
-    firstNonEmpty(sendContext?.target_agent, metadata.target_agent, payload?.target_agent) || undefined;
-
-  if (targetAgentId) {
-    metadata.target_agent_id = metadata.target_agent_id || targetAgentId;
-  }
-  if (targetAgent) {
-    metadata.target_agent = metadata.target_agent || targetAgent;
-  }
-  if (targetAgentId || targetAgent) {
-    metadata.assignees =
-      Array.isArray(metadata.assignees) && metadata.assignees.length
-        ? metadata.assignees
-        : Array.isArray(sendContext?.assignees) && sendContext.assignees.length
-          ? sendContext.assignees
-          : [targetAgentId || targetAgent];
-  }
-
-  const mention = structuredMentionForTarget(targetAgentId, targetAgent);
-  if (mention) {
-    baseContent.mentions = Array.isArray(baseContent.mentions) ? [...baseContent.mentions] : [];
-    if (!baseContent.mentions.some((item) => item && item.mention_id === mention.mention_id)) {
-      baseContent.mentions.push(mention);
-    }
-  }
-
-  const intent = metadata.intent || inferIntentFromText(text);
-  metadata.intent = intent;
-  metadata.flow_type = metadata.flow_type || inferFlowType(messageType, intent);
-  metadata.message_type = metadata.message_type || messageType;
-  baseContent.intent = baseContent.intent || metadata.intent;
-  baseContent.flow_type = baseContent.flow_type || metadata.flow_type;
-  if (baseContent.mentions && metadata.mentions == null) {
-    metadata.mentions = baseContent.mentions;
-  }
-
-  return { message_type: messageType, content: baseContent };
+  return canonicalMessageFromPayload(sendContext, payload, state);
 }
 
 export function buildDirectedCollaborationMessage(state, sendContext, payload) {
   const normalizedPayload = {
-    ...payload,
-    message_type: normalizeOutboundMessageType(payload?.message_type || "analysis"),
-    content: {
-      ...(payload?.content || {}),
-      metadata: {
-        ...((payload?.content?.metadata && typeof payload.content.metadata === "object") ? payload.content.metadata : {}),
-        intent: payload?.content?.metadata?.intent || "request_action",
-        flow_type: payload?.content?.metadata?.flow_type || "task",
+    ...(payload && typeof payload === "object" ? payload : {}),
+    semantics: {
+      ...(dictValue(payload?.semantics)),
+      kind: normalizeOutboundMessageType(payload?.message_type || payload?.semantics?.kind || "analysis"),
+      intent: firstNonEmpty(payload?.semantics?.intent, payload?.content?.metadata?.intent, "request_action"),
+    },
+    routing: {
+      ...(dictValue(payload?.routing)),
+      target: {
+        ...(dictValue(payload?.routing?.target)),
+        scope:
+          firstNonEmpty(payload?.routing?.target?.scope) ||
+          (firstNonEmpty(payload?.target_agent_id, payload?.routing?.target?.agent_id) ? "agent" : null),
       },
     },
   };
@@ -853,40 +1121,45 @@ export function buildDirectedCollaborationMessage(state, sendContext, payload) {
 }
 
 export async function sendCommunityMessage(state, incomingMessage, payload) {
+  assertOutboundSendAllowed();
   const sendContext = buildSendContext(state, incomingMessage, payload);
-  const structuredPayload = buildCommunityMessage(state, sendContext, payload);
-  const requestBody = pruneNullish({
-    group_id: sendContext.group_id,
-    thread_id: sendContext.thread_id,
-    parent_message_id: sendContext.parent_message_id,
-    task_id: sendContext.task_id,
-    message_type: structuredPayload.message_type,
-    content: {
-      ...(structuredPayload.content || {}),
-      source: "CommunityIntegrationSkill",
-      reply_to: sendContext.parent_message_id,
-    },
-  });
+  const requestBody = buildCommunityMessage(state, sendContext, payload);
+  const outboundText = String(requestBody?.body?.text || "").trim();
+  if (!requestBody?.container?.group_id || !outboundText) {
+    recordInvalidOutbound("invalid_outbound_payload", {
+      group_id: requestBody?.container?.group_id || null,
+      has_text: Boolean(outboundText),
+      message_type: requestBody?.semantics?.kind || null,
+      client_request_id: requestBody?.extensions?.client_request_id || null,
+    });
+    throw new Error("invalid outbound community message payload");
+  }
   console.log(JSON.stringify({ ok: true, outbound_structured_message: true, body: requestBody }, null, 2));
-  return request("/messages", {
+  const result = await request("/messages", {
     method: "POST",
     token: state.token,
     body: JSON.stringify(requestBody),
   });
+  resetOutboundGuard();
+  return result;
 }
 
 function parseActiveSendPayload(raw) {
   const payload = raw && typeof raw === "object" ? raw : {};
   const content = payload.content && typeof payload.content === "object" ? { ...payload.content } : {};
   return {
-    group_id: payload.group_id || null,
-    thread_id: payload.thread_id || null,
-    parent_message_id: payload.parent_message_id || null,
-    task_id: payload.task_id || null,
-    target_agent_id: payload.target_agent_id || null,
-    target_agent: payload.target_agent || null,
-    assignees: Array.isArray(payload.assignees) ? payload.assignees : null,
-    message_type: payload.message_type || "analysis",
+    group_id: payload.group_id || payload.container?.group_id || null,
+    thread_id: payload.thread_id || payload.relations?.thread_id || null,
+    parent_message_id: payload.parent_message_id || payload.relations?.parent_message_id || null,
+    task_id: payload.task_id || payload.relations?.task_id || null,
+    target_agent_id: payload.target_agent_id || payload.routing?.target?.agent_id || null,
+    target_agent: payload.target_agent || payload.routing?.target?.agent_label || null,
+    assignees: Array.isArray(payload.assignees) ? payload.assignees : Array.isArray(payload.routing?.assignees) ? payload.routing.assignees : null,
+    message_type: payload.message_type || payload.semantics?.kind || "analysis",
+    semantics: dictValue(payload.semantics),
+    routing: dictValue(payload.routing),
+    extensions: dictValue(payload.extensions),
+    body: dictValue(payload.body),
     content,
   };
 }
@@ -896,7 +1169,7 @@ async function handleActiveSend(state, payload) {
   if (!normalized.group_id) {
     throw new Error("community-send requires group_id");
   }
-  if (!String(normalized.content?.text || "").trim()) {
+  if (!String(normalized.body?.text || normalized.content?.text || "").trim()) {
     throw new Error("community-send requires content.text");
   }
   return sendCommunityMessage(state, null, normalized);
@@ -921,6 +1194,14 @@ async function loadRuntimeModule() {
 }
 
 export async function receiveCommunityEvent(state, event) {
+  const eventType = String(event?.event?.event_type || "").trim();
+  if (isOutboundReceiptEventType(eventType)) {
+    return handleOutboundReceiptEvent(state, event);
+  }
+  if (isOutboundDebugEventType(eventType)) {
+    return handleOutboundCanonicalizedEvent(state, event);
+  }
+
   const runtimeModule = await loadRuntimeModule();
   return runtimeModule.handleRuntimeEvent(
     {

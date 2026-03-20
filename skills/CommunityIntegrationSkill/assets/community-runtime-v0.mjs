@@ -1,5 +1,119 @@
+const MESSAGE_PROTOCOL_V2_ENABLED = ["1", "true", "yes", "on"].includes(String(process.env.MESSAGE_PROTOCOL_V2 || "").trim().toLowerCase());
+const WEBHOOK_RECEIPT_V2_ENABLED = ["1", "true", "yes", "on"].includes(String(process.env.WEBHOOK_RECEIPT_V2 || "").trim().toLowerCase());
+
 function lower(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function dictOf(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function listOf(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) {
+      return text;
+    }
+  }
+  return "";
+}
+
+function isCanonicalV2Message(message) {
+  const item = dictOf(message);
+  return Boolean(item.container || item.author || item.relations || item.body || item.semantics || item.routing || item.extensions);
+}
+
+export function normalizeMessageProtocol(message) {
+  const source = dictOf(message);
+  if (!MESSAGE_PROTOCOL_V2_ENABLED || !source || !Object.keys(source).length) {
+    return source;
+  }
+
+  if (!isCanonicalV2Message(source)) {
+    return source;
+  }
+
+  const container = dictOf(source.container);
+  const author = dictOf(source.author);
+  const relations = dictOf(source.relations);
+  const body = dictOf(source.body);
+  const semantics = dictOf(source.semantics);
+  const routing = dictOf(source.routing);
+  const target = dictOf(routing.target);
+  const extensions = dictOf(source.extensions);
+  const custom = dictOf(extensions.custom);
+  const metadata = {
+    ...custom,
+  };
+
+  if (firstText(target.agent_id)) {
+    metadata.target_agent_id = firstText(target.agent_id);
+  }
+  if (firstText(target.agent_label)) {
+    metadata.target_agent = firstText(target.agent_label);
+  }
+  if (listOf(routing.assignees).length) {
+    metadata.assignees = listOf(routing.assignees);
+  }
+  if (firstText(semantics.intent)) {
+    metadata.intent = firstText(semantics.intent);
+  }
+  if (firstText(extensions.client_request_id)) {
+    metadata.client_request_id = firstText(extensions.client_request_id);
+  }
+  if (firstText(extensions.outbound_correlation_id)) {
+    metadata.outbound_correlation_id = firstText(extensions.outbound_correlation_id);
+  }
+  if (firstText(extensions.source)) {
+    metadata.source = firstText(extensions.source);
+  }
+
+  const normalized = {
+    id: source.id || null,
+    group_id: firstText(container.group_id) || null,
+    agent_id: firstText(author.agent_id) || null,
+    task_id: firstText(relations.task_id) || null,
+    parent_message_id: firstText(relations.parent_message_id) || null,
+    thread_id: firstText(relations.thread_id) || null,
+    message_type: firstText(semantics.kind) || null,
+    content: {
+      text: firstText(body.text) || undefined,
+      mentions: listOf(routing.mentions),
+      metadata,
+    },
+  };
+  if (firstText(semantics.intent)) {
+    normalized.content.intent = firstText(semantics.intent);
+  }
+  return normalized;
+}
+
+export function normalizeWebhookEvent(event) {
+  if (!MESSAGE_PROTOCOL_V2_ENABLED && !WEBHOOK_RECEIPT_V2_ENABLED) {
+    return event;
+  }
+  const source = dictOf(event);
+  const entity = dictOf(source.entity);
+  const envelope = dictOf(source.event);
+  const normalized = { ...source };
+  if (entity.message) {
+    normalized.entity = { ...entity, message: normalizeMessageProtocol(entity.message) };
+  }
+  if (dictOf(envelope.payload).message) {
+    normalized.event = {
+      ...envelope,
+      payload: {
+        ...dictOf(envelope.payload),
+        message: normalizeMessageProtocol(dictOf(envelope.payload).message),
+      },
+    };
+  }
+  return normalized;
 }
 
 function textOf(message) {
@@ -195,15 +309,140 @@ function extractPayload(event) {
   return event?.event?.payload || event?.entity || null;
 }
 
-export function extractMessage(event) {
-  const eventType = String(event?.event?.event_type || "").trim();
-  const message = event?.entity?.message || event?.event?.payload?.message || null;
-  const payload = extractPayload(event);
-  const groupId = extractGroupId(event, message);
-  return { eventType, message, payload, groupId };
+function canonicalMessageV2(message) {
+  const source = dictOf(message);
+  if (!source || !Object.keys(source).length) {
+    return null;
+  }
+
+  if (isCanonicalV2Message(source)) {
+    const container = dictOf(source.container);
+    const author = dictOf(source.author);
+    const relations = dictOf(source.relations);
+    const body = dictOf(source.body);
+    const semantics = dictOf(source.semantics);
+    const routing = dictOf(source.routing);
+    const target = dictOf(routing.target);
+    const extensions = dictOf(source.extensions);
+    return {
+      id: source.id || null,
+      container: { group_id: firstText(container.group_id) || null },
+      author: { agent_id: firstText(author.agent_id) || null },
+      relations: {
+        thread_id: firstText(relations.thread_id) || null,
+        parent_message_id: firstText(relations.parent_message_id) || null,
+        task_id: firstText(relations.task_id) || null,
+      },
+      body: {
+        text: firstText(body.text) || null,
+        blocks: listOf(body.blocks),
+        attachments: listOf(body.attachments),
+      },
+      semantics: {
+        kind: firstText(semantics.kind) || null,
+        intent: firstText(semantics.intent) || null,
+        topic: firstText(semantics.topic) || null,
+      },
+      routing: {
+        target: {
+          scope: firstText(target.scope) || null,
+          agent_id: firstText(target.agent_id) || null,
+          agent_label: firstText(target.agent_label) || null,
+        },
+        mentions: listOf(routing.mentions),
+        assignees: listOf(routing.assignees),
+      },
+      extensions: {
+        client_request_id: firstText(extensions.client_request_id) || null,
+        outbound_correlation_id: firstText(extensions.outbound_correlation_id) || null,
+        source: firstText(extensions.source) || null,
+        custom: dictOf(extensions.custom),
+      },
+    };
+  }
+
+  const content = dictOf(source.content);
+  const metadata = dictOf(content.metadata);
+  return {
+    id: source.id || null,
+    container: { group_id: firstText(source.group_id) || null },
+    author: { agent_id: firstText(source.agent_id) || null },
+    relations: {
+      thread_id: firstText(source.thread_id) || null,
+      parent_message_id: firstText(source.parent_message_id) || null,
+      task_id: firstText(source.task_id, metadata.task_id) || null,
+    },
+    body: {
+      text: firstText(content.text) || null,
+      blocks: listOf(content.blocks),
+      attachments: listOf(content.attachments),
+    },
+    semantics: {
+      kind: firstText(source.message_type, metadata.message_type) || null,
+      intent: firstText(content.intent, metadata.intent) || null,
+      topic: firstText(metadata.topic) || null,
+    },
+    routing: {
+      target: {
+        scope: firstText(metadata.target_agent_id, source.target_agent_id) ? "agent" : null,
+        agent_id: firstText(metadata.target_agent_id, source.target_agent_id) || null,
+        agent_label: firstText(metadata.target_agent, source.target_agent) || null,
+      },
+      mentions: listOf(content.mentions || metadata.mentions),
+      assignees: listOf(metadata.assignees || metadata.assignment || metadata.targets),
+    },
+    extensions: {
+      client_request_id: firstText(metadata.client_request_id) || null,
+      outbound_correlation_id: firstText(metadata.outbound_correlation_id, metadata.idempotency_key) || null,
+      source: firstText(content.source, metadata.source) || null,
+      custom: { ...metadata },
+    },
+  };
 }
 
-export function classifyIncoming(eventType, message, payload) {
+function buildEventSummary(event, eventType, groupId) {
+  return {
+    type: eventType || null,
+    id: event?.event?.event_id || event?.event?.id || null,
+    group_id: groupId || event?.event?.group_id || event?.group_id || null,
+    aggregate_type: event?.event?.aggregate_type || null,
+    aggregate_id: event?.event?.aggregate_id || null,
+    actor_agent_id: event?.event?.actor_agent_id || null,
+    created_at: event?.event?.created_at || null,
+  };
+}
+
+function buildContextSummary(messageFacts, groupId) {
+  return {
+    group_id: groupId || messageFacts?.container?.group_id || null,
+    thread_id: messageFacts?.relations?.thread_id || null,
+    task_id: messageFacts?.relations?.task_id || null,
+    parent_message_id: messageFacts?.relations?.parent_message_id || null,
+    author_agent_id: messageFacts?.author?.agent_id || null,
+  };
+}
+
+export function extractMessage(event) {
+  const normalizedEvent = normalizeWebhookEvent(event);
+  const eventType = String(normalizedEvent?.event?.event_type || "").trim();
+  const sourceMessage = normalizedEvent?.entity?.message || normalizedEvent?.event?.payload?.message || null;
+  const message = sourceMessage ? normalizeMessageProtocol(sourceMessage) : null;
+  const messageFacts = sourceMessage ? canonicalMessageV2(sourceMessage) : null;
+  const payload = extractPayload(normalizedEvent);
+  const groupId = extractGroupId(normalizedEvent, message) || messageFacts?.container?.group_id || null;
+  return {
+    eventType,
+    message,
+    messageFacts,
+    payload,
+    groupId,
+    normalizedEvent,
+    eventSummary: buildEventSummary(normalizedEvent, eventType, groupId),
+    context: buildContextSummary(messageFacts, groupId),
+  };
+}
+
+export function classifyIncoming(eventType, message, payload, state = {}) {
   if (eventType === "protocol_violation") {
     return { category: "protocol_violation", reason: "protocol_violation_event" };
   }
@@ -213,11 +452,14 @@ export function classifyIncoming(eventType, message, payload) {
   if (eventType === "channel_context") {
     return { category: "channel_context", reason: "channel_context_event" };
   }
-  if (eventType && eventType !== "message.posted") {
-    return { category: "system", reason: eventType };
-  }
   if (!message) {
     return { category: "unknown", reason: "missing_message" };
+  }
+  if (lower(message.agent_id) && lower(message.agent_id) === lower(state.agentId)) {
+    return { category: "self_message", reason: "self_echo" };
+  }
+  if (eventType && eventType !== "message.posted") {
+    return { category: "system_event", reason: eventType };
   }
 
   const signals = structuredSignalsOf(message);
@@ -225,31 +467,31 @@ export function classifyIncoming(eventType, message, payload) {
   const metadata = metadataOf(message);
 
   if (type === "meta" || metadata.system_event) {
-    return { category: "system", reason: "system_message" };
+    return { category: "admin_message", reason: "admin_signal" };
   }
   if (signals.flowType === "status" || ["progress", "claim", "summary", "review"].includes(type)) {
     return { category: "status", reason: "status_signal" };
   }
   if (signals.flowType === "task") {
-    return { category: "task", reason: "flow_type_task" };
+    return { category: "task", reason: "task_flow" };
   }
   if (["assign", "handoff", "request_action", "followup", "authorize"].includes(signals.intent)) {
-    return { category: "task", reason: "intent_task" };
+    return { category: "task", reason: "task_intent" };
   }
   if (signals.flowType === "decision" || type === "decision") {
     return { category: "decision", reason: "decision_signal" };
   }
   if (type === "chat") {
-    return { category: "chat", reason: "message_type_chat" };
+    return { category: "chat", reason: "chat_kind" };
   }
   if (signals.flowType === "discussion" || ["question", "analysis"].includes(type)) {
     return { category: "discussion", reason: "discussion_signal" };
   }
   if (signals.hasExplicitAssignment || looksLikeTask(message)) {
-    return { category: "task", reason: "task_signal" };
+    return { category: "task", reason: "task_shape" };
   }
   if (looksLikeResponse(message)) {
-    return { category: "discussion", reason: "response_signal" };
+    return { category: "discussion", reason: "discussion_shape" };
   }
   return { category: "unknown", reason: "unclassified_message" };
 }
@@ -265,13 +507,16 @@ export function isIgnorableMessage(input) {
 }
 
 export function checkRelevance(input, state, runtimeContext) {
-  if (["protocol_violation", "workflow_contract", "channel_context", "system"].includes(input.category)) {
-    return { relevant: true, reason: `${input.category}_event` };
+  if (input.category === "self_message") {
+    return { relevant: false, reason: "self_echo" };
+  }
+  if (["protocol_violation", "workflow_contract", "channel_context", "admin_message", "system_event"].includes(input.category)) {
+    return { relevant: true, reason: "system_scope" };
   }
 
   const message = input.message;
-  if (!message || message.agent_id === state.agentId) {
-    return { relevant: false, reason: "self_or_missing" };
+  if (!message) {
+    return { relevant: false, reason: "missing_message" };
   }
 
   const signals = structuredSignalsOf(message);
@@ -282,85 +527,48 @@ export function checkRelevance(input, state, runtimeContext) {
   if (lower(signals.targetAgentId) === lower(state.agentId)) {
     return { relevant: true, reason: "target_agent_id" };
   }
-  if (includesAny(signals.targetAgent, self)) {
+  if (includesAny(signals.targetAgent, self) || includesAny(signals.targetAgent, selfRoles)) {
     return { relevant: true, reason: "target_agent" };
   }
-  if (includesAny(signals.targetAgent, selfRoles)) {
-    return { relevant: true, reason: "target_agent_role" };
-  }
   if (signals.assignees.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), self))) {
-    return { relevant: true, reason: "assignees" };
+    return { relevant: true, reason: "assignee" };
   }
-  if (
-    signals.assignees.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), selfRoles))
-  ) {
-    return { relevant: true, reason: "assignees_role" };
+  if (signals.assignees.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), selfRoles))) {
+    return { relevant: true, reason: "assignee_role" };
   }
   if (signals.mentions.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), self))) {
-    return { relevant: true, reason: "mentions" };
+    return { relevant: true, reason: "mention" };
   }
-  if (
-    signals.mentions.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), selfRoles))
-  ) {
-    return { relevant: true, reason: "mentions_role" };
+  if (signals.mentions.some((item) => includesAny(typeof item === "string" ? item : JSON.stringify(item), selfRoles))) {
+    return { relevant: true, reason: "mention_role" };
   }
   if (includesAny(text, self) || hasDirectedMention(text, state, runtimeContext)) {
-    return { relevant: true, reason: "text_match" };
+    return { relevant: true, reason: "text_addressing" };
   }
   if (hasRoleExecutionMatch(text, state, runtimeContext)) {
-    return { relevant: true, reason: "role_match" };
+    return { relevant: true, reason: "role_execution_match" };
   }
 
   return { relevant: false, reason: "not_targeted" };
 }
 
 export function decideMode(input, relevance) {
-  if (input.category === "protocol_violation") {
-    return { mode: "protocol_violation", reason: input.reason };
+  if (input.category === "self_message") {
+    return { mode: "self_message" };
   }
-  if (input.category === "workflow_contract") {
-    return { mode: "workflow_contract", reason: input.reason };
-  }
-  if (input.category === "channel_context") {
-    return { mode: "channel_context", reason: input.reason };
-  }
-  if (input.category === "system") {
-    return { mode: "system", reason: input.reason };
-  }
-
-  if (!relevance.relevant) {
-    if (input.category === "task") {
-      return { mode: "task", reason: `weak_${relevance.reason}` };
-    }
-    if (input.category === "status") {
-      return { mode: "status", reason: relevance.reason };
-    }
-    if (["discussion", "decision", "chat", "unknown"].includes(input.category)) {
-      return { mode: input.category, reason: relevance.reason };
-    }
-    return { mode: "unknown", reason: relevance.reason };
-  }
-
-  if (input.category === "task") {
-    return { mode: "task", reason: input.reason };
-  }
-  if (input.category === "status") {
-    return { mode: "status", reason: input.reason };
-  }
-  if (input.category === "discussion") {
-    return { mode: "discussion", reason: input.reason };
+  if (["protocol_violation", "workflow_contract", "channel_context", "admin_message", "system_event"].includes(input.category)) {
+    return { mode: input.category };
   }
   if (input.category === "decision") {
     const signals = structuredSignalsOf(input.message);
     if (signals.hasExplicitAssignment || ["approve", "authorize"].includes(signals.intent)) {
-      return { mode: "task", reason: "decision_actionable" };
+      return { mode: "task" };
     }
-    return { mode: "decision", reason: input.reason };
   }
-  if (input.category === "chat") {
-    return { mode: "chat", reason: input.reason };
+  if (!relevance.relevant && input.category === "unknown") {
+    return { mode: "observe" };
   }
-  return { mode: "unknown", reason: input.reason };
+  return { mode: input.category || "unknown" };
 }
 
 function hasQuestionSignal(message) {
@@ -434,8 +642,17 @@ export function buildContextFlags(input, state, runtimeContext, relevance) {
 }
 
 export function decideObligation(input, relevance, contextFlags) {
+  if (input.category === "self_message") {
+    return { obligation: "observe_only", reason: "state_sync_only" };
+  }
   if (["protocol_violation", "workflow_contract", "channel_context"].includes(input.category)) {
     return { obligation: "required", reason: `${input.category}_required` };
+  }
+  if (["admin_message", "system_event"].includes(input.category)) {
+    if (contextFlags.need_ack || contextFlags.question || contextFlags.addressed) {
+      return { obligation: "required_ack", reason: "system_ack_requested" };
+    }
+    return { obligation: "observe_only", reason: "system_notice" };
   }
 
   if (input.category === "task") {
@@ -468,13 +685,6 @@ export function decideObligation(input, relevance, contextFlags) {
     return { obligation: "observe_only", reason: `${input.category}_default_observe` };
   }
 
-  if (input.category === "system") {
-    if (contextFlags.need_ack || contextFlags.question || contextFlags.addressed) {
-      return { obligation: "required_ack", reason: "system_ack_requested" };
-    }
-    return { obligation: "observe_only", reason: "system_default_observe" };
-  }
-
   return {
     obligation: relevance.relevant ? "optional" : "observe_only",
     reason: relevance.relevant ? "relevant_default" : "observe_only_default",
@@ -483,6 +693,10 @@ export function decideObligation(input, relevance, contextFlags) {
 
 export function defaultResponseDecision(mode, obligationDecision, contextFlags) {
   const obligation = obligationDecision?.obligation || "observe_only";
+
+  if (mode === "self_message") {
+    return { action: "observe_only", reason: "self_message_no_reply" };
+  }
 
   if (mode === "task" && obligation !== "observe_only" && (contextFlags.targeted_self || contextFlags.assigned_self || contextFlags.authorize)) {
     return { action: "task_execution", reason: "direct_task_execution" };
@@ -498,7 +712,7 @@ export function defaultResponseDecision(mode, obligationDecision, contextFlags) 
     if (["discussion", "decision", "chat"].includes(mode)) {
       return { action: contextFlags.question ? "full_reply" : "brief_reply", reason: "optional_conversation" };
     }
-    if (["status", "unknown", "system"].includes(mode)) {
+    if (["status", "unknown", "admin_message", "system_event"].includes(mode)) {
       return {
         action: contextFlags.addressed || contextFlags.question || contextFlags.need_ack ? "ack" : "observe_only",
         reason: "optional_signal",
@@ -527,19 +741,6 @@ function normalizeResponseDecision(decision, mode, obligationDecision, contextFl
   return defaultResponseDecision(mode, obligationDecision, contextFlags);
 }
 
-function dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags, responseDecision = null) {
-  return {
-    reason: modeDecision.reason,
-    relevant: relevance.relevant,
-    relevance_reason: relevance.reason,
-    obligation: obligationDecision.obligation,
-    obligation_reason: obligationDecision.reason,
-    context_flags: contextFlags,
-    response_decision: responseDecision?.action || null,
-    response_decision_reason: responseDecision?.reason || null,
-  };
-}
-
 function defaultFallbackReplyText(input, modeDecision, obligationDecision, contextFlags, responseDecision) {
   const modeLabel = {
     task: "??",
@@ -548,32 +749,93 @@ function defaultFallbackReplyText(input, modeDecision, obligationDecision, conte
     decision: "??",
     chat: "??",
     unknown: "??",
-    system: "????",
+    admin_message: "????",
+    system_event: "????",
+    self_message: "????",
   }[modeDecision.mode] || "??";
 
   if (responseDecision.action === "ack") {
-    return `?????${modeLabel}??????????????????????????????`;
+    return `?????${modeLabel}????????????????????????`;
   }
   if (responseDecision.action === "brief_reply") {
     if (contextFlags.question) {
-      return `?????${modeLabel}??????????????????????????????????????????`;
+      return `?????${modeLabel}???????????????????????????`;
     }
-    return `?????${modeLabel}??????????????????????????????`;
+    return `?????${modeLabel}???????????????`;
   }
   if (responseDecision.action === "full_reply") {
-    return `?????${modeLabel}????????????????????????????????????`;
+    return `?????${modeLabel}?????????????????`;
   }
   if (responseDecision.action === "task_execution") {
-    return `?????${modeLabel}????????????????`;
+    return `?????${modeLabel}??????????????`;
   }
   return "";
+}
+
+function buildRuntimeActions(category, responseDecision) {
+  if (category === "self_message") {
+    return {
+      decision: "observe_only",
+      should_reply: false,
+      should_execute: false,
+      should_sync_state: true,
+      reason: "self_message_no_intake",
+    };
+  }
+  const action = responseDecision?.action || "observe_only";
+  return {
+    decision: action,
+    should_reply: ["ack", "brief_reply", "full_reply"].includes(action),
+    should_execute: action === "task_execution",
+    should_sync_state: false,
+    reason: responseDecision?.reason || null,
+  };
+}
+
+function buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, outcome = {}) {
+  return {
+    event: input.eventSummary,
+    context: {
+      ...input.context,
+      runtime_context_loaded: Boolean(runtimeContext && Object.keys(runtimeContext).length),
+      flags: outcome.contextFlags || {},
+    },
+    message: input.messageFacts || null,
+    runtime: {
+      category: input.category,
+      mode: modeDecision.mode,
+      reason: input.reason,
+      relevance: {
+        value: relevance.relevant,
+        reason: relevance.reason,
+      },
+      obligation: {
+        value: obligationDecision.obligation,
+        reason: obligationDecision.reason,
+      },
+      actions: buildRuntimeActions(input.category, responseDecision),
+      handled: Boolean(outcome.handled),
+      executed: Boolean(outcome.executed),
+      observed: Boolean(outcome.observed),
+      ignored: Boolean(outcome.ignored),
+      reply_id: outcome.replyId || null,
+      result: outcome.result || null,
+      payload: outcome.payload || null,
+      required_unfulfilled: Boolean(outcome.required_unfulfilled),
+    },
+    ignored: Boolean(outcome.ignored),
+    handled: Boolean(outcome.handled),
+    executed: Boolean(outcome.executed),
+    observed: Boolean(outcome.observed),
+    replyId: outcome.replyId || null,
+  };
 }
 
 async function resolveResponseDecision(adapter, modeDecision, input, runtimeContext, relevance, obligationDecision, contextFlags) {
   if (typeof adapter.decideResponse === "function") {
     const decision = await adapter.decideResponse(obligationDecision.obligation, modeDecision.mode, {
       category: input.category,
-      reason: modeDecision.reason,
+      reason: input.reason,
       relevance,
       obligation: obligationDecision,
       contextFlags,
@@ -597,31 +859,23 @@ async function fallbackDispatch(adapter, state, input, runtimeContext, modeDecis
     obligationDecision,
     contextFlags,
   );
-  const meta = dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags, responseDecision);
 
   if (responseDecision.action === "observe_only") {
-    return {
-      ignored: false,
-      mode: modeDecision.mode,
-      category: input.category,
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
       observed: true,
-      handled: false,
-      ...meta,
       payload: input.message || input.payload || null,
-    };
+      contextFlags,
+    });
   }
 
   if (responseDecision.action === "task_execution") {
     if (!input.message || typeof adapter.executeTask !== "function" || typeof adapter.postCommunityMessage !== "function") {
-      return {
-        ignored: false,
-        mode: modeDecision.mode,
-        category: input.category,
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
         handled: false,
         required_unfulfilled: true,
-        ...meta,
         payload: input.message || input.payload || null,
-      };
+        contextFlags,
+      });
     }
     const resultText = await adapter.executeTask(input.message, state, runtimeContext);
     const reply = await adapter.postCommunityMessage(state, input.message, {
@@ -632,32 +886,27 @@ async function fallbackDispatch(adapter, state, input, runtimeContext, modeDecis
           runtime_dispatch: {
             mode: modeDecision.mode,
             obligation: obligationDecision.obligation,
-            relevance_reason: relevance.reason,
-            response_decision: responseDecision.action,
+            relevance: relevance.reason,
+            decision: responseDecision.action,
           },
         },
       },
     });
-    return {
-      ignored: false,
-      mode: modeDecision.mode,
-      category: input.category,
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
+      handled: true,
       executed: true,
       replyId: reply?.id || null,
-      ...meta,
-    };
+      contextFlags,
+    });
   }
 
   if (!input.message || typeof adapter.postCommunityMessage !== "function") {
-    return {
-      ignored: false,
-      mode: modeDecision.mode,
-      category: input.category,
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
       handled: false,
       required_unfulfilled: obligationDecision.obligation !== "observe_only",
-      ...meta,
       payload: input.message || input.payload || null,
-    };
+      contextFlags,
+    });
   }
 
   let replyText = "";
@@ -686,15 +935,11 @@ async function fallbackDispatch(adapter, state, input, runtimeContext, modeDecis
     replyText = defaultFallbackReplyText(input, modeDecision, obligationDecision, contextFlags, responseDecision);
   }
   if (!replyText) {
-    return {
-      ignored: false,
-      mode: modeDecision.mode,
-      category: input.category,
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
       observed: true,
-      handled: false,
-      ...meta,
       payload: input.message || input.payload || null,
-    };
+      contextFlags,
+    });
   }
 
   const reply = await adapter.postCommunityMessage(state, input.message, {
@@ -705,53 +950,52 @@ async function fallbackDispatch(adapter, state, input, runtimeContext, modeDecis
         runtime_dispatch: {
           mode: modeDecision.mode,
           obligation: obligationDecision.obligation,
-          relevance_reason: relevance.reason,
-          response_decision: responseDecision.action,
+          relevance: relevance.reason,
+          decision: responseDecision.action,
         },
       },
     },
   });
 
-  return {
-    ignored: false,
-    mode: modeDecision.mode,
-    category: input.category,
+  return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, responseDecision, {
+    handled: true,
     executed: true,
     replyId: reply?.id || null,
-    ...meta,
-  };
+    contextFlags,
+  });
 }
 
 export async function dispatchByMode(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags) {
-  if (modeDecision.mode === "ignore") {
-    return {
-      ignored: true,
-      mode: "ignore",
-      category: input.category,
-      ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-    };
+  if (modeDecision.mode === "ignore" || modeDecision.mode === "observe") {
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, { action: "observe_only", reason: "observe_mode" }, {
+      ignored: modeDecision.mode === "ignore",
+      observed: true,
+      contextFlags,
+    });
+  }
+
+  if (modeDecision.mode === "self_message") {
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, { action: "observe_only", reason: "self_message_no_reply" }, {
+      handled: true,
+      observed: true,
+      contextFlags,
+    });
   }
 
   if (modeDecision.mode === "protocol_violation") {
     if (typeof adapter.handleProtocolViolation === "function") {
       const result = await adapter.handleProtocolViolation(state, input.event);
-      return {
-        ignored: false,
-        mode: "protocol_violation",
-        category: "protocol_violation",
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
-    return {
-      ignored: false,
-      mode: "protocol_violation",
-      category: "protocol_violation",
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
       handled: false,
       payload: input.payload,
-      ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-    };
+      contextFlags,
+    });
   }
 
   if (modeDecision.mode === "workflow_contract") {
@@ -759,23 +1003,17 @@ export async function dispatchByMode(adapter, state, input, runtimeContext, mode
       const groupId = input.groupId || input.payload?.group_id || null;
       const contract = input.payload?.workflow_contract || input.payload?.contract || input.payload;
       const result = await adapter.loadWorkflowContract(groupId, contract, "runtime_event");
-      return {
-        ignored: false,
-        mode: "workflow_contract",
-        category: "workflow_contract",
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
-    return {
-      ignored: false,
-      mode: "workflow_contract",
-      category: "workflow_contract",
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
       handled: false,
       payload: input.payload,
-      ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-    };
+      contextFlags,
+    });
   }
 
   if (modeDecision.mode === "channel_context") {
@@ -783,36 +1021,27 @@ export async function dispatchByMode(adapter, state, input, runtimeContext, mode
       const groupId = input.groupId || input.payload?.group_id || null;
       const contextPayload = input.payload?.channel_context || input.payload;
       const result = await adapter.loadChannelContext(state, groupId, contextPayload);
-      return {
-        ignored: false,
-        mode: "channel_context",
-        category: "channel_context",
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
-    return {
-      ignored: false,
-      mode: "channel_context",
-      category: "channel_context",
+    return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
       handled: false,
       payload: input.payload,
-      ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-    };
+      contextFlags,
+    });
   }
 
-  if (modeDecision.mode === "system") {
+  if (["admin_message", "system_event"].includes(modeDecision.mode)) {
     if (typeof adapter.handleSystemEvent === "function") {
       const result = await adapter.handleSystemEvent(state, input.event);
-      return {
-        ignored: false,
-        mode: "system",
-        category: "system",
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
     return fallbackDispatch(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags);
   }
@@ -820,22 +1049,16 @@ export async function dispatchByMode(adapter, state, input, runtimeContext, mode
   if (modeDecision.mode === "task") {
     if (!relevance.relevant && typeof adapter.handleTaskEnvelope === "function") {
       const result = await adapter.handleTaskEnvelope(input.message, state, runtimeContext, {
-        reason: modeDecision.reason,
+        reason: input.reason,
         relevant: relevance.relevant,
         obligation: obligationDecision.obligation,
         contextFlags,
       });
-      return {
-        ignored: false,
-        mode: "task",
-        category: input.category,
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
-    }
-    if (relevance.relevant && obligationDecision.obligation === "required") {
-      return fallbackDispatch(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags);
+        contextFlags,
+      });
     }
     return fallbackDispatch(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags);
   }
@@ -849,19 +1072,16 @@ export async function dispatchByMode(adapter, state, input, runtimeContext, mode
           : "handleChat";
     if (typeof adapter[localHandlerName] === "function") {
       const result = await adapter[localHandlerName](input.message, state, runtimeContext, {
-        reason: modeDecision.reason,
+        reason: input.reason,
         relevant: relevance.relevant,
         obligation: obligationDecision.obligation,
         contextFlags,
       });
-      return {
-        ignored: false,
-        mode: modeDecision.mode,
-        category: input.category,
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
     return fallbackDispatch(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags);
   }
@@ -870,48 +1090,46 @@ export async function dispatchByMode(adapter, state, input, runtimeContext, mode
     const localHandlerName = modeDecision.mode === "status" ? "handleStatus" : "handleUnknown";
     if (typeof adapter[localHandlerName] === "function") {
       const result = await adapter[localHandlerName](input.message || input.payload, state, runtimeContext, {
-        reason: modeDecision.reason,
+        reason: input.reason,
         relevant: relevance.relevant,
         obligation: obligationDecision.obligation,
         contextFlags,
       });
-      return {
-        ignored: false,
-        mode: modeDecision.mode,
-        category: input.category,
+      return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, null, {
         handled: true,
         result,
-        ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-      };
+        contextFlags,
+      });
     }
     return fallbackDispatch(adapter, state, input, runtimeContext, modeDecision, relevance, obligationDecision, contextFlags);
   }
 
-  return {
-    ignored: true,
-    mode: "ignore",
-    category: input.category,
-    ...dispatchMeta(modeDecision, relevance, obligationDecision, contextFlags),
-  };
+  return buildWebhookResultV2(input, runtimeContext, relevance, obligationDecision, modeDecision, { action: "observe_only", reason: "unhandled_mode" }, {
+    observed: true,
+    contextFlags,
+  });
 }
 
 export async function handleRuntimeEvent(adapter, state, event) {
   const extracted = extractMessage(event);
-  const classification = classifyIncoming(extracted.eventType, extracted.message, extracted.payload);
-  const input = { ...extracted, ...classification, event };
+  const classification = classifyIncoming(extracted.eventType, extracted.message, extracted.payload, state);
+  const input = { ...extracted, ...classification, event: extracted.normalizedEvent || event };
 
   const ignoreDecision = isIgnorableMessage(input);
   if (ignoreDecision.ignorable) {
-    return {
-      ignored: true,
-      mode: "ignore",
-      category: input.category,
-      reason: ignoreDecision.reason,
-    };
+    return buildWebhookResultV2(
+      input,
+      {},
+      { relevant: false, reason: ignoreDecision.reason },
+      { obligation: "observe_only", reason: "ignorable_input" },
+      { mode: "ignore" },
+      { action: "observe_only", reason: "ignore" },
+      { ignored: true, contextFlags: {} },
+    );
   }
 
   const shouldLoadContext = Boolean(
-    input.groupId && ["task", "discussion", "decision", "chat", "status", "unknown"].includes(input.category),
+    input.groupId && ["task", "discussion", "decision", "chat", "status", "unknown", "admin_message", "system_event"].includes(input.category),
   );
   const runtimeContext = shouldLoadContext ? await adapter.fetchRuntimeContext(input.groupId, state) : {};
   const relevance = checkRelevance(input, state, runtimeContext);
