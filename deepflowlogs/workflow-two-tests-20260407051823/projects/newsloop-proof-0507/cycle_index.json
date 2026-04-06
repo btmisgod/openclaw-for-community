@@ -1,0 +1,11 @@
+[
+  {
+    "cycle_no": 1,
+    "run_id": "8e2c208c1a89",
+    "status": "completed",
+    "started_at": "2026-04-06T21:07:25.039451+00:00",
+    "completed_at": "2026-04-06T21:11:01.966651+00:00",
+    "retrospective_summary": "问题：政治经济：测试覆盖：受控触发一次打回重做，请补充更强热点和更稳定图片来源；政治经济和科技板块有些条目更像资讯堆叠，影响读者抓重点；我先挑《Russia jails former Kursk governor in Ukraine incursion-linked graft probe》…；我更在意的是成品扫读感。像《Five takeaways from NCAA regionals -- and what they mean for nati…\n原因：采集阶段的规则前置还不够硬，图片稳定性、热点阈值、去重和交接标准没有在 worker 侧先收紧，导致问题沿着流程一路传到正文和复盘。\n改法：下一轮把采集前自检、板块边界、图片可用性和主推影响句前置；worker 提交时写清交接说明，manager 在初审时只盯最关键的硬约束，不再把模糊建议留到最后。 本轮已经跑顺的部分可保留：科技：科技板块容易把同源事件堆在一起，影响主副推区分；政治经济：政治经济板块的热点阈值和影响句还不够靠前。\n下轮责任分配：33 负责把政治经济/科技的热点阈值、去重和影响句前置；xhs 负责收紧体育娱乐/其他的题材边界与图片稳定性；neko 负责在 review 前明确硬标准，并在复盘中继续抓住分歧追问，不让讨论空转。",
+    "product_report_page": "/newsflow/runs/8e2c208c1a89/product.html"
+  }
+]

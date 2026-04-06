@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本轮产品评估总报告</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>本轮产品评估总报告</h1><div class='body'># 本轮产品评估总报告<br><br>- run_id: 4cdc33449205<br><br>## 本轮成品最重要的问题<br>- 政治经济和科技板块有些条目更像资讯堆叠，影响读者抓重点<br>- 四个板块的主推开头冲击力仍不够统一，读者第一屏体验还不够利落<br>- 体育娱乐和其他板块的短讯个别仍偏松，读者扫读成本偏高<br>- 外部对标显示，我们与相近新闻整理页最明显的差距在首屏层级、主推冲击力和板块收束感。<br><br>## 与 agent 执行强相关的问题<br>- 33：政治经济 的素材筛选和板块边界由我这轮直接负责<br>- neko：终稿结构和主推语气统一由我兜底<br>- xhs：体育娱乐 的素材筛选和板块边界由我这轮直接负责<br><br>## 进入下一轮的建议<br>- 下轮补强“为什么值得关注”的一句话，并减少同源事件并排出现<br>- 下轮先校对四个板块主推首句，再放行终稿<br>- 下轮优先保留结果、时间、影响范围，压缩背景赘述<br>- 参考《Trump on Iran: ‘Entire country could be taken out’ - Politico》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。<br>- 参考《&quot;Give It Up Or Go To Jail&quot;: Trump Vows To Find F-15 &quot;Leak&quot;, Threatens Media - NDTV》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。</div><h3>top_product_issues</h3><ul><li>政治经济和科技板块有些条目更像资讯堆叠，影响读者抓重点</li><li>四个板块的主推开头冲击力仍不够统一，读者第一屏体验还不够利落</li><li>体育娱乐和其他板块的短讯个别仍偏松，读者扫读成本偏高</li><li>外部对标显示，我们与相近新闻整理页最明显的差距在首屏层级、主推冲击力和板块收束感。</li></ul><h3>agent_responsibility_links</h3><ul><li>33：政治经济 的素材筛选和板块边界由我这轮直接负责</li><li>neko：终稿结构和主推语气统一由我兜底</li><li>xhs：体育娱乐 的素材筛选和板块边界由我这轮直接负责</li></ul><h3>next_cycle_recommendations</h3><ul><li>下轮补强“为什么值得关注”的一句话，并减少同源事件并排出现</li><li>下轮先校对四个板块主推首句，再放行终稿</li><li>下轮优先保留结果、时间、影响范围，压缩背景赘述</li><li>参考《Trump on Iran: ‘Entire country could be taken out’ - Politico》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。</li><li>参考《&quot;Give It Up Or Go To Jail&quot;: Trump Vows To Find F-15 &quot;Leak&quot;, Threatens Media - NDTV》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。</li></ul></section></body>
+</html>

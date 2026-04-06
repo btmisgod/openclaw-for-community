@@ -1,0 +1,22 @@
+{
+  "project_id": "newsloop-proof-0507",
+  "workflow_id": "intl-news-hotspots",
+  "status": "stopped",
+  "current_cycle_no": 1,
+  "max_cycles": 1,
+  "latest_run_id": "8e2c208c1a89",
+  "next_cycle_at": null,
+  "paused_reason": "reached max cycles",
+  "notes": {
+    "defaults": {
+      "discussion_seconds": 600,
+      "retrospective_seconds": 600,
+      "next_cycle_delay_seconds": 300
+    },
+    "test_values": {
+      "discussion_seconds": 15,
+      "retrospective_seconds": 35,
+      "next_cycle_delay_seconds": 10
+    }
+  }
+}

@@ -1,0 +1,1067 @@
+[
+  {
+    "path": "workflow/deepflow-grafana",
+    "size": 934,
+    "mtime": 1775466386.668006
+  },
+  {
+    "path": "workflow/newsflow-agent-33.service",
+    "size": 403,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "workflow/newsflow-agent-neko.service",
+    "size": 407,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "workflow/newsflow-agent-xhs.service",
+    "size": 405,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "workflow/newsflow-orchestrator.service",
+    "size": 395,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json",
+    "size": 15253,
+    "mtime": 1775502008.716399
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json.bak-202604061655",
+    "size": 5815,
+    "mtime": 1775465553.5927167
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json.bak-202604061753",
+    "size": 8735,
+    "mtime": 1775483521.1595426
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json.bak-202604061800",
+    "size": 7334,
+    "mtime": 1775481688.5870335
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json.bak-202604062239",
+    "size": 10494,
+    "mtime": 1775486595.7673366
+  },
+  {
+    "path": "workflow/grafana/newsflow-dashboard.json.bak-20260407025824",
+    "size": 10494,
+    "mtime": 1775501904.9415658
+  },
+  {
+    "path": "workflow/app/__init__.py",
+    "size": 23,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "workflow/app/config.py",
+    "size": 2957,
+    "mtime": 1775481705.944755
+  },
+  {
+    "path": "workflow/app/config.py.bak-202604061800",
+    "size": 1566,
+    "mtime": 1775481688.5840337
+  },
+  {
+    "path": "workflow/app/db.py",
+    "size": 10282,
+    "mtime": 1775509381.6753337
+  },
+  {
+    "path": "workflow/app/db.py.bak-202604061800",
+    "size": 4278,
+    "mtime": 1775481688.5580342
+  },
+  {
+    "path": "workflow/app/db.py.bak-202604062239",
+    "size": 7704,
+    "mtime": 1775486595.732337
+  },
+  {
+    "path": "workflow/app/db.py.bak-202604062325",
+    "size": 8618,
+    "mtime": 1775488805.1287265
+  },
+  {
+    "path": "workflow/app/db.py.bak-20260407023526",
+    "size": 8618,
+    "mtime": 1775500526.409045
+  },
+  {
+    "path": "workflow/app/db.py.bak-20260407050209",
+    "size": 9929,
+    "mtime": 1775509355.8706186
+  },
+  {
+    "path": "workflow/app/llm.py",
+    "size": 968,
+    "mtime": 1775462730.1841414
+  },
+  {
+    "path": "workflow/app/news.py",
+    "size": 7509,
+    "mtime": 1775502113.6571085
+  },
+  {
+    "path": "workflow/app/news.py.bak-20260407025824",
+    "size": 4858,
+    "mtime": 1775501904.9485655
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py",
+    "size": 7782,
+    "mtime": 1775509612.1419437
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-202604061710",
+    "size": 1309,
+    "mtime": 1775466257.552389
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-202604061800",
+    "size": 2039,
+    "mtime": 1775481688.568034
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-202604062239",
+    "size": 5069,
+    "mtime": 1775486595.7583368
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-20260407023526",
+    "size": 5069,
+    "mtime": 1775500526.414045
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-20260407025824",
+    "size": 6013,
+    "mtime": 1775501904.9465656
+  },
+  {
+    "path": "workflow/app/orchestrator_api.py.bak-20260407050209",
+    "size": 7047,
+    "mtime": 1775509355.8716185
+  },
+  {
+    "path": "workflow/app/rendering.py",
+    "size": 34729,
+    "mtime": 1775509408.4810538
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-202604061742",
+    "size": 17317,
+    "mtime": 1775473908.155615
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-202604061800",
+    "size": 17331,
+    "mtime": 1775481688.575034
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-202604062239",
+    "size": 23634,
+    "mtime": 1775486595.7443368
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-202604062325",
+    "size": 26087,
+    "mtime": 1775488805.1277266
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-20260407023526",
+    "size": 26087,
+    "mtime": 1775500526.412045
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-20260407025824",
+    "size": 31094,
+    "mtime": 1775501904.9465656
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-20260407040317",
+    "size": 32228,
+    "mtime": 1775505804.4126441
+  },
+  {
+    "path": "workflow/app/rendering.py.bak-20260407042751",
+    "size": 32160,
+    "mtime": 1775507294.4350166
+  },
+  {
+    "path": "workflow/app/telemetry.py",
+    "size": 1930,
+    "mtime": 1775465608.5261402
+  },
+  {
+    "path": "workflow/app/telemetry.py.bak-202604061655",
+    "size": 1500,
+    "mtime": 1775465553.5897167
+  },
+  {
+    "path": "workflow/app/telemetry.py.bak-202604061800",
+    "size": 1930,
+    "mtime": 1775481688.5860336
+  },
+  {
+    "path": "workflow/app/worker_entry.py",
+    "size": 253,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "workflow/app/workflow.py",
+    "size": 143390,
+    "mtime": 1775509827.2817345
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-202604061710",
+    "size": 26873,
+    "mtime": 1775466257.5533888
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-202604061800",
+    "size": 30133,
+    "mtime": 1775481688.5340345
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-202604062239",
+    "size": 66078,
+    "mtime": 1775486595.725337
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-202604062325",
+    "size": 94648,
+    "mtime": 1775488805.1257265
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-20260407023526",
+    "size": 96386,
+    "mtime": 1775500526.411045
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-20260407025824",
+    "size": 124171,
+    "mtime": 1775501904.9435656
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-20260407040317",
+    "size": 126301,
+    "mtime": 1775505804.413644
+  },
+  {
+    "path": "workflow/app/workflow.py.bak-20260407042751",
+    "size": 126817,
+    "mtime": 1775507294.4340165
+  },
+  {
+    "path": "workflow/app/__pycache__/__init__.cpython-312.pyc",
+    "size": 130,
+    "mtime": 1775466750.2462864
+  },
+  {
+    "path": "workflow/app/__pycache__/config.cpython-312.pyc",
+    "size": 4276,
+    "mtime": 1775486875.044394
+  },
+  {
+    "path": "workflow/app/__pycache__/db.cpython-312.pyc",
+    "size": 12301,
+    "mtime": 1775509639.1166654
+  },
+  {
+    "path": "workflow/app/__pycache__/llm.cpython-312.pyc",
+    "size": 1752,
+    "mtime": 1775486875.044394
+  },
+  {
+    "path": "workflow/app/__pycache__/news.cpython-312.pyc",
+    "size": 9333,
+    "mtime": 1775506081.5727777
+  },
+  {
+    "path": "workflow/app/__pycache__/orchestrator_api.cpython-312.pyc",
+    "size": 11743,
+    "mtime": 1775509639.1266654
+  },
+  {
+    "path": "workflow/app/__pycache__/rendering.cpython-312.pyc",
+    "size": 42760,
+    "mtime": 1775509639.1246653
+  },
+  {
+    "path": "workflow/app/__pycache__/telemetry.cpython-312.pyc",
+    "size": 3340,
+    "mtime": 1775466750.263286
+  },
+  {
+    "path": "workflow/app/__pycache__/worker_entry.cpython-312.pyc",
+    "size": 596,
+    "mtime": 1775466750.2642863
+  },
+  {
+    "path": "workflow/app/__pycache__/workflow.cpython-312.pyc",
+    "size": 143764,
+    "mtime": 1775509851.5384853
+  },
+  {
+    "path": "outputs/8e2c208c1a89/benchmark_report.html",
+    "size": 6840,
+    "mtime": 1775509723.4077973
+  },
+  {
+    "path": "outputs/8e2c208c1a89/benchmark_report.json",
+    "size": 2549,
+    "mtime": 1775509723.4077973
+  },
+  {
+    "path": "outputs/8e2c208c1a89/benchmark_report.md",
+    "size": 1501,
+    "mtime": 1775509723.4077973
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_report.html",
+    "size": 56971,
+    "mtime": 1775509689.2871475
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_report.json",
+    "size": 30969,
+    "mtime": 1775509689.2861476
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_report.md",
+    "size": 15837,
+    "mtime": 1775509689.2861476
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_review_summary.html",
+    "size": 5485,
+    "mtime": 1775509709.4519405
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_review_summary.json",
+    "size": 1288,
+    "mtime": 1775509709.4509406
+  },
+  {
+    "path": "outputs/8e2c208c1a89/draft_review_summary.md",
+    "size": 1293,
+    "mtime": 1775509709.4509406
+  },
+  {
+    "path": "outputs/8e2c208c1a89/final_report.html",
+    "size": 27798,
+    "mtime": 1775509715.5928776
+  },
+  {
+    "path": "outputs/8e2c208c1a89/final_report.json",
+    "size": 30969,
+    "mtime": 1775509715.5758777
+  },
+  {
+    "path": "outputs/8e2c208c1a89/final_report.md",
+    "size": 17193,
+    "mtime": 1775509715.5758777
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_evaluation_report.html",
+    "size": 5404,
+    "mtime": 1775509725.4607763
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_evaluation_report.json",
+    "size": 1374,
+    "mtime": 1775509725.4607763
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_evaluation_report.md",
+    "size": 1200,
+    "mtime": 1775509725.4607763
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_33.html",
+    "size": 5063,
+    "mtime": 1775509718.5028477
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_33.json",
+    "size": 1285,
+    "mtime": 1775509718.5028477
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_33.md",
+    "size": 1069,
+    "mtime": 1775509718.5028477
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_neko.html",
+    "size": 5147,
+    "mtime": 1775509719.649836
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_neko.json",
+    "size": 1286,
+    "mtime": 1775509719.649836
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_neko.md",
+    "size": 1096,
+    "mtime": 1775509719.648836
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_xhs.html",
+    "size": 4942,
+    "mtime": 1775509719.7838347
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_xhs.json",
+    "size": 1238,
+    "mtime": 1775509719.7838347
+  },
+  {
+    "path": "outputs/8e2c208c1a89/product_test_xhs.md",
+    "size": 1009,
+    "mtime": 1775509719.7828345
+  },
+  {
+    "path": "outputs/8e2c208c1a89/retrospective_summary.html",
+    "size": 4213,
+    "mtime": 1775509898.120006
+  },
+  {
+    "path": "outputs/8e2c208c1a89/retrospective_summary.json",
+    "size": 1401,
+    "mtime": 1775509898.120006
+  },
+  {
+    "path": "outputs/8e2c208c1a89/retrospective_summary.md",
+    "size": 1320,
+    "mtime": 1775509898.120006
+  },
+  {
+    "path": "outputs/8e2c208c1a89/revised_final_report.html",
+    "size": 20742,
+    "mtime": 1775509711.5199194
+  },
+  {
+    "path": "outputs/8e2c208c1a89/revised_final_report.json",
+    "size": 30969,
+    "mtime": 1775509711.5099194
+  },
+  {
+    "path": "outputs/8e2c208c1a89/revised_final_report.md",
+    "size": 17193,
+    "mtime": 1775509711.5099194
+  },
+  {
+    "path": "outputs/4cdc33449205/benchmark_report.html",
+    "size": 14430,
+    "mtime": 1775507519.7096486
+  },
+  {
+    "path": "outputs/4cdc33449205/benchmark_report.json",
+    "size": 6849,
+    "mtime": 1775507519.7096486
+  },
+  {
+    "path": "outputs/4cdc33449205/benchmark_report.md",
+    "size": 4478,
+    "mtime": 1775507519.7096486
+  },
+  {
+    "path": "outputs/4cdc33449205/discussion_summary.html",
+    "size": 6654,
+    "mtime": 1775507541.9834146
+  },
+  {
+    "path": "outputs/4cdc33449205/discussion_summary.json",
+    "size": 1961,
+    "mtime": 1775507541.9834146
+  },
+  {
+    "path": "outputs/4cdc33449205/discussion_summary.md",
+    "size": 1835,
+    "mtime": 1775507541.9834146
+  },
+  {
+    "path": "outputs/4cdc33449205/final_report.html",
+    "size": 28458,
+    "mtime": 1775507548.12735
+  },
+  {
+    "path": "outputs/4cdc33449205/final_report.json",
+    "size": 31366,
+    "mtime": 1775507548.1093502
+  },
+  {
+    "path": "outputs/4cdc33449205/final_report.md",
+    "size": 18187,
+    "mtime": 1775507548.1093502
+  },
+  {
+    "path": "outputs/4cdc33449205/product_evaluation_report.html",
+    "size": 5754,
+    "mtime": 1775507521.763627
+  },
+  {
+    "path": "outputs/4cdc33449205/product_evaluation_report.json",
+    "size": 1533,
+    "mtime": 1775507521.763627
+  },
+  {
+    "path": "outputs/4cdc33449205/product_evaluation_report.md",
+    "size": 1355,
+    "mtime": 1775507521.7626271
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_33.html",
+    "size": 5085,
+    "mtime": 1775507514.3777049
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_33.json",
+    "size": 1296,
+    "mtime": 1775507514.3767047
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_33.md",
+    "size": 1080,
+    "mtime": 1775507514.3767047
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_neko.html",
+    "size": 5437,
+    "mtime": 1775507514.7467008
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_neko.json",
+    "size": 1431,
+    "mtime": 1775507514.7467008
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_neko.md",
+    "size": 1241,
+    "mtime": 1775507514.7467008
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_xhs.html",
+    "size": 5210,
+    "mtime": 1775507514.8566997
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_xhs.json",
+    "size": 1372,
+    "mtime": 1775507514.8556998
+  },
+  {
+    "path": "outputs/4cdc33449205/product_test_xhs.md",
+    "size": 1143,
+    "mtime": 1775507514.8556998
+  },
+  {
+    "path": "outputs/4cdc33449205/retrospective_summary.html",
+    "size": 4231,
+    "mtime": 1775507875.7989118
+  },
+  {
+    "path": "outputs/4cdc33449205/retrospective_summary.json",
+    "size": 1419,
+    "mtime": 1775507875.7989118
+  },
+  {
+    "path": "outputs/4cdc33449205/retrospective_summary.md",
+    "size": 1338,
+    "mtime": 1775507875.797912
+  },
+  {
+    "path": "outputs/4cdc33449205/revised_final_report.html",
+    "size": 21739,
+    "mtime": 1775507544.056393
+  },
+  {
+    "path": "outputs/4cdc33449205/revised_final_report.json",
+    "size": 31366,
+    "mtime": 1775507544.046393
+  },
+  {
+    "path": "outputs/4cdc33449205/revised_final_report.md",
+    "size": 18187,
+    "mtime": 1775507544.045393
+  },
+  {
+    "path": "db/agent_optimizations.json",
+    "size": 25598,
+    "mtime": 1775510338.9364629
+  },
+  {
+    "path": "db/draft_reviews.json",
+    "size": 1354,
+    "mtime": 1775510338.6574657
+  },
+  {
+    "path": "db/optimization_logs.json",
+    "size": 12567,
+    "mtime": 1775510339.1224608
+  },
+  {
+    "path": "db/product_reports.json",
+    "size": 25610,
+    "mtime": 1775510338.8414638
+  },
+  {
+    "path": "db/project_agent_memory.json",
+    "size": 24730,
+    "mtime": 1775510339.032462
+  },
+  {
+    "path": "db/project_cycles.json",
+    "size": 27651,
+    "mtime": 1775510338.2624698
+  },
+  {
+    "path": "db/projects.json",
+    "size": 1332,
+    "mtime": 1775510338.1694708
+  },
+  {
+    "path": "db/retrospectives.json",
+    "size": 10706,
+    "mtime": 1775510338.7464647
+  },
+  {
+    "path": "db/tasks.json",
+    "size": 158596,
+    "mtime": 1775510338.5744665
+  },
+  {
+    "path": "db/workflow_runs.json",
+    "size": 2835,
+    "mtime": 1775510338.345469
+  },
+  {
+    "path": "notes/INDEX.md",
+    "size": 520,
+    "mtime": 1775510339.1254609
+  },
+  {
+    "path": "projects/newsloop-order-0433/changelog.md",
+    "size": 600,
+    "mtime": 1775507817.5365233
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycle_index.json",
+    "size": 1616,
+    "mtime": 1775507817.5365233
+  },
+  {
+    "path": "projects/newsloop-order-0433/improvement_history.md",
+    "size": 403,
+    "mtime": 1775507817.5365233
+  },
+  {
+    "path": "projects/newsloop-order-0433/project_overview.json",
+    "size": 529,
+    "mtime": 1775507817.5285234
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/agent_33_memory.json",
+    "size": 4157,
+    "mtime": 1775507817.4485242
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/agent_neko_memory.json",
+    "size": 4260,
+    "mtime": 1775507817.4405243
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/agent_xhs_memory.json",
+    "size": 4083,
+    "mtime": 1775507817.4565241
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/benchmark_report.html",
+    "size": 14430,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/benchmark_report.json",
+    "size": 6849,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/benchmark_report.md",
+    "size": 4478,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/conversation.html",
+    "size": 27285,
+    "mtime": 1775507817.3215256
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/discussion_summary.html",
+    "size": 6654,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/discussion_summary.json",
+    "size": 1961,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/discussion_summary.md",
+    "size": 1835,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/final_report.html",
+    "size": 28458,
+    "mtime": 1775507817.185527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/final_report.json",
+    "size": 31366,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/final_report.md",
+    "size": 18187,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/next_cycle_optimization_log.json",
+    "size": 6821,
+    "mtime": 1775507817.4325244
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/optimization_summary.json",
+    "size": 13890,
+    "mtime": 1775507817.4235246
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product-reports.html",
+    "size": 10854,
+    "mtime": 1775507817.4135246
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_evaluation_report.html",
+    "size": 5754,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_evaluation_report.json",
+    "size": 1533,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_evaluation_report.md",
+    "size": 1355,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_33.html",
+    "size": 5085,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_33.json",
+    "size": 1296,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_33.md",
+    "size": 1080,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_neko.html",
+    "size": 5437,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_neko.json",
+    "size": 1431,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_neko.md",
+    "size": 1241,
+    "mtime": 1775507817.186527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_xhs.html",
+    "size": 5210,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_xhs.json",
+    "size": 1372,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/product_test_xhs.md",
+    "size": 1143,
+    "mtime": 1775507817.187527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/retrospective.html",
+    "size": 12939,
+    "mtime": 1775507817.396525
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/review-thread.html",
+    "size": 6157,
+    "mtime": 1775507817.3475254
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/revised_final_report.html",
+    "size": 21739,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/revised_final_report.json",
+    "size": 31366,
+    "mtime": 1775507817.189527
+  },
+  {
+    "path": "projects/newsloop-order-0433/cycles/001/revised_final_report.md",
+    "size": 18187,
+    "mtime": 1775507817.188527
+  },
+  {
+    "path": "projects/newsloop-proof-0507/changelog.md",
+    "size": 582,
+    "mtime": 1775509862.3403742
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycle_index.json",
+    "size": 1598,
+    "mtime": 1775509862.3403742
+  },
+  {
+    "path": "projects/newsloop-proof-0507/improvement_history.md",
+    "size": 403,
+    "mtime": 1775509862.3403742
+  },
+  {
+    "path": "projects/newsloop-proof-0507/project_overview.json",
+    "size": 529,
+    "mtime": 1775509862.3313744
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/agent_33_memory.json",
+    "size": 4115,
+    "mtime": 1775509862.253375
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/agent_neko_memory.json",
+    "size": 4266,
+    "mtime": 1775509862.2453752
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/agent_xhs_memory.json",
+    "size": 4101,
+    "mtime": 1775509862.263375
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/benchmark_report.html",
+    "size": 6840,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/benchmark_report.json",
+    "size": 2549,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/benchmark_report.md",
+    "size": 1501,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/conversation.html",
+    "size": 28098,
+    "mtime": 1775509862.1093767
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft-review.html",
+    "size": 5719,
+    "mtime": 1775509862.1333764
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_report.html",
+    "size": 56971,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_report.json",
+    "size": 30969,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_report.md",
+    "size": 15837,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_review_summary.html",
+    "size": 5485,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_review_summary.json",
+    "size": 1288,
+    "mtime": 1775509861.9813778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/draft_review_summary.md",
+    "size": 1293,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/final_report.html",
+    "size": 27798,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/final_report.json",
+    "size": 30969,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/final_report.md",
+    "size": 17193,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/next_cycle_optimization_log.json",
+    "size": 6841,
+    "mtime": 1775509862.2363753
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/optimization_summary.json",
+    "size": 13872,
+    "mtime": 1775509862.2263753
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product-reports.html",
+    "size": 8330,
+    "mtime": 1775509862.2173755
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_evaluation_report.html",
+    "size": 5404,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_evaluation_report.json",
+    "size": 1374,
+    "mtime": 1775509861.980378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_evaluation_report.md",
+    "size": 1200,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_33.html",
+    "size": 5063,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_33.json",
+    "size": 1285,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_33.md",
+    "size": 1069,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_neko.html",
+    "size": 5147,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_neko.json",
+    "size": 1286,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_neko.md",
+    "size": 1096,
+    "mtime": 1775509861.9783778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_xhs.html",
+    "size": 4942,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_xhs.json",
+    "size": 1238,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/product_test_xhs.md",
+    "size": 1009,
+    "mtime": 1775509861.979378
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/retrospective.html",
+    "size": 15018,
+    "mtime": 1775509862.2003756
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/review-thread.html",
+    "size": 5591,
+    "mtime": 1775509862.158376
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/revised_final_report.html",
+    "size": 20742,
+    "mtime": 1775509861.9813778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/revised_final_report.json",
+    "size": 30969,
+    "mtime": 1775509861.9813778
+  },
+  {
+    "path": "projects/newsloop-proof-0507/cycles/001/revised_final_report.md",
+    "size": 17193,
+    "mtime": 1775509861.9813778
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-33.service.log",
+    "size": 1490,
+    "mtime": 1775510303.8738236
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-neko.service.log",
+    "size": 1537,
+    "mtime": 1775510303.8578238
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-xhs.service.log",
+    "size": 1513,
+    "mtime": 1775510303.8868234
+  },
+  {
+    "path": "logs/systemd/newsflow-orchestrator.service.log",
+    "size": 22636,
+    "mtime": 1775510303.839824
+  },
+  {
+    "path": "logs/systemd/nginx.service.log",
+    "size": 17,
+    "mtime": 1775510303.941823
+  }
+]

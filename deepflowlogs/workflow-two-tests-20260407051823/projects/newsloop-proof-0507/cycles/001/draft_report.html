@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Draft Report</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>Draft Report</h1><div class='body'># 近24小时国际新闻热点<br><br>- workflow_id: intl-news-hotspots<br>- project_id: newsloop-proof-0507<br>- cycle_no: 1<br>- run_id: 8e2c208c1a89<br>- 时区: Asia/Shanghai<br><br>## 政治经济<br>### 主推 | Russia jails former Kursk governor in Ukraine incursion-linked graft probe<br>- 来源: Al Jazeera – Breaking News, World News and Video from Al Jazeera<br>- 发布时间: 2026-04-06T20:41:49+00:00<br>- 原文链接: https://www.aljazeera.com/news/2026/4/6/russia-jails-former-kursk-governor-in-ukraine-incursion-linked-graft-probe?traffic_source=rss<br>- 图片: https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=1920%2C1440, https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=770%2C513&amp;quality=80, https://www.aljazeera.com/wp-content/uploads/2026/04/afp_69d403732b02-1775502195.jpg?w=770&amp;resize=770%2C578&amp;quality=80<br>据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Russia jails former Kursk governor in Ukraine incursion-linked graft probe”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Russia jails former Kursk governor in Ukraine incursion-linked graft probe<br>- 来源: Al Jazeera – Breaking News, World News and Video from Al Jazeera<br>- 发布时间: 2026-04-06T20:41:49+00:00<br>- 原文链接: https://www.aljazeera.com/news/2026/4/6/russia-jails-former-kursk-governor-in-ukraine-incursion-linked-graft-probe?traffic_source=rss<br>- 图片: https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=1920%2C1440<br>据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Russia jails former。<br><br>### 副推2 | Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants<br>- 来源: NYT &gt; World News<br>- 发布时间: 2026-04-06T21:05:22+00:00<br>- 原文链接: https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel<br>- 图片: <br>据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and。<br><br>### 其他 7 条<br>- Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants | NYT &gt; World News | 2026-04-06T21:05:22+00:00 | https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。<br>- At Least 4 Killed in Iranian Strike in Haifa, Israeli Officials Say | NYT &gt; World News | 2026-04-06T21:05:20+00:00 | https://www.nytimes.com/2026/04/06/world/middleeast/israel-haifa-strike-iran.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“At Least 4 Killed。<br>- At Least 4 Killed in Iranian Strike in Haifa, Israeli Officials Say | NYT &gt; World News | 2026-04-06T21:05:20+00:00 | https://www.nytimes.com/2026/04/06/world/middleeast/israel-haifa-strike-iran.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“At Least 4 Killed。<br>- Trump’s Deportation Deals | NYT &gt; World News | 2026-04-06T21:01:38+00:00 | https://www.nytimes.com/2026/04/06/world/us-trump-deportations-iran-deadline-artemis-moon.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Trump’s Deportatio。<br>- Trump’s Deportation Deals | NYT &gt; World News | 2026-04-06T21:01:38+00:00 | https://www.nytimes.com/2026/04/06/world/us-trump-deportations-iran-deadline-artemis-moon.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Trump’s Deportatio。<br>- As Trump Deadline Looms, Iran and U.S. Mix Threats With Hints of Deal | NYT &gt; World News | 2026-04-06T21:00:06+00:00 | https://www.nytimes.com/2026/04/06/world/middleeast/iran-trump-deadline.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“As Trump Deadline。<br>- As Trump Deadline Looms, Iran and U.S. Mix Threats With Hints of Deal | NYT &gt; World News | 2026-04-06T21:00:06+00:00 | https://www.nytimes.com/2026/04/06/world/middleeast/iran-trump-deadline.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“As Trump Deadline。<br><br>## 科技<br>### 主推 | Artemis II astronauts break a record, name a crater<br>- 来源: The Verge<br>- 发布时间: 2026-04-06T20:40:11+00:00<br>- 原文链接: https://www.theverge.com/science/907682/nasa-artemis-ii-distance-record-crater-names<br>- 图片: https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/nasa-artemis-ii-moon.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.732984293194%2C100%2C78.534031413613&amp;w=1200, https://www.google-analytics.com/g/collect?v=2&amp;tid=G-C3QZPB4GVE&amp;cid=555&amp;en=noscript_page_view, https://platform.theverge.com/wp-content/uploads/sites/2/2025/10/STEVIE_BONIFIELD_BLURPLE.jpg?quality=90&amp;strip=all&amp;crop=0%2C0%2C100%2C100&amp;w=2400<br>据The Verge报道，这则科技新闻围绕“Artemis II astronauts break a record, name a crater”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Google quietly launched an AI dictation app that works offline<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-06T18:54:33+00:00<br>- 原文链接: https://techcrunch.com/2026/04/06/google-quietly-releases-an-offline-first-ai-dictation-app-on-ios/<br>- 图片: https://techcrunch.com/wp-content/uploads/2026/02/google-logo.jpg?resize=1200,800<br>据TechCrunch报道，这则科技新闻围绕“Google quietly launched an AI dictation app that works offline”展开，更多细节与背景请查看。<br><br>### 副推2 | The best deals on MacBooks right now<br>- 来源: The Verge<br>- 发布时间: 2026-04-06T18:50:06+00:00<br>- 原文链接: https://www.theverge.com/22399419/apple-macbook-air-pro-mac-mini-imac-deals<br>- 图片: https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268408_Apple_MacBook_Air_15_M5_laptop_ADiBenedetto_0026.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.732984293194%2C100%2C78.534031413613&amp;w=1200<br>据The Verge报道，这则科技新闻围绕“The best deals on MacBooks right now”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- DJI’s Mic Mini records clear audio on the go, and it’s on sale for $60 | The Verge | 2026-04-06T18:22:01+00:00 | https://www.theverge.com/gadgets/907582/dji-mic-mini-two-transmitters-deal-sale | 据The Verge报道，这则科技新闻围绕“DJI’s Mic Mini records clea。<br>- Netflix is expanding into kids’ games with a new standalone app | TechCrunch | 2026-04-06T18:21:49+00:00 | https://techcrunch.com/2026/04/06/netflix-launches-a-standalone-app-for-kids-games/ | 据TechCrunch报道，这则科技新闻围绕“Netflix is expanding into。<br>- NASA&#x27;s Moon ship and rocket seem to be working well, so what about the landers? | Ars Technica - All content | 2026-04-06T18:19:07+00:00 | https://arstechnica.com/space/2026/04/nasas-moon-ship-and-rocket-seem-to-be-working-well-so-what-about-the-landers/ | 据Ars Technica - All content报道，这则科技新闻围绕“NASA&#x27;s Moo。<br>- Why safety regulators closed their investigation into Tesla’s remote parking feature | TechCrunch | 2026-04-06T18:17:23+00:00 | https://techcrunch.com/2026/04/06/tesla-actually-smart-summon-nhtsa-investigation-smart-parking/ | 据TechCrunch报道，这则科技新闻围绕“Why safety regulators clos。<br>- Robotaxi companies won’t say how often remote operators intervene | The Verge | 2026-04-06T18:15:51+00:00 | https://www.theverge.com/transportation/907478/robotaxi-remote-assistance-markey-investigation-waymo-tesla | 据The Verge报道，这则科技新闻围绕“Robotaxi companies won’t sa。<br>- Iran threatens ‘Stargate’ AI data centers | TechCrunch | 2026-04-06T18:06:28+00:00 | https://techcrunch.com/2026/04/06/iran-threatens-stargate-ai-data-centers/ | 据TechCrunch报道，这则科技新闻围绕“Iran threatens ‘Stargate’。<br>- Teardown of unreleased LG Rollable shows why rollable phones aren&#x27;t a thing | Ars Technica - All content | 2026-04-06T17:39:07+00:00 | https://arstechnica.com/gadgets/2026/04/teardown-of-unreleased-lg-rollable-shows-why-rollable-phones-arent-a-thing/ | 据Ars Technica - All content报道，这则科技新闻围绕“Teardown o。<br><br>## 体育娱乐<br>### 主推 | Five takeaways from NCAA regionals -- and what they mean for nationals<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-06T21:48:00+00:00<br>- 原文链接: https://www.espn.com/college-sports/story/_/id/48413680/ncaa-gymnastics-regionals-nationals-ucla-lsu-oklahoma-florida<br>- 图片: https://a1.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0406%2Fr1639502_1296x729_16%2D9.jpg, https://www.espn.com/i/teamlogos/soccer/500/default-team-logo-500.png?h=100&amp;w=100, https://a.espncdn.com/combiner/i?img=/i/content-reactions/check.png&amp;h=80&amp;w=80<br>据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Five takeaways from NCAA regionals -- and what they mean for nationals”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Sources: UNC to hire Malone as new hoops coach<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-06T21:42:09+00:00<br>- 原文链接: https://www.espn.com/mens-college-basketball/story/_/id/48413287/unc-hire-ex-nba-coach-michael-malone-hc-sources-say<br>- 图片: https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F0523%2Fr1496973_1296x729_16%2D9.jpg<br>据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sources: UNC to hire Malone as new hoops coach”展开，更多细节与背景请查看原文链接。<br><br>### 副推2 | Sky trade Reese to Dream for two 1st-rounders<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-06T21:42:09+00:00<br>- 原文链接: https://www.espn.com/wnba/story/_/id/48412523/sources-wnba-sky-trades-angel-reese-dream<br>- 图片: https://a.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F1009%2Fr1557913_1296x729_16%2D9.jpg<br>据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sky trade Reese to Dream for two 1st-rounders”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- Giants DT Lawrence requests trade, sources say | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/nfl/story/_/id/48412861/giants-dt-dexter-lawrence-requests-trade-sources-say | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Giants DT Lawren。<br>- Tiger on golfers&#x27; minds at Masters after DUI arrest | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/golf/story/_/id/48413938/tiger-woods-golfers-minds-masters-following-dui-arrest | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Tiger on golfers。<br>- Mets&#x27; Soto placed on IL, expected out 2-3 weeks | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/mlb/story/_/id/48413546/mets-place-star-outfielder-juan-soto-il-calf-strain | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Mets&#x27; Soto place。<br>- Stars ban buyer of tix tied to alleged Nazi salute | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/nhl/story/_/id/48414307/dallas-stars-ban-buyer-seats-tied-alleged-nazi-salute | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Stars ban buyer。<br>- Augusta chirping over Day&#x27;s outfits for Masters | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/golf/story/_/id/48413165/augusta-national-chirping-jason-day-masters-outfits | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Augusta chirping。<br>- ⚾ MLB Watchability Index: Baseball&#x27;s fun teams | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/mlb/story/_/id/48403630/mlb-2026-season-ranking-most-fun-teams-phillies-dodgers-mets-red-sox-yankees | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“⚾ MLB Watchabili。<br>- Bulls fire Karnisovas, GM Eversley after 6 seasons | www.espn.com - TOP | 2026-04-06T21:42:09+00:00 | https://www.espn.com/nba/story/_/id/48413577/sources-bulls-fire-vp-arturas-karnisovas-gm-marc-eversley | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Bulls fire Karni。<br><br>## 其他<br>### 主推 | Emotional crew names Moon crater after commander&#x27;s late wife<br>- 来源: BBC News<br>- 发布时间: 2026-04-06T20:25:10+00:00<br>- 原文链接: https://www.bbc.com/news/videos/c5ylvz3rzyxo?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/be39/live/ea9cf720-31f5-11f1-b297-95b0a0a8331e.jpg, https://static.files.bbci.co.uk/bbcdotcom/web/20260326-074245-a525cdfbda-web-2.43.1-1/grey-placeholder.png, https://ichef.bbci.co.uk/news/480/cpsprodpb/3866/live/8b9e2e10-2d27-11f1-a79a-77e93010d956.jpg.webp<br>据BBC News报道，这则其他新闻围绕“Emotional crew names Moon crater after commander&#x27;s late wife”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Exploring the Far Side of the Moon<br>- 来源: NYT &gt; Science<br>- 发布时间: 2026-04-06T20:00:01+00:00<br>- 原文链接: https://www.nytimes.com/video/science/space/100000010788127/exploring-the-far-side-of-the-moon.html<br>- 图片: https://static01.nyt.com/images/2026/03/18/science/space/Marco_Thumbnail-3/Marco_Thumbnail-3-facebookJumbo.png?video-overlay<br>据NYT &gt; Science报道，这则其他新闻围绕“Exploring the Far Side of the Moon”展开，更多细节与背景请查看原文链接。<br><br>### 副推2 | NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight<br>- 来源: NASA<br>- 发布时间: 2026-04-06T19:46:20+00:00<br>- 原文链接: https://www.nasa.gov/news-release/nasas-artemis-ii-crew-eclipses-record-for-farthest-human-spaceflight/<br>- 图片: https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-crew-in-orion-broadcast-screenshot-april-6-2026.png<br>据NASA报道，这则其他新闻围绕“NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight”展开，更多细节与背景请查。<br><br>### 其他 7 条<br>- NASA’s Northrop Grumman CRS-24 Mission Overview | NASA | 2026-04-06T19:29:22+00:00 | https://www.nasa.gov/missions/station/nasas-northrop-grumman-crs-24-mission-overview/ | 据NASA报道，这则其他新闻围绕“NASA’s Northrop Grumman CRS-24 M。<br>- What&#x27;s on the far side of the Moon? | BBC News | 2026-04-06T20:45:17+00:00 | https://www.bbc.com/news/videos/c7vq1y048p5o?at_medium=RSS&amp;at_campaign=rss | 据BBC News报道，这则其他新闻围绕“What&#x27;s on the far side of th。<br>- Suspect in Hacking of Climate Activists Is Extradited to New York | NYT &gt; Science | 2026-04-06T20:59:26+00:00 | https://www.nytimes.com/2026/04/06/climate/forlit-exxon-dci-hacking-extradition.html | 据NYT &gt; Science报道，这则其他新闻围绕“Suspect in Hacking of C。<br>- Live Updates: Artemis II Astronauts Travel Farther From Earth Than Ever Before | NYT &gt; Science | 2026-04-06T20:58:48+00:00 | https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby | 据NYT &gt; Science报道，这则其他新闻围绕“Live Updates: Artemis I。<br>- Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife | NYT &gt; Science | 2026-04-06T20:52:14+00:00 | https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html | 据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。<br>- Here’s the latest. | NYT &gt; Science | 2026-04-06T20:29:54+00:00 | https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/heres-the-latest | 据NYT &gt; Science报道，这则其他新闻围绕“Here’s the latest.”展开，更。<br>- Human eyes are seeing the far side of the moon for the first time in a long time. | NYT &gt; Science | 2026-04-06T20:22:40+00:00 | https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/human-eyes-are-seeing-the-far-side-of-the-moon-for-the-first-time-in-a-long-time | 据NYT &gt; Science报道，这则其他新闻围绕“Human eyes are seeing t。<br></div><h3>draft_json</h3><pre>{
+  &quot;政治经济&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 2813,
+      &quot;title&quot;: &quot;Russia jails former Kursk governor in Ukraine incursion-linked graft probe&quot;,
+      &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+      &quot;published_at&quot;: &quot;2026-04-06T20:41:49+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/6/russia-jails-former-kursk-governor-in-ukraine-incursion-linked-graft-probe?traffic_source=rss&quot;,
+      &quot;images&quot;: [
+        &quot;https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=1920%2C1440&quot;,
+        &quot;https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=770%2C513&amp;quality=80&quot;,
+        &quot;https://www.aljazeera.com/wp-content/uploads/2026/04/afp_69d403732b02-1775502195.jpg?w=770&amp;resize=770%2C578&amp;quality=80&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Alexei Smirnov found guilty of taking bribes from firms contracted to build fortifications along Ukraine border.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Russia jails former Kursk governor in Ukraine incursion-linked graft probe”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 2781,
+        &quot;title&quot;: &quot;Russia jails former Kursk governor in Ukraine incursion-linked graft probe&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:41:49+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/6/russia-jails-former-kursk-governor-in-ukraine-incursion-linked-graft-probe?traffic_source=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.aljazeera.com/wp-content/uploads/2024/08/AFP__20240812__36E79M2__v1__HighRes__UkraineRussiaConflictWar-1723555173.jpg?resize=1920%2C1440&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Alexei Smirnov found guilty of taking bribes from firms contracted to build fortifications along Ukraine border.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Russia jails former。&quot;
+      },
+      {
+        &quot;id&quot;: 2777,
+        &quot;title&quot;: &quot;Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:05:22+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;President Trump and Iran sent mixed messages about escalating the war and diplomacy to end it ahead of his Tuesday deadline. At a news conference, Mr. Trump offered new details of the daring rescue of an American airman.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 2809,
+        &quot;title&quot;: &quot;Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:05:22+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;President Trump and Iran sent mixed messages about escalating the war and diplomacy to end it ahead of his Tuesday deadline. At a news conference, Mr. Trump offered new details of the daring rescue of an American airman.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。&quot;
+      },
+      {
+        &quot;id&quot;: 2810,
+        &quot;title&quot;: &quot;At Least 4 Killed in Iranian Strike in Haifa, Israeli Officials Say&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:05:20+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/middleeast/israel-haifa-strike-iran.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Rescue workers recovered four bodies from a residential building in the port city of Haifa after air defenses failed to intercept an Iranian strike, Israeli officials said.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“At Least 4 Killed。&quot;
+      },
+      {
+        &quot;id&quot;: 2778,
+        &quot;title&quot;: &quot;At Least 4 Killed in Iranian Strike in Haifa, Israeli Officials Say&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:05:20+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/middleeast/israel-haifa-strike-iran.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Rescue workers recovered four bodies from a residential building in the port city of Haifa after air defenses failed to intercept an Iranian strike, Israeli officials said.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“At Least 4 Killed。&quot;
+      },
+      {
+        &quot;id&quot;: 2779,
+        &quot;title&quot;: &quot;Trump’s Deportation Deals&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:01:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/us-trump-deportations-iran-deadline-artemis-moon.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The president wants third countries to take migrants who can’t be sent back home. To get that, almost everything is up for negotiation.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Trump’s Deportatio。&quot;
+      },
+      {
+        &quot;id&quot;: 2811,
+        &quot;title&quot;: &quot;Trump’s Deportation Deals&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:01:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/us-trump-deportations-iran-deadline-artemis-moon.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The president wants third countries to take migrants who can’t be sent back home. To get that, almost everything is up for negotiation.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Trump’s Deportatio。&quot;
+      },
+      {
+        &quot;id&quot;: 2812,
+        &quot;title&quot;: &quot;As Trump Deadline Looms, Iran and U.S. Mix Threats With Hints of Deal&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:00:06+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/middleeast/iran-trump-deadline.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;One potential off-ramp appeared when Iran offered a 10-point counterproposal for ending the war that President Trump called a significant step, if “not good enough.”&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“As Trump Deadline。&quot;
+      },
+      {
+        &quot;id&quot;: 2780,
+        &quot;title&quot;: &quot;As Trump Deadline Looms, Iran and U.S. Mix Threats With Hints of Deal&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:00:06+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/world/middleeast/iran-trump-deadline.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;One potential off-ramp appeared when Iran offered a 10-point counterproposal for ending the war that President Trump called a significant step, if “not good enough.”&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“As Trump Deadline。&quot;
+      }
+    ]
+  },
+  &quot;科技&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 2793,
+      &quot;title&quot;: &quot;Artemis II astronauts break a record, name a crater&quot;,
+      &quot;source_media&quot;: &quot;The Verge&quot;,
+      &quot;published_at&quot;: &quot;2026-04-06T20:40:11+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.theverge.com/science/907682/nasa-artemis-ii-distance-record-crater-names&quot;,
+      &quot;images&quot;: [
+        &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/nasa-artemis-ii-moon.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.732984293194%2C100%2C78.534031413613&amp;w=1200&quot;,
+        &quot;https://www.google-analytics.com/g/collect?v=2&amp;tid=G-C3QZPB4GVE&amp;cid=555&amp;en=noscript_page_view&quot;,
+        &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2025/10/STEVIE_BONIFIELD_BLURPLE.jpg?quality=90&amp;strip=all&amp;crop=0%2C0%2C100%2C100&amp;w=2400&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;A few minutes before 2PM ET on Monday, the crew of Artemis II broke a record set 56 years ago by the ill-fated Apollo 13 mission - at over 248,655 miles, they have now traveled farther from Earth than any humans before them. They marked the occasion with a crater naming ceremony that left the […]&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Artemis II astronauts break a record, name a crater”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 2794,
+        &quot;title&quot;: &quot;Google quietly launched an AI dictation app that works offline&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:54:33+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/06/google-quietly-releases-an-offline-first-ai-dictation-app-on-ios/&quot;,
+        &quot;images&quot;: [
+          &quot;https://techcrunch.com/wp-content/uploads/2026/02/google-logo.jpg?resize=1200,800&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Google&#x27;s new offline-first dictation app uses Gemma AI models to take on the apps like Wispr Flow.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Google quietly launched an AI dictation app that works offline”展开，更多细节与背景请查看。&quot;
+      },
+      {
+        &quot;id&quot;: 2795,
+        &quot;title&quot;: &quot;The best deals on MacBooks right now&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:50:06+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/22399419/apple-macbook-air-pro-mac-mini-imac-deals&quot;,
+        &quot;images&quot;: [
+          &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268408_Apple_MacBook_Air_15_M5_laptop_ADiBenedetto_0026.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.732984293194%2C100%2C78.534031413613&amp;w=1200&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;It’s 2026, and that means Apple sells MacBooks equipped with not just its capable M-series processors but A-series chips that were previously exclusive to the iPhone. With the MacBook Neo starting at $599, the company now offers a wider range of options with more sizes and price points than ever before, all of which run […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“The best deals on MacBooks right now”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 2796,
+        &quot;title&quot;: &quot;DJI’s Mic Mini records clear audio on the go, and it’s on sale for $60&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:22:01+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/gadgets/907582/dji-mic-mini-two-transmitters-deal-sale&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;If you regularly create content for TikTok, Instagram, or YouTube on the go, bad sound quality can easily take away from an otherwise great video. DJI’s Mic Mini helps you record clear, reliable sound for videos without carrying around bulky, expensive gear, and it’s currently down to its all-time low price. You can buy the […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“DJI’s Mic Mini records clea。&quot;
+      },
+      {
+        &quot;id&quot;: 2797,
+        &quot;title&quot;: &quot;Netflix is expanding into kids’ games with a new standalone app&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:21:49+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/06/netflix-launches-a-standalone-app-for-kids-games/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Netflix says the app gives children access to an \&quot;ever-growing\&quot; library of games for kids.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Netflix is expanding into。&quot;
+      },
+      {
+        &quot;id&quot;: 2798,
+        &quot;title&quot;: &quot;NASA&#x27;s Moon ship and rocket seem to be working well, so what about the landers?&quot;,
+        &quot;source_media&quot;: &quot;Ars Technica - All content&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:19:07+00:00&quot;,
+        &quot;link&quot;: &quot;https://arstechnica.com/space/2026/04/nasas-moon-ship-and-rocket-seem-to-be-working-well-so-what-about-the-landers/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Lori Glaze: \&quot;We have seen real commitment to try and do that... from both Blue and from SpaceX.\&quot;&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Ars Technica - All content报道，这则科技新闻围绕“NASA&#x27;s Moo。&quot;
+      },
+      {
+        &quot;id&quot;: 2799,
+        &quot;title&quot;: &quot;Why safety regulators closed their investigation into Tesla’s remote parking feature&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:17:23+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/06/tesla-actually-smart-summon-nhtsa-investigation-smart-parking/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;NHTSA closed its investigation into Tesla&#x27;s \&quot;Actually Smart Summon\&quot; feature, saying that only a fraction of cases resulted in an incident, and that no incidents resulted in injury. Tesla has also issued a number of software updates.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Why safety regulators clos。&quot;
+      },
+      {
+        &quot;id&quot;: 2800,
+        &quot;title&quot;: &quot;Robotaxi companies won’t say how often remote operators intervene&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:15:51+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/transportation/907478/robotaxi-remote-assistance-markey-investigation-waymo-tesla&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Autonomous vehicle companies are refusing to disclose key details about their use of remote assistance teams, including how often these workers are forced to intervene to help their self-driving cars. Sen. Ed Markey (D-MA) had asked robotaxi companies to disclose the information as part of an investigation by his office into the use of remote […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Robotaxi companies won’t sa。&quot;
+      },
+      {
+        &quot;id&quot;: 2801,
+        &quot;title&quot;: &quot;Iran threatens ‘Stargate’ AI data centers&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T18:06:28+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/06/iran-threatens-stargate-ai-data-centers/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Iran said it will target U.S.-linked data centers with new missile strikes, as the war between the U.S. and Iran escalates.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Iran threatens ‘Stargate’。&quot;
+      },
+      {
+        &quot;id&quot;: 2802,
+        &quot;title&quot;: &quot;Teardown of unreleased LG Rollable shows why rollable phones aren&#x27;t a thing&quot;,
+        &quot;source_media&quot;: &quot;Ars Technica - All content&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T17:39:07+00:00&quot;,
+        &quot;link&quot;: &quot;https://arstechnica.com/gadgets/2026/04/teardown-of-unreleased-lg-rollable-shows-why-rollable-phones-arent-a-thing/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;LG almost released a rollable smartphone in 2021, and this is what it looked like inside.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Ars Technica - All content报道，这则科技新闻围绕“Teardown o。&quot;
+      }
+    ]
+  },
+  &quot;体育娱乐&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 2825,
+      &quot;title&quot;: &quot;Five takeaways from NCAA regionals -- and what they mean for nationals&quot;,
+      &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+      &quot;published_at&quot;: &quot;2026-04-06T21:48:00+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.espn.com/college-sports/story/_/id/48413680/ncaa-gymnastics-regionals-nationals-ucla-lsu-oklahoma-florida&quot;,
+      &quot;images&quot;: [
+        &quot;https://a1.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0406%2Fr1639502_1296x729_16%2D9.jpg&quot;,
+        &quot;https://www.espn.com/i/teamlogos/soccer/500/default-team-logo-500.png?h=100&amp;w=100&quot;,
+        &quot;https://a.espncdn.com/combiner/i?img=/i/content-reactions/check.png&amp;h=80&amp;w=80&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Chiles and Chio continued their superstar ways. Oklahoma, Florida and LSU dominated. After NCAA gymnastics regionals, the final eight teams are set.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Five takeaways from NCAA regionals -- and what they mean for nationals”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 2826,
+        &quot;title&quot;: &quot;Sources: UNC to hire Malone as new hoops coach&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mens-college-basketball/story/_/id/48413287/unc-hire-ex-nba-coach-michael-malone-hc-sources-say&quot;,
+        &quot;images&quot;: [
+          &quot;https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F0523%2Fr1496973_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;North Carolina intends to hire former longtime NBA coach Michael Malone as the school&#x27;s next basketball coach, sources told ESPN.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sources: UNC to hire Malone as new hoops coach”展开，更多细节与背景请查看原文链接。&quot;
+      },
+      {
+        &quot;id&quot;: 2827,
+        &quot;title&quot;: &quot;Sky trade Reese to Dream for two 1st-rounders&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/wnba/story/_/id/48412523/sources-wnba-sky-trades-angel-reese-dream&quot;,
+        &quot;images&quot;: [
+          &quot;https://a.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F1009%2Fr1557913_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Sky have traded two-time WNBA All-Star and two-time rebounding champ Angel Reese to the Dream for first-round draft picks in 2027 and 2028.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sky trade Reese to Dream for two 1st-rounders”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 2828,
+        &quot;title&quot;: &quot;Giants DT Lawrence requests trade, sources say&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nfl/story/_/id/48412861/giants-dt-dexter-lawrence-requests-trade-sources-say&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Giants defensive tackle Dexter Lawrence II has requested a trade after seven seasons in New York, sources told ESPN&#x27;s Adam Schefter on Monday.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Giants DT Lawren。&quot;
+      },
+      {
+        &quot;id&quot;: 2829,
+        &quot;title&quot;: &quot;Tiger on golfers&#x27; minds at Masters after DUI arrest&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/golf/story/_/id/48413938/tiger-woods-golfers-minds-masters-following-dui-arrest&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Golfers at the Masters said they&#x27;re pulling for Tiger Woods, who purportedly entered treatment following his DUI arrest in Florida on March 27.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Tiger on golfers。&quot;
+      },
+      {
+        &quot;id&quot;: 2830,
+        &quot;title&quot;: &quot;Mets&#x27; Soto placed on IL, expected out 2-3 weeks&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mlb/story/_/id/48413546/mets-place-star-outfielder-juan-soto-il-calf-strain&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Mets placed Juan Soto on the injured list after the left fielder suffered a minor right calf strain running the bases Friday against the Giants.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Mets&#x27; Soto place。&quot;
+      },
+      {
+        &quot;id&quot;: 2832,
+        &quot;title&quot;: &quot;Stars ban buyer of tix tied to alleged Nazi salute&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nhl/story/_/id/48414307/dallas-stars-ban-buyer-seats-tied-alleged-nazi-salute&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Stars have indefinitely banned the fan who purchased the tickets in connection with an investigation into what appeared to be a Nazi salute at a game in December.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Stars ban buyer。&quot;
+      },
+      {
+        &quot;id&quot;: 2833,
+        &quot;title&quot;: &quot;Augusta chirping over Day&#x27;s outfits for Masters&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/golf/story/_/id/48413165/augusta-national-chirping-jason-day-masters-outfits&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A year after being asked by Augusta National to keep his outfits more reserved at the Masters, Jason Day might again be ruffling feathers with his clothing choices.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Augusta chirping。&quot;
+      },
+      {
+        &quot;id&quot;: 2834,
+        &quot;title&quot;: &quot;⚾ MLB Watchability Index: Baseball&#x27;s fun teams&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mlb/story/_/id/48403630/mlb-2026-season-ranking-most-fun-teams-phillies-dodgers-mets-red-sox-yankees&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Young talent, diving catches, home runs and ... bobbleheads? Here are baseball&#x27;s most exciting squads for 2026.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“⚾ MLB Watchabili。&quot;
+      },
+      {
+        &quot;id&quot;: 2831,
+        &quot;title&quot;: &quot;Bulls fire Karnisovas, GM Eversley after 6 seasons&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T21:42:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nba/story/_/id/48413577/sources-bulls-fire-vp-arturas-karnisovas-gm-marc-eversley&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Chicago Bulls have fired executive vice president of basketball operations Arturas Karnisovas and general manager Marc Eversley.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Bulls fire Karni。&quot;
+      }
+    ]
+  },
+  &quot;其他&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 2846,
+      &quot;title&quot;: &quot;Emotional crew names Moon crater after commander&#x27;s late wife&quot;,
+      &quot;source_media&quot;: &quot;BBC News&quot;,
+      &quot;published_at&quot;: &quot;2026-04-06T20:25:10+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.bbc.com/news/videos/c5ylvz3rzyxo?at_medium=RSS&amp;at_campaign=rss&quot;,
+      &quot;images&quot;: [
+        &quot;https://ichef.bbci.co.uk/news/1024/branded_news/be39/live/ea9cf720-31f5-11f1-b297-95b0a0a8331e.jpg&quot;,
+        &quot;https://static.files.bbci.co.uk/bbcdotcom/web/20260326-074245-a525cdfbda-web-2.43.1-1/grey-placeholder.png&quot;,
+        &quot;https://ichef.bbci.co.uk/news/480/cpsprodpb/3866/live/8b9e2e10-2d27-11f1-a79a-77e93010d956.jpg.webp&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Artemis II Commander Reid Wiseman&#x27;s wife died from cancer in 2020 at age 46.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“Emotional crew names Moon crater after commander&#x27;s late wife”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 2848,
+        &quot;title&quot;: &quot;Exploring the Far Side of the Moon&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:00:01+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/video/science/space/100000010788127/exploring-the-far-side-of-the-moon.html&quot;,
+        &quot;images&quot;: [
+          &quot;https://static01.nyt.com/images/2026/03/18/science/space/Marco_Thumbnail-3/Marco_Thumbnail-3-facebookJumbo.png?video-overlay&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;As Artemis II flies around the far side of the moon, our graphics editor Marco Hernandez describes what the astronauts are looking for.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Exploring the Far Side of the Moon”展开，更多细节与背景请查看原文链接。&quot;
+      },
+      {
+        &quot;id&quot;: 2849,
+        &quot;title&quot;: &quot;NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T19:46:20+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/news-release/nasas-artemis-ii-crew-eclipses-record-for-farthest-human-spaceflight/&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-crew-in-orion-broadcast-screenshot-april-6-2026.png&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Four astronauts aboard NASA’s Artemis II test flight around the Moon made history at 12:56 p.m. CDT on Monday, traveling 248,655 miles from Earth, surpassing the record for human spaceflight’s farthest distance previously set by the Apollo 13 mission in 1970. At its farthest point, crew inside the Orion spacecraft will have traveled about 252,760 […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NASA报道，这则其他新闻围绕“NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight”展开，更多细节与背景请查。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 2850,
+        &quot;title&quot;: &quot;NASA’s Northrop Grumman CRS-24 Mission Overview&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T19:29:22+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/missions/station/nasas-northrop-grumman-crs-24-mission-overview/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;NASA’s Northrop Grumman Commercial Resupply Services 24 mission, or Northrop Grumman CRS-24, will deliver approximately 11,000 pounds of science and supplies to the International Space Station. This mission will be the second flight of the Cygnus XL, the larger, more cargo-capable version of the company’s solar-powered spacecraft.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NASA报道，这则其他新闻围绕“NASA’s Northrop Grumman CRS-24 M。&quot;
+      },
+      {
+        &quot;id&quot;: 2844,
+        &quot;title&quot;: &quot;What&#x27;s on the far side of the Moon?&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:45:17+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/videos/c7vq1y048p5o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Artemis II&#x27;s looping path has carried the crew around the far side of the Moon.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“What&#x27;s on the far side of th。&quot;
+      },
+      {
+        &quot;id&quot;: 2841,
+        &quot;title&quot;: &quot;Suspect in Hacking of Climate Activists Is Extradited to New York&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:59:26+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/climate/forlit-exxon-dci-hacking-extradition.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Prosecutors say Amit Forlit ran a global hacking operation on behalf of a Washington lobbying group that aimed to thwart environmental lawsuits against oil companies.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Suspect in Hacking of C。&quot;
+      },
+      {
+        &quot;id&quot;: 2842,
+        &quot;title&quot;: &quot;Live Updates: Artemis II Astronauts Travel Farther From Earth Than Ever Before&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:58:48+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;At 1:56 p.m. Eastern time, the crew’s distance from Earth passed 248,655 miles, the record set in 1970. Later, the four astronauts will pass behind the moon.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Live Updates: Artemis I。&quot;
+      },
+      {
+        &quot;id&quot;: 2843,
+        &quot;title&quot;: &quot;Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:52:14+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The crew shared an emotional moment with mission control and the family of Reid Wiseman, whose wife, Carroll, died in 2020, on the ground in Houston.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。&quot;
+      },
+      {
+        &quot;id&quot;: 2845,
+        &quot;title&quot;: &quot;Here’s the latest.&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:29:54+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/heres-the-latest&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Here’s the latest.”展开，更。&quot;
+      },
+      {
+        &quot;id&quot;: 2847,
+        &quot;title&quot;: &quot;Human eyes are seeing the far side of the moon for the first time in a long time.&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-06T20:22:40+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/human-eyes-are-seeing-the-far-side-of-the-moon-for-the-first-time-in-a-long-time&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Human eyes are seeing t。&quot;
+      }
+    ]
+  }
+}</pre></section></body>
+</html>

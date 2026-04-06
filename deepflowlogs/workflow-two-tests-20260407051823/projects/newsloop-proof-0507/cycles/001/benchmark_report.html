@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>neko 外部对标报告</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>neko 外部对标报告</h1><div class='body'># neko 外部对标报告<br><br>- run_id: 8e2c208c1a89<br>- benchmark_mode: fallback<br>- search_query: Russia jails former Kursk governor in Ukraine incursion-linked graft probe international news roundup page<br><br>## 对标对象<br>- BBC News | https://www.bbc.com/news | BBC News - Breaking news, video and the latest top stories from the U.S. and around the world | 被选原因：开放搜索结果不可用，回退到固定参考样本。<br>- Reuters World | https://www.reuters.com/world/ | 未抓到标题 | 被选原因：开放搜索失败后的固定样本兜底。<br>- Google News | https://news.google.com/topstories?hl=en-US&amp;gl=US&amp;ceid=US:en | Google News | 被选原因：开放搜索结果不可用，回退到固定参考样本。<br><br>## 最明显差距<br>- BBC News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。<br>- 未能稳定抓取 Reuters World 页面：401 Client Error: HTTP Forbidden for url: https://www.reuters.com/world/<br>- Google News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。<br><br>## 可落到下一轮的建议<br>- 参考 BBC News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。<br>- 保留 Reuters World 作为对标对象，但下轮仍按“首屏层级 + 重点更直接”推进。<br>- 参考 Google News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。</div><h3>comparisons</h3><ul><li>{&#x27;name&#x27;: &#x27;BBC News&#x27;, &#x27;url&#x27;: &#x27;https://www.bbc.com/news&#x27;, &#x27;page_title&#x27;: &#x27;BBC News - Breaking news, video and the latest top stories from the U.S. and around the world&#x27;, &#x27;selected_reason&#x27;: &#x27;开放搜索结果不可用，回退到固定参考样本。&#x27;, &#x27;gap&#x27;: &#x27;BBC News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。&#x27;, &#x27;advice&#x27;: &#x27;参考 BBC News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。&#x27;, &#x27;source_media&#x27;: &#x27;BBC News&#x27;}</li><li>{&#x27;name&#x27;: &#x27;Reuters World&#x27;, &#x27;url&#x27;: &#x27;https://www.reuters.com/world/&#x27;, &#x27;page_title&#x27;: &#x27;&#x27;, &#x27;selected_reason&#x27;: &#x27;开放搜索失败后的固定样本兜底。&#x27;, &#x27;gap&#x27;: &#x27;未能稳定抓取 Reuters World 页面：401 Client Error: HTTP Forbidden for url: https://www.reuters.com/world/&#x27;, &#x27;advice&#x27;: &#x27;保留 Reuters World 作为对标对象，但下轮仍按“首屏层级 + 重点更直接”推进。&#x27;, &#x27;source_media&#x27;: &#x27;Reuters World&#x27;}</li><li>{&#x27;name&#x27;: &#x27;Google News&#x27;, &#x27;url&#x27;: &#x27;https://news.google.com/topstories?hl=en-US&amp;gl=US&amp;ceid=US:en&#x27;, &#x27;page_title&#x27;: &#x27;Google News&#x27;, &#x27;selected_reason&#x27;: &#x27;开放搜索结果不可用，回退到固定参考样本。&#x27;, &#x27;gap&#x27;: &#x27;Google News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。&#x27;, &#x27;advice&#x27;: &#x27;参考 Google News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。&#x27;, &#x27;source_media&#x27;: &#x27;Google News&#x27;}</li></ul><h3>next_cycle_actions</h3><ul><li>参考 BBC News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。</li><li>保留 Reuters World 作为对标对象，但下轮仍按“首屏层级 + 重点更直接”推进。</li><li>参考 Google News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。</li></ul></section></body>
+</html>

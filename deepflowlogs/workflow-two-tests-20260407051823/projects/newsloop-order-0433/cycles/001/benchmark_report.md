@@ -1,0 +1,21 @@
+# neko 外部对标报告
+
+- run_id: 4cdc33449205
+- benchmark_mode: open_search
+- search_query: Video: Trump threatens to jail reporter over Iran airman rescue leak international news roundup page
+
+## 对标对象
+- "Video: Trump threatens to jail reporter over Iran airman rescue leak international news roundup page" - Google News | https://news.google.com/rss/articles/CBMitwFBVV95cUxOZEJqR3N2aWJBQ2gxZDNJSjJiajk2cnJDaHRTeUR6RXpRSGZaYXNDU05pN2xUQ1hFSWJxNEdNRWpqWWF5bEMxV1E1TUVHb3otcTlxSWZYaUZTQ1l0VmxOOU9qZ3BzOGZ3cDZtdnRYX2tMMWRHbF9PdWxnUzNIVXNuSGxmeWQ2Zjl0RlBCbWhNOFZ4R01fV0hHSWVsZHAxbkxDSEdaRkV3MDNiZDVxdVRVVHVEYTJ2d2s?oc=5 | Trump on Iran: ‘Entire country could be taken out’ - Politico | 被选原因：搜索结果与国际热点整理/新闻聚合页面形态接近，适合作为轻量对标样本。
+- "Video: Trump threatens to jail reporter over Iran airman rescue leak international news roundup page" - Google News | https://news.google.com/rss/articles/CBMi4wFBVV95cUxNQlhFemhabnN1dFFGQmctWThvQnVlQTFIMjFHYUdSNG9fT2JrWmktbFl2NVRnbWFNMWpURWM0cjBnd2xCTjV1cFZ6ZFFfTG5yM1ZueVVpRXExU2tYYllNNEdkVUZ5Q0UteXRGUG9Qei1oUlgwYkpKei01NndjTUs5em02QktRcVFBWmxVS0MyVWZsTG9UVTZKSXlpMTAwbkdQN3dnYm9LZGFSdmJ6Z3ZyUHZOdVlyY054S05BQnk0Zy03SnVYejUtLVg1NlZHcFFPaHNXR213NXEzZG8yRVozRkpUQdIB6wFBVV95cUxOTEVKMEJ5V0hzQ3Z1SE9YejJYVm1qZ242QTF5cEI1ZXNDS2lpVlItYUkzV19FdWNmN3lhYmVWMVBKdVJDRkNqMXJUQk5QXy1nRm5BN2JQNTNzYXlPbEtmU1VqUndtZG9HZGZxZFhiT2VUWFBXQm9NQUZ1cFVMUkhSU0UyYk52dlJnNE8tMjJGOS1xYmdDM3ZoQnpyNC1CUFpXa1V4cVJqSjVxZXk4TXlMT3JQT1Fld0VzLTJmTnVka0Z4dHF5c2lyeEoxeW00TDlYTlFMVjNDOWVTdTJBQkJBeS1ZMi0xNlFreTU0?oc=5 | "Give It Up Or Go To Jail": Trump Vows To Find F-15 "Leak", Threatens Media - NDTV | 被选原因：搜索结果与国际热点整理/新闻聚合页面形态接近，适合作为轻量对标样本。
+- "Video: Trump threatens to jail reporter over Iran airman rescue leak international news roundup page" - Google News | https://news.google.com/rss/articles/CBMiaEFVX3lxTE54cGI2QlA0ZzUxeThGMVpfWnp6SmFfUTl1ZjRqdlJ3OWd0R3BhRDNRU1AzTGZvWVc4aHF1bm44a0llalVqZ1ppQjJLOUtoSWZsNkU5cVVRRkxoZUNjeW43SUdBdjc3aTBW0gFcQVVfeXFMUDJLMkNadU8weUJEUnVNZUhMd09WYi12TWVuYklSRHNRUzg3U2J2RzItUEV6ZXluMHJlc0NYaUpSTnZuQVRuQjBiUEVlV3dxMDd6UUJ4VjNDRDJrX24?oc=5 | Trump threatens to jail reporter over Iran airman rescue leak | AJ #shorts - Modern Ghana | 被选原因：搜索结果与国际热点整理/新闻聚合页面形态接近，适合作为轻量对标样本。
+- "Video: Trump threatens to jail reporter over Iran airman rescue leak international news roundup page" - Google News | https://news.google.com/rss/articles/CBMiugFBVV95cUxPQlEtckpDakFEY2JQNVVkalV5emJCQXBGaENRUzVKV0QzYWpySl9NOVV1OFlLMlk2UGJEUzR0Mm1ENzU2WDJVMjBHNWhka2NQQ2J5aEx0c1RLR21GNUt6ZnRmLWY5WUxqeDZWcUt3alpGR3hTQVFtMHdmc3M0MFBYV3VCMENraVhVYlJSb1NGSHZ5RHVBSVZXYm9wS1RHaVhxb2cwdnY3UDZ4RUF5VkhaQTRXcmUwRjVJVWc?oc=5 | The Latest: Iran rejects ceasefire proposal and insists on a permanent end to the war - WHEC.com | 被选原因：搜索结果与国际热点整理/新闻聚合页面形态接近，适合作为轻量对标样本。
+
+## 最明显差距
+- 从《Trump on Iran: ‘Entire country could be taken out’ - Politico》的搜索摘要和入口样式看，外部样本更强调强标题与读者首屏抓重点，我们这轮的主推冲击力和板块入口层级还偏平。
+- 从《"Give It Up Or Go To Jail": Trump Vows To Find F-15 "Leak", Threatens Media - NDTV》的搜索摘要和入口样式看，外部样本更强调强标题与读者首屏抓重点，我们这轮的主推冲击力和板块入口层级还偏平。
+- 从《Trump threatens to jail reporter over Iran airman rescue leak | AJ #shorts - Modern Ghana》的搜索摘要和入口样式看，外部样本更强调强标题与读者首屏抓重点，我们这轮的主推冲击力和板块入口层级还偏平。
+
+## 可落到下一轮的建议
+- 参考《Trump on Iran: ‘Entire country could be taken out’ - Politico》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。
+- 参考《"Give It Up Or Go To Jail": Trump Vows To Find F-15 "Leak", Threatens Media - NDTV》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。
+- 参考《Trump threatens to jail reporter over Iran airman rescue leak | AJ #shorts - Modern Ghana》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。

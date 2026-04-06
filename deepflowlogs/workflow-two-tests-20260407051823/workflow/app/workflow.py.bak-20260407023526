@@ -1,0 +1,2399 @@
+from __future__ import annotations
+
+import json
+import shutil
+import time
+import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from deep_translator import GoogleTranslator
+
+from .config import ROOT, load_settings
+from .db import execute, fetch_all, fetch_one, get_conn, init_schema, jdump
+from .llm import chat_json
+from .news import collect_news
+from .rendering import (
+    parse_trace_id,
+    render_conversation_html,
+    render_final_report_html,
+    render_retrospective_html,
+    render_review_thread_html,
+    write_final_report_html,
+)
+from .telemetry import extract_context, inject_current_context, workflow_span
+
+
+SETTINGS = load_settings()
+WORKFLOW_ID = "intl-news-hotspots"
+RUN_OUTPUT_DIR = ROOT / "output"
+PROJECT_OUTPUT_DIR = ROOT / "projects"
+TRANSLATOR = GoogleTranslator(source="auto", target="zh-CN")
+AGENT_SECTIONS = {
+    "33": ["政治经济", "科技"],
+    "xhs": ["体育娱乐", "其他"],
+}
+AGENT_ROLES = {
+    "neko": "manager",
+    "33": "collector",
+    "xhs": "collector",
+}
+ALL_SECTION_ASSIGNMENTS = [
+    ("政治经济", "33"),
+    ("科技", "33"),
+    ("体育娱乐", "xhs"),
+    ("其他", "xhs"),
+]
+RETRO_REQUIRED_TOPICS = ["问题", "堵点", "技能缺失", "作品优化", "协作优化"]
+RETRO_MIN_THREAD_MESSAGES = 6
+
+
+def now_local() -> datetime:
+    return datetime.now().astimezone()
+
+
+def now_iso() -> str:
+    return now_local().isoformat()
+
+
+def _load_json(text: str | None) -> dict:
+    return json.loads(text) if text else {}
+
+
+def _read_json(path: Path, fallback):
+    if not path.exists():
+        return fallback
+    return json.loads(path.read_text())
+
+
+def create_db_if_needed():
+    init_schema()
+    execute(
+        """
+        UPDATE tasks
+        SET status='pending', started_at=NULL
+        WHERE status='running'
+        """
+    )
+    execute(
+        """
+        UPDATE retrospectives
+        SET message_id=COALESCE(message_id, CONCAT('retro-', id)),
+            from_agent=COALESCE(from_agent, agent_id),
+            to_agent=COALESCE(to_agent, 'all'),
+            target_type=COALESCE(target_type, 'team'),
+            topic=COALESCE(topic, '问题'),
+            intent=COALESCE(intent, 'comment'),
+            body=COALESCE(body, comment_text)
+        WHERE message_id IS NULL
+           OR from_agent IS NULL
+           OR to_agent IS NULL
+           OR target_type IS NULL
+           OR topic IS NULL
+           OR intent IS NULL
+           OR body IS NULL
+        """
+    )
+
+
+def _resource_guard() -> dict:
+    mem_available_mb = 0
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                mem_available_mb = int(line.split()[1]) // 1024
+                break
+    except Exception:
+        mem_available_mb = 0
+    free_disk_gb = shutil.disk_usage(ROOT).free / (1024**3)
+    issues = []
+    if mem_available_mb and mem_available_mb < SETTINGS.project_min_available_memory_mb:
+        issues.append(
+            f"available memory {mem_available_mb}MB < {SETTINGS.project_min_available_memory_mb}MB"
+        )
+    if free_disk_gb < SETTINGS.project_min_free_disk_gb:
+        issues.append(
+            f"free disk {free_disk_gb:.1f}GB < {SETTINGS.project_min_free_disk_gb}GB"
+        )
+    return {
+        "ok": not issues,
+        "available_memory_mb": mem_available_mb,
+        "free_disk_gb": round(free_disk_gb, 2),
+        "reason": "; ".join(issues),
+    }
+
+
+def _project_row(project_id: str):
+    return fetch_one(
+        """
+        SELECT project_id, workflow_id, status, current_cycle_no, max_cycles,
+               max_consecutive_failures, consecutive_failures, discussion_seconds,
+               retrospective_seconds, next_cycle_delay_seconds, latest_run_id,
+               next_cycle_at, paused_reason, notes::text
+        FROM projects WHERE project_id=%s
+        """,
+        (project_id,),
+    )
+
+
+def _run_row(run_id: str):
+    return fetch_one(
+        """
+        SELECT project_id, cycle_no, discussion_seconds, status, current_phase, notes::text
+        FROM workflow_runs WHERE run_id=%s
+        """,
+        (run_id,),
+    )
+
+
+def get_run_trace_context(run_id: str) -> dict:
+    row = fetch_one("SELECT notes::text FROM workflow_runs WHERE run_id=%s", (run_id,))
+    if not row or not row[0]:
+        return {}
+    notes = json.loads(row[0])
+    return notes.get("trace_context", {})
+
+
+def get_run_project_context(run_id: str) -> tuple[str | None, int | None]:
+    row = fetch_one("SELECT project_id, cycle_no FROM workflow_runs WHERE run_id=%s", (run_id,))
+    if not row:
+        return None, None
+    return row[0], row[1]
+
+
+def get_project_memory(project_id: str | None, agent_id: str) -> dict:
+    if not project_id:
+        return {}
+    row = fetch_one(
+        "SELECT current_memory::text FROM project_agent_memory WHERE project_id=%s AND agent_id=%s",
+        (project_id, agent_id),
+    )
+    return _load_json(row[0]) if row and row[0] else {}
+
+
+def _memory_summary(memory: dict) -> str:
+    if not memory:
+        return "默认基线策略"
+    return memory.get("summary") or memory.get("strategy_label") or "已加载上一轮优化策略"
+
+
+def _safe_chat_json(system: str, user: str, fallback: dict) -> dict:
+    try:
+        data = chat_json(system, user)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return fallback
+
+
+def _topic_label(text: str | None) -> str:
+    value = (text or "").strip()
+    for topic in RETRO_REQUIRED_TOPICS:
+        if topic in value:
+            return topic
+    return value or "问题"
+
+
+def _truncate(text: str | None, limit: int = 80) -> str:
+    value = (text or "").strip().replace("\n", " ")
+    if len(value) <= limit:
+        return value
+    return value[: limit - 1] + "…"
+
+
+def _first_nonempty(parts: list[str], fallback: str) -> str:
+    for part in parts:
+        value = (part or "").strip()
+        if value:
+            return value
+    return fallback
+
+
+def _unique_join(parts: list[str]) -> str:
+    seen = set()
+    ordered = []
+    for part in parts:
+        value = (part or "").strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return "；".join(ordered)
+
+
+def _review_signal(section: str, approved: bool, reason: str | None) -> str:
+    value = (reason or "").strip().strip("。")
+    if value and value not in {"审核通过", "审核通过。"}:
+        return f"{section}：{value}"
+    defaults = {
+        "政治经济": "政治经济板块的热点阈值和影响句还不够靠前",
+        "科技": "科技板块容易把同源事件堆在一起，影响主副推区分",
+        "体育娱乐": "体育娱乐板块的话题边界和主推权重还不够稳",
+        "其他": "其他板块的题材边界和图片稳定性需要更早收紧",
+    }
+    suffix = defaults.get(section, "该板块仍有前置检查不足")
+    return f"{section}：{suffix if approved else value or suffix}"
+
+
+def _retro_thread_rows(run_id: str) -> list[dict]:
+    rows = fetch_all(
+        """
+        SELECT message_id, reply_to_message_id, COALESCE(from_agent, agent_id), COALESCE(to_agent, 'all'),
+               COALESCE(target_type, 'team'), COALESCE(topic, '问题'), COALESCE(intent, 'comment'),
+               round_no, COALESCE(body, comment_text), created_at
+        FROM retrospectives
+        WHERE run_id=%s
+        ORDER BY created_at, id
+        """,
+        (run_id,),
+    )
+    return [
+        {
+            "message_id": row[0],
+            "reply_to_message_id": row[1],
+            "from_agent": row[2],
+            "to_agent": row[3],
+            "target_type": row[4],
+            "topic": row[5],
+            "intent": row[6],
+            "round_no": row[7],
+            "body": row[8],
+            "created_at": row[9],
+        }
+        for row in rows
+    ]
+
+
+def _retro_thread_text(run_id: str) -> str:
+    lines = []
+    for msg in _retro_thread_rows(run_id):
+        lines.append(
+            f"[round {msg['round_no']}] {msg['from_agent']} -> {msg['to_agent']} "
+            f"[{msg['topic']}/{msg['intent']}] {msg['body']}"
+        )
+    return "\n".join(lines) if lines else "暂无复盘消息。"
+
+
+def _run_context_summary(run_id: str) -> str:
+    review_rows = fetch_all(
+        """
+        SELECT section, approved, reason
+        FROM reviews
+        WHERE run_id=%s
+        ORDER BY created_at
+        """,
+        (run_id,),
+    )
+    discussion_rows = fetch_all(
+        "SELECT agent_id, comment_text FROM discussions WHERE run_id=%s ORDER BY created_at",
+        (run_id,),
+    )
+    final_row = fetch_one(
+        "SELECT revision_plan, final_markdown FROM outputs WHERE run_id=%s",
+        (run_id,),
+    )
+    lines = ["审核结果："]
+    for section, approved, reason in review_rows:
+        lines.append(f"- {section}: {'通过' if approved else '打回'} | {reason}")
+    lines.append("讨论意见：")
+    for agent_id, comment_text in discussion_rows:
+        lines.append(f"- {agent_id}: {comment_text}")
+    if final_row:
+        lines.append("修订方案：")
+        lines.append(final_row[0] or "无")
+        lines.append("终稿摘要：")
+        lines.append((final_row[1] or "无")[:1200])
+    return "\n".join(lines)
+
+
+def _local_retro_opening(run_id: str) -> dict:
+    reviews = fetch_all(
+        """
+        SELECT section, approved, reason
+        FROM reviews
+        WHERE run_id=%s
+        ORDER BY created_at
+        """,
+        (run_id,),
+    )
+    rejected = [_review_signal(section, approved, reason) for section, approved, reason in reviews if not approved]
+    approved = [_review_signal(section, approved, reason) for section, approved, reason in reviews if approved]
+    output_row = fetch_one(
+        "SELECT revision_plan, final_markdown FROM outputs WHERE run_id=%s",
+        (run_id,),
+    )
+    revision_plan = output_row[0] if output_row and output_row[0] else ""
+    final_markdown = output_row[1] if output_row and output_row[1] else ""
+    body = (
+        f"这轮先不要抢着做结论。我先把最值得争的点摆出来：{_first_nonempty(rejected, '虽然终稿已经交付，但不少问题还是靠后置修补才兜住')}。"
+        "现在真正该掰开的不是“整体还行不行”，而是哪一步本来应该更早做硬判断。"
+        "33 先挑你最想推翻重做的一处，xhs 不要只讲自己板块，也直接点评一下终稿和流程里最拖效率的地方。"
+    )
+    if revision_plan:
+        body += f" 现在修订方案里已经露出一些问题线索：{_truncate(revision_plan, 120)}。"
+    if final_markdown:
+        body += " 这次请直接说具体问题，不要把讨论做成礼貌性汇报。"
+    if approved:
+        body += f" 已经通过的内容里，也别忘了反过来看哪些地方只是侥幸过线：{_truncate('；'.join(approved[:2]), 90)}。"
+    return {
+        "topic": "问题",
+        "intent": "moderate",
+        "target_type": "team",
+        "to_agent": "33,xhs",
+        "body": body,
+        "next_agents": ["33", "xhs"],
+    }
+
+
+def _local_retro_comment(agent_id: str, payload: dict, relevant_context: dict) -> dict:
+    mode = payload.get("mode") or "open"
+    reply_text = relevant_context.get("reply_text") or ""
+    own_reviews = relevant_context.get("own_reviews") or []
+    other_reviews = relevant_context.get("other_reviews") or []
+    peer_message = relevant_context.get("peer_message") or ""
+    memory_summary = relevant_context.get("memory_summary") or "默认基线策略"
+    peer_agent = "xhs" if agent_id == "33" else "33"
+    own_problem = _first_nonempty(own_reviews, "本板块一些关键判断还是拖到了 review 才暴露")
+    other_problem = _first_nonempty(other_reviews, "另一侧也有问题和这边是同一类前置不足")
+    if agent_id == "neko":
+        body = (
+            f"我先把刚才值得继续追的分歧捞出来：{_truncate(reply_text or peer_message, 120)}。"
+            "我不接受把问题继续说成“整体还可以优化”这种空话。"
+            "33 你正面回答为什么你那边的判断总要拖到 review 才落地；"
+            f"xhs 你也别绕开，直接说你是否同意 33 的做法，以及 {_truncate(other_problem, 60)} 这件事你准备怎么改。"
+        )
+        return {
+            "topic": "协作优化",
+            "intent": "question",
+            "target_type": "agent",
+            "to_agent": "33,xhs",
+            "body": body,
+            "next_agents": ["33", "xhs"],
+        }
+    if mode == "open":
+        body = (
+            f"我先挑自己最不满意的一处：{own_problem}。"
+            "这不是一个孤立瑕疵，它直接把后面的正文节奏和审稿压力一起带歪了。"
+            f"另外我想顺手点一下另一侧也该面对的问题：{other_problem}。"
+            "如果下一轮还按我现在这套顺序做，返工还是会在同一个地方爆出来。"
+        )
+        return {
+            "topic": "问题",
+            "intent": "critique",
+            "target_type": "agent",
+            "to_agent": "neko",
+            "body": body,
+            "next_agents": [],
+        }
+    if mode == "peer_reaction":
+        body = (
+            f"我接着回应 {peer_agent} 刚才那句：{_truncate(reply_text or peer_message, 90)}。"
+            "我赞同把前置检查收紧，但不同意把责任只压在一个环节。"
+            f"作品层面最伤的还是 {own_problem}，流程层面最拖的是 {other_problem}。"
+            "如果只在最后一环补救，下一轮还是会把同样的问题带进终稿。"
+        )
+        return {
+            "topic": "堵点",
+            "intent": "critique",
+            "target_type": "agent",
+            "to_agent": peer_agent,
+            "body": body,
+            "next_agents": [],
+        }
+    if mode == "respond_moderator":
+        body = (
+            f"我直接回应 neko 的追问：{_truncate(reply_text, 90)}。"
+            f"别人指出我的问题我认，核心就是 {own_problem}。"
+            f"但我也要把话挑明，{peer_agent} 那边如果不一起调整，像“{_truncate(peer_message, 70)}”这种问题还是会继续传导。"
+            f"所以下一轮我会先改自己的前置检查，再把交接标准写得更硬，不再靠“{memory_summary}”这种宽泛说法兜底。"
+        )
+        return {
+            "topic": "技能缺失",
+            "intent": "proposal",
+            "target_type": "agent",
+            "to_agent": "neko",
+            "body": body,
+            "next_agents": [],
+        }
+    body = (
+        f"我再补一个还没说透的点。{agent_id} 这轮暴露出来的不只是单条素材质量，而是判断顺序错了。"
+        f"如果要真提效，我建议把 {own_problem} 前移成采集阶段的硬检查，同时把 {_truncate(other_problem, 60)} 也写进交接规则。"
+        "不然大家每轮都会在差不多的位置重复争论。"
+    )
+    return {
+        "topic": "作品优化",
+        "intent": "proposal",
+        "target_type": "team",
+        "to_agent": "neko",
+        "body": body,
+        "next_agents": [],
+    }
+
+
+def _local_retro_summary(run_id: str, thread: list[dict]) -> dict:
+    reviews = fetch_all(
+        "SELECT section, approved, reason FROM reviews WHERE run_id=%s ORDER BY created_at",
+        (run_id,),
+    )
+    rejected = [_review_signal(section, approved, reason) for section, approved, reason in reviews if not approved]
+    approved = [_review_signal(section, approved, reason) for section, approved, reason in reviews if approved]
+    by_agent: dict[str, list[str]] = {}
+    for msg in thread:
+        by_agent.setdefault(msg["from_agent"], []).append(msg["body"])
+    problem_line = _unique_join(
+        [
+            _first_nonempty(rejected, ""),
+            _truncate(by_agent.get("33", [""])[0], 80) if by_agent.get("33") else "",
+            _truncate(by_agent.get("xhs", [""])[0], 80) if by_agent.get("xhs") else "",
+        ]
+    ) or "本轮最明显的问题，是多项质量判断仍然靠后置 review 才暴露。"
+    cause_line = (
+        "采集阶段的规则前置还不够硬，图片稳定性、热点阈值、去重和交接标准没有在 worker 侧先收紧，"
+        "导致问题沿着流程一路传到正文和复盘。"
+    )
+    fix_line = (
+        "下一轮把采集前自检、板块边界、图片可用性和主推影响句前置；"
+        "worker 提交时写清交接说明，manager 在初审时只盯最关键的硬约束，不再把模糊建议留到最后。"
+    )
+    if approved:
+        fix_line += f" 本轮已经跑顺的部分可保留：{_truncate('；'.join(approved[:2]), 90)}。"
+    assign_line = (
+        "33 负责把政治经济/科技的热点阈值、去重和影响句前置；"
+        "xhs 负责收紧体育娱乐/其他的题材边界与图片稳定性；"
+        "neko 负责在 review 前明确硬标准，并在复盘中继续抓住分歧追问，不让讨论空转。"
+    )
+    return {
+        "summary": "\n".join(
+            [
+                f"问题：{problem_line}",
+                f"原因：{cause_line}",
+                f"改法：{fix_line}",
+                f"下轮责任分配：{assign_line}",
+            ]
+        )
+    }
+
+
+def _local_self_optimize(agent_id: str, cycle_no: int, summary: str, previous: dict, relevant: list[dict], blueprint: dict) -> dict:
+    directed = []
+    self_ack = []
+    for msg in relevant:
+        if msg["from_agent"] != agent_id:
+            directed.append(msg["body"])
+        else:
+            self_ack.append(msg["body"])
+    exposed = []
+    if directed:
+        exposed.append(f"别人指出：{_truncate(directed[0], 120)}")
+    if self_ack:
+        exposed.append(f"我认领：{_truncate(self_ack[0], 120)}")
+    if not exposed:
+        exposed.append("本轮暴露出规则前置不足，容易把质量问题拖到后置 review。")
+    next_strategy = list(blueprint.get("execution_strategy", []))
+    next_checks = list(blueprint.get("quality_checks", []))
+    if directed:
+        next_strategy.append(f"针对复盘指出的问题，优先修正：{_truncate(directed[0], 60)}")
+    if self_ack:
+        next_checks.append(f"新增自检：确认“{_truncate(self_ack[0], 50)}”不再重复出现")
+    role_plan = (
+        f"{agent_id} 下一轮会把别人点到的问题前置处理，并把复盘总结里的要求拆成可执行检查。"
+        f" 当前收敛基线：{_truncate(summary, 120)}"
+    )
+    return {
+        "summary": blueprint["summary"],
+        "exposed_issues": exposed,
+        "next_cycle_strategy": next_strategy,
+        "next_cycle_quality_checks": next_checks,
+        "role_improvement_plan": role_plan,
+    }
+
+
+def _thread_excerpt(run_id: str) -> str:
+    rows = _retro_thread_rows(run_id)
+    if not rows:
+        return "暂无复盘线程。"
+    return "\n".join(
+        [
+            f"[round {msg['round_no']}] {msg['from_agent']} -> {msg['to_agent']} "
+            f"[{msg['topic']}/{msg['intent']}] {msg['body']}"
+            for msg in rows
+        ]
+    )
+
+
+def _insert_retrospective_message(
+    *,
+    project_id: str,
+    cycle_no: int,
+    run_id: str,
+    task_id: str | None,
+    agent_id: str,
+    message_id: str,
+    reply_to_message_id: str | None,
+    to_agent: str,
+    target_type: str,
+    topic: str,
+    intent: str,
+    round_no: int,
+    body: str,
+):
+    execute(
+        """
+        INSERT INTO retrospectives(
+            project_id, cycle_no, run_id, task_id, agent_id, message_id, reply_to_message_id,
+            from_agent, to_agent, target_type, topic, intent, round_no, body, comment_text
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (message_id) DO NOTHING
+        """,
+        (
+            project_id,
+            cycle_no,
+            run_id,
+            task_id,
+            agent_id,
+            message_id,
+            reply_to_message_id,
+            agent_id,
+            to_agent,
+            target_type,
+            _topic_label(topic),
+            intent,
+            round_no,
+            body,
+            body,
+        ),
+    )
+
+
+def create_task(
+    run_id: str,
+    parent_task_id: str | None,
+    agent_id: str,
+    agent_role: str,
+    section: str,
+    phase: str,
+    retry_count: int,
+    payload: dict,
+    project_id: str | None = None,
+    cycle_no: int | None = None,
+) -> str:
+    task_id = uuid.uuid4().hex[:16]
+    execute(
+        """
+        INSERT INTO tasks(task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, status, payload)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending',%s::jsonb)
+        """,
+        (
+            task_id,
+            run_id,
+            project_id,
+            cycle_no,
+            parent_task_id,
+            agent_id,
+            agent_role,
+            section,
+            phase,
+            retry_count,
+            jdump(payload),
+        ),
+    )
+    return task_id
+
+
+def dispatch_task(
+    run_id: str,
+    parent_task_id: str | None,
+    agent_id: str,
+    agent_role: str,
+    section: str,
+    phase: str,
+    retry_count: int,
+    payload: dict,
+    parent_trace: dict | None = None,
+    project_id: str | None = None,
+    cycle_no: int | None = None,
+) -> str:
+    attrs = {
+        "workflow_id": WORKFLOW_ID,
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "run_id": run_id,
+        "task_id": None,
+        "parent_task_id": parent_task_id,
+        "agent_id": agent_id,
+        "agent_role": agent_role,
+        "section": section,
+        "phase": "task.dispatch",
+        "retry_count": retry_count,
+        "status": "dispatched",
+    }
+    with workflow_span("orchestrator", "task.dispatch", attrs, context=extract_context(parent_trace)):
+        enriched_payload = dict(payload)
+        if "message_body" not in enriched_payload:
+            if phase == "material.collect" and retry_count == 0:
+                enriched_payload["message_body"] = (
+                    f"请采集【{section}】板块近24小时国际热点，提交不少于 {payload.get('target_count', 12)} 条候选素材，"
+                    "并保留图片、来源、发布时间、原文链接。"
+                )
+            elif phase == "material.collect" and retry_count > 0:
+                enriched_payload["message_body"] = (
+                    f"请重做【{section}】板块采集，重点修复：{payload.get('rework_reason', '补强热点与图片质量')}。"
+                )
+            elif phase == "material.review":
+                enriched_payload["message_body"] = (
+                    f"请审核【{section}】板块候选素材，核对时效、来源可靠性、图片数量和热点性。"
+                )
+            elif phase == "discussion.comment":
+                enriched_payload["message_body"] = "请对初稿提出明确修改意见，避免空泛表述。"
+            elif phase == "discussion.summarize":
+                enriched_payload["message_body"] = "请汇总讨论意见并形成统一修订方案。"
+            elif phase == "draft.compose":
+                enriched_payload["message_body"] = "请把四个板块的已通过素材整合为初稿。"
+            elif phase == "report.publish":
+                enriched_payload["message_body"] = "请输出最终成稿，并落盘为 Markdown / HTML / JSON。"
+            elif phase == "retrospective.start":
+                enriched_payload["message_body"] = "进入复盘阶段，请围绕问题、堵点、能力缺口和下一轮改进展开复盘。"
+            elif phase == "retrospective.comment":
+                enriched_payload["message_body"] = "请提交本轮复盘意见，包含问题、堵点、缺失能力和下一轮建议。"
+            elif phase == "retrospective.summary":
+                enriched_payload["message_body"] = "请收敛复盘意见，输出统一总结。"
+            elif phase == "agent.self_optimize":
+                enriched_payload["message_body"] = "请基于本轮复盘更新自己的执行策略、规则和记忆。"
+        enriched_payload["trace_context"] = inject_current_context()
+        enriched_payload["project_id"] = project_id
+        enriched_payload["cycle_no"] = cycle_no
+        if project_id:
+            enriched_payload["agent_memory_snapshot"] = get_project_memory(project_id, agent_id)
+        return create_task(
+            run_id,
+            parent_task_id,
+            agent_id,
+            agent_role,
+            section,
+            phase,
+            retry_count,
+            enriched_payload,
+            project_id,
+            cycle_no,
+        )
+
+
+def new_run(
+    discussion_seconds: int | None = None,
+    project_id: str | None = None,
+    cycle_no: int | None = None,
+) -> str:
+    run_id = uuid.uuid4().hex[:12]
+    discussion_seconds = discussion_seconds or SETTINGS.discussion_test_seconds
+    root_attrs = {
+        "workflow_id": WORKFLOW_ID,
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "run_id": run_id,
+        "task_id": None,
+        "parent_task_id": None,
+        "agent_id": "orchestrator",
+        "agent_role": "orchestrator",
+        "section": "全局",
+        "phase": "workflow.run",
+        "retry_count": 0,
+        "status": "started",
+    }
+    with workflow_span("orchestrator", "workflow.run", root_attrs):
+        run_trace = inject_current_context()
+        trace_id = parse_trace_id(run_trace.get("traceparent"))
+        execute(
+            """
+            INSERT INTO workflow_runs(workflow_id, run_id, project_id, cycle_no, status, discussion_seconds, current_phase, notes)
+            VALUES (%s,%s,%s,%s,'running',%s,'created',%s::jsonb)
+            """,
+            (
+                WORKFLOW_ID,
+                run_id,
+                project_id,
+                cycle_no,
+                discussion_seconds,
+                jdump(
+                    {
+                        "trace_context": run_trace,
+                        "trace_id": trace_id,
+                        "project_id": project_id,
+                        "cycle_no": cycle_no,
+                    }
+                ),
+            ),
+        )
+        for agent_id, sections in AGENT_SECTIONS.items():
+            for section in sections:
+                collect_task_id = dispatch_task(
+                    run_id=run_id,
+                    parent_task_id=None,
+                    agent_id=agent_id,
+                    agent_role=AGENT_ROLES[agent_id],
+                    section=section,
+                    phase="material.collect",
+                    retry_count=0,
+                    payload={"target_count": 12},
+                    parent_trace=run_trace,
+                    project_id=project_id,
+                    cycle_no=cycle_no,
+                )
+                dispatch_task(
+                    run_id=run_id,
+                    parent_task_id=collect_task_id,
+                    agent_id=agent_id,
+                    agent_role=AGENT_ROLES[agent_id],
+                    section=section,
+                    phase="material.submit",
+                    retry_count=0,
+                    payload={},
+                    parent_trace=run_trace,
+                    project_id=project_id,
+                    cycle_no=cycle_no,
+                )
+    return run_id
+
+
+def claim_task(agent_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
+                FROM tasks
+                WHERE agent_id=%s AND status='pending'
+                ORDER BY created_at
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+                """,
+                (agent_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                conn.commit()
+                return None
+            cur.execute(
+                "UPDATE tasks SET status='running', started_at=NOW() WHERE task_id=%s",
+                (row[0],),
+            )
+        conn.commit()
+    keys = [
+        "task_id",
+        "run_id",
+        "project_id",
+        "cycle_no",
+        "parent_task_id",
+        "agent_id",
+        "agent_role",
+        "section",
+        "phase",
+        "retry_count",
+        "payload",
+    ]
+    task = dict(zip(keys, row))
+    task["payload"] = json.loads(task["payload"])
+    return task
+
+
+def complete_task(task_id: str, result: dict):
+    execute(
+        """
+        UPDATE tasks
+        SET status='completed', finished_at=NOW(), result=%s::jsonb
+        WHERE task_id=%s
+        """,
+        (jdump(result), task_id),
+    )
+
+
+def fail_task(task_id: str, message: str):
+    execute(
+        """
+        UPDATE tasks
+        SET status='failed', finished_at=NOW(), error_message=%s
+        WHERE task_id=%s
+        """,
+        (message, task_id),
+    )
+
+
+def save_materials(run_id: str, task_id: str, section: str, source_agent: str, items: list[dict]):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for item in items:
+                cur.execute(
+                    """
+                    INSERT INTO materials(run_id, task_id, section, source_agent, title, source_media, published_at, link, images, metadata)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb)
+                    """,
+                    (
+                        run_id,
+                        task_id,
+                        section,
+                        source_agent,
+                        item["title"],
+                        item["source_media"],
+                        item["published_at"],
+                        item["link"],
+                        jdump(item.get("images", [])),
+                        jdump({"summary_en": item.get("summary_en", "")}),
+                    ),
+                )
+        conn.commit()
+
+
+def get_materials(run_id: str, section: str) -> list[dict]:
+    rows = fetch_all(
+        """
+        SELECT id, title, source_media, published_at, link, images::text, metadata::text
+        FROM materials WHERE run_id=%s AND section=%s ORDER BY published_at DESC
+        """,
+        (run_id, section),
+    )
+    items = []
+    for row in rows:
+        items.append(
+            {
+                "id": row[0],
+                "title": row[1],
+                "source_media": row[2],
+                "published_at": row[3].isoformat(),
+                "link": row[4],
+                "images": json.loads(row[5]),
+                "metadata": json.loads(row[6]),
+            }
+        )
+    return items
+
+
+def review_section(run_id: str, section: str, task_id: str) -> dict:
+    run = fetch_one("SELECT forced_reject_done FROM workflow_runs WHERE run_id=%s", (run_id,))
+    materials = get_materials(run_id, section)
+    with_images = [m for m in materials if len(m["images"]) >= 1]
+    approved = len(materials) >= 10 and len(with_images) >= 3
+    forced = False
+    reason = ""
+    if approved and SETTINGS.force_reject_once and not run[0]:
+        approved = False
+        forced = True
+        reason = "测试覆盖：受控触发一次打回重做，请补充更强热点和更稳定图片来源。"
+        execute(
+            "UPDATE workflow_runs SET forced_reject_done=TRUE WHERE run_id=%s",
+            (run_id,),
+        )
+    elif not approved:
+        reason = f"素材不足：候选 {len(materials)} 条，带图 {len(with_images)} 条，未满足至少 10 条且至少 3 条带图。"
+    else:
+        reason = "审核通过。"
+
+    selected_ids = [m["id"] for m in materials[:10]]
+    execute(
+        """
+        INSERT INTO reviews(run_id, section, review_task_id, reviewer_agent, approved, reason, selected_material_ids)
+        VALUES (%s,%s,%s,'neko',%s,%s,%s::jsonb)
+        """,
+        (run_id, section, task_id, approved, reason, jdump(selected_ids)),
+    )
+    return {"approved": approved, "reason": reason, "forced": forced, "selected_material_ids": selected_ids}
+
+
+def _translate_ranked_items(section: str, items: list[dict]) -> dict[int, dict]:
+    translated = {}
+    for idx, item in enumerate(items):
+        translated[idx] = {
+            "title_zh": item["title"],
+            "summary_zh": (
+                f"据{item['source_media']}报道，这则{section}新闻围绕“{item['title']}”展开，"
+                "更多细节与背景请查看原文链接。"
+            ),
+        }
+    return translated
+
+
+def generate_section_content(section: str, items: list[dict]) -> dict:
+    ranked = sorted(items[:10], key=lambda item: (len(item.get("images", [])), item["published_at"]), reverse=True)
+    main = ranked[0]
+    secondaries = ranked[1:3]
+    briefs = ranked[3:10]
+    translated = _translate_ranked_items(section, ranked)
+
+    def enrich(item: dict, idx: int, max_len: int, image_limit: int) -> dict:
+        translated_item = translated.get(idx, {})
+        title_zh = translated_item.get("title_zh") or item["title"]
+        summary_zh = (translated_item.get("summary_zh") or item["metadata"].get("summary_en", "") or item["title"]).replace("\n", " ").strip()
+        if len(summary_zh) > max_len:
+            summary_zh = summary_zh[: max_len - 1].rstrip("，。；;,. ") + "。"
+        return item | {"title": title_zh, "summary_zh": summary_zh, "images": item.get("images", [])[:image_limit]}
+
+    return {
+        "main": enrich(main, 0, 200, 3),
+        "secondary": [enrich(item, idx + 1, 100, 1) for idx, item in enumerate(secondaries)],
+        "briefs": [enrich(item, idx + 3, 50, 0) for idx, item in enumerate(briefs)],
+    }
+
+
+def compose_draft(run_id: str) -> dict:
+    run_info = _run_row(run_id)
+    project_id, cycle_no = run_info[0], run_info[1]
+    sections = ["政治经济", "科技", "体育娱乐", "其他"]
+    assembled = {}
+    for section in sections:
+        review = fetch_one(
+            """
+            SELECT selected_material_ids::text FROM reviews
+            WHERE run_id=%s AND section=%s AND approved=TRUE
+            ORDER BY created_at DESC LIMIT 1
+            """,
+            (run_id, section),
+        )
+        selected = json.loads(review[0])
+        materials = [m for m in get_materials(run_id, section) if m["id"] in selected][:10]
+        assembled[section] = generate_section_content(section, materials)
+
+    md_lines = [
+        "# 近24小时国际新闻热点\n",
+        f"- workflow_id: {WORKFLOW_ID}",
+        f"- project_id: {project_id or 'standalone'}",
+        f"- cycle_no: {cycle_no or 0}",
+        f"- run_id: {run_id}",
+        f"- 时区: {SETTINGS.timezone}",
+        "",
+    ]
+    for section in sections:
+        md_lines.append(f"## {section}")
+        data = assembled[section]
+        main = data["main"]
+        md_lines.append(f"### 主推 | {main['title']}")
+        md_lines.append(f"- 来源: {main['source_media']}")
+        md_lines.append(f"- 发布时间: {main['published_at']}")
+        md_lines.append(f"- 原文链接: {main['link']}")
+        md_lines.append(f"- 图片: {', '.join(main.get('images', [])[:3])}")
+        md_lines.append(main["summary_zh"])
+        md_lines.append("")
+        for idx, sec in enumerate(data["secondary"], 1):
+            md_lines.append(f"### 副推{idx} | {sec['title']}")
+            md_lines.append(f"- 来源: {sec['source_media']}")
+            md_lines.append(f"- 发布时间: {sec['published_at']}")
+            md_lines.append(f"- 原文链接: {sec['link']}")
+            md_lines.append(f"- 图片: {', '.join(sec.get('images', [])[:1])}")
+            md_lines.append(sec["summary_zh"])
+            md_lines.append("")
+        md_lines.append("### 其他 7 条")
+        for brief in data["briefs"]:
+            md_lines.append(
+                f"- {brief['title']} | {brief['source_media']} | {brief['published_at']} | {brief['link']} | {brief['summary_zh']}"
+            )
+        md_lines.append("")
+    draft_markdown = "\n".join(md_lines)
+    execute(
+        """
+        INSERT INTO outputs(run_id, project_id, cycle_no, draft_markdown, final_json)
+        VALUES (%s,%s,%s,%s,%s::jsonb)
+        ON CONFLICT (run_id) DO UPDATE
+        SET project_id=EXCLUDED.project_id, cycle_no=EXCLUDED.cycle_no,
+            draft_markdown=EXCLUDED.draft_markdown, final_json=EXCLUDED.final_json, updated_at=NOW()
+        """,
+        (run_id, project_id, cycle_no, draft_markdown, jdump(assembled)),
+    )
+    return {"draft_markdown": draft_markdown, "sections": assembled}
+
+
+def create_discussion_comment(run_id: str, task_id: str, agent_id: str) -> str:
+    memory = get_project_memory(get_run_project_context(run_id)[0], agent_id)
+    suffix = f" 已应用上一轮优化：{_memory_summary(memory)}。" if memory else ""
+    role_comments = {
+        "neko": "建议统一四个板块的主推语气，主推首句直接点明事件影响；检查主推图片是否足够稳定。",
+        "33": "政治经济和科技板块可再强化“为什么值得关注”的一句话，避免只罗列进展；副推之间尽量减少同源事件重复。",
+        "xhs": "体育娱乐和其他板块的短讯可以更紧凑，优先保留结果、时间和影响范围；图片条目要确保链接可直接访问。",
+    }
+    comment = role_comments.get(agent_id, "建议统一措辞并检查链接可访问性。") + suffix
+    execute(
+        "INSERT INTO discussions(run_id, task_id, agent_id, comment_text) VALUES (%s,%s,%s,%s)",
+        (run_id, task_id, agent_id, comment),
+    )
+    return comment
+
+
+def summarize_discussion(run_id: str) -> str:
+    comments = fetch_all("SELECT agent_id, comment_text FROM discussions WHERE run_id=%s ORDER BY created_at", (run_id,))
+    plan = "\n".join([f"- {agent_id}: {comment_text}" for agent_id, comment_text in comments])
+    execute("UPDATE outputs SET revision_plan=%s, updated_at=NOW() WHERE run_id=%s", (plan, run_id))
+    return plan
+
+
+def revise_and_publish(run_id: str) -> dict:
+    row = fetch_one(
+        "SELECT draft_markdown, revision_plan, final_json::text, project_id, cycle_no FROM outputs WHERE run_id=%s",
+        (run_id,),
+    )
+    draft_markdown, revision_plan, final_json, project_id, cycle_no = row[0], row[1], json.loads(row[2]), row[3], row[4]
+    final_markdown = "\n".join(
+        [
+            "# 近24小时国际新闻热点（终稿）",
+            "",
+            "## 修改说明",
+            revision_plan or "- 无",
+            "",
+            draft_markdown,
+        ]
+    )
+    run_dir = RUN_OUTPUT_DIR / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    md_path = run_dir / "final_report.md"
+    json_path = run_dir / "final_report.json"
+    md_path.write_text(final_markdown)
+    json_path.write_text(json.dumps(final_json, ensure_ascii=False, indent=2))
+    html_path = write_final_report_html(run_id)
+    execute(
+        "UPDATE outputs SET final_markdown=%s, project_id=%s, cycle_no=%s, updated_at=NOW() WHERE run_id=%s",
+        (final_markdown, project_id, cycle_no, run_id),
+    )
+    if project_id:
+        execute(
+            """
+            UPDATE workflow_runs
+            SET status='running', current_phase='report.publish', completed_at=NULL,
+                report_markdown_path=%s, report_json_path=%s,
+                notes = jsonb_set(COALESCE(notes, '{}'::jsonb), '{final_report_html}', to_jsonb(%s::text), true)
+            WHERE run_id=%s
+            """,
+            (str(md_path), str(json_path), str(html_path), run_id),
+        )
+    else:
+        execute(
+            """
+            UPDATE workflow_runs
+            SET status='completed', current_phase='report.publish', completed_at=NOW(),
+                report_markdown_path=%s, report_json_path=%s,
+                notes = jsonb_set(COALESCE(notes, '{}'::jsonb), '{final_report_html}', to_jsonb(%s::text), true)
+            WHERE run_id=%s
+            """,
+            (str(md_path), str(json_path), str(html_path), run_id),
+        )
+    return {
+        "markdown_path": str(md_path),
+        "json_path": str(json_path),
+        "html_path": str(html_path),
+        "message_body": "终稿已发布，可直接查看 HTML 成品页、Markdown 和 JSON 结构化文件。",
+    }
+
+
+def start_retrospective_thread(run_id: str, task_id: str) -> dict:
+    project_id, cycle_no = get_run_project_context(run_id)
+    data = _local_retro_opening(run_id)
+    body = (data.get("body") or "").strip()
+    result = {
+        "message_id": task_id,
+        "reply_to_message_id": None,
+        "from_agent": "neko",
+        "to_agent": data.get("to_agent") or "33,xhs",
+        "target_type": data.get("target_type") or "team",
+        "topic": _topic_label(data.get("topic") or "执行复盘"),
+        "intent": data.get("intent") or "moderate",
+        "round_no": 0,
+        "body": body,
+        "next_agents": ["33", "xhs"],
+    }
+    _insert_retrospective_message(
+        project_id=project_id,
+        cycle_no=cycle_no,
+        run_id=run_id,
+        task_id=task_id,
+        agent_id="neko",
+        message_id=task_id,
+        reply_to_message_id=None,
+        to_agent=result["to_agent"],
+        target_type=result["target_type"],
+        topic=result["topic"],
+        intent=result["intent"],
+        round_no=0,
+        body=body,
+    )
+    return result
+
+
+def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, payload: dict) -> dict:
+    project_id, cycle_no = get_run_project_context(run_id)
+    round_no = int(payload.get("round_no") or 1)
+    reply_to_message_id = payload.get("reply_to_message_id")
+    sections = AGENT_SECTIONS.get(agent_id, [])
+    review_rows = fetch_all(
+        """
+        SELECT section, approved, reason
+        FROM reviews
+        WHERE run_id=%s
+        ORDER BY created_at DESC
+        """,
+        (run_id,),
+    )
+    own_reviews = [_review_signal(section, approved, reason) for section, approved, reason in review_rows if section in sections]
+    other_reviews = [_review_signal(section, approved, reason) for section, approved, reason in review_rows if section not in sections]
+    thread = _retro_thread_rows(run_id)
+    memory = get_project_memory(project_id, agent_id)
+    reply_row = None
+    if reply_to_message_id:
+        for msg in thread:
+            if msg["message_id"] == reply_to_message_id:
+                reply_row = (
+                    msg["from_agent"],
+                    msg["to_agent"],
+                    msg["topic"],
+                    msg["intent"],
+                    msg["body"],
+                )
+                break
+    reply_text = ""
+    if reply_row:
+        reply_text = (
+            f"你要回应的上一条消息来自 {reply_row[0]} -> {reply_row[1]} "
+            f"[{reply_row[2]}/{reply_row[3]}]: {reply_row[4]}"
+        )
+    mode = payload.get("mode") or "open"
+    peer_agent = "xhs" if agent_id == "33" else "33"
+    peer_msg = next((msg for msg in reversed(thread) if msg["from_agent"] == peer_agent), None)
+    relevant_context = {
+        "own_reviews": own_reviews[:4],
+        "other_reviews": other_reviews[:4],
+        "memory_summary": memory.get("summary"),
+        "reply_text": reply_text,
+        "peer_message": peer_msg["body"] if peer_msg else "",
+        "thread": _thread_excerpt(run_id),
+    }
+    data = _local_retro_comment(agent_id, payload, relevant_context)
+    body = (data.get("body") or "").strip()
+    to_agent = data.get("to_agent") or "neko"
+    target_type = data.get("target_type") or "team"
+    topic = data.get("topic") or "复盘讨论"
+    intent = data.get("intent") or "comment"
+    next_agents = data.get("next_agents") or []
+    result = {
+        "message_id": task_id,
+        "reply_to_message_id": reply_to_message_id,
+        "from_agent": agent_id,
+        "to_agent": to_agent,
+        "target_type": target_type,
+        "topic": _topic_label(topic),
+        "intent": intent,
+        "round_no": round_no,
+        "body": body.strip(),
+        "next_agents": next_agents,
+    }
+    _insert_retrospective_message(
+        project_id=project_id,
+        cycle_no=cycle_no,
+        run_id=run_id,
+        task_id=task_id,
+        agent_id=agent_id,
+        message_id=task_id,
+        reply_to_message_id=reply_to_message_id,
+        to_agent=result["to_agent"],
+        target_type=result["target_type"],
+        topic=result["topic"],
+        intent=result["intent"],
+        round_no=round_no,
+        body=body,
+    )
+    return result
+
+
+def summarize_retrospective(run_id: str) -> str:
+    project_id, cycle_no = get_run_project_context(run_id)
+    thread = _retro_thread_rows(run_id)
+    data = _local_retro_summary(run_id, thread)
+    summary = data["summary"]
+    execute(
+        """
+        UPDATE project_cycles
+        SET retrospective_summary=%s, updated_at=NOW(), retrospective_completed_at=NOW()
+        WHERE project_id=%s AND cycle_no=%s
+        """,
+        (summary, project_id, cycle_no),
+    )
+    return summary
+
+
+def _agent_memory_blueprint(agent_id: str, cycle_no: int, summary: str, previous: dict) -> dict:
+    common = {
+        "agent_id": agent_id,
+        "version_cycle": cycle_no,
+        "updated_at": now_iso(),
+        "retrospective_memory": summary,
+    }
+    if agent_id == "neko":
+        return common | {
+            "strategy_label": f"neko-cycle-{cycle_no}-review-first",
+            "summary": "审核前置、主推影响优先、复盘收敛更结构化。",
+            "execution_strategy": [
+                "dispatch 时明确给出热点性、图片数、时效三条硬约束",
+                "审核优先看图片和时效，再看热点性和去重",
+                "终稿前先校对四板块主推首句是否直达影响",
+            ],
+            "quality_checks": [
+                "每板块至少 10 条且主推/副推图片满足结构要求",
+                "review/reject 原因必须可执行",
+                "复盘总结必须包含问题、堵点、缺失能力、下一轮建议",
+            ],
+            "review_standards": [
+                "拒绝图片不稳定、来源不可靠、发布时间超窗的候选",
+                "主推必须具备影响描述和三图资源",
+            ],
+        }
+    if agent_id == "33":
+        return common | {
+            "strategy_label": f"collector-33-cycle-{cycle_no}-whitelist",
+            "summary": "政治经济/科技板块先白名单采集，再做影响句补写和同源去重。",
+            "execution_strategy": [
+                "优先 Reuters、AP、BBC、FT、Bloomberg、官方公告",
+                "科技条目优先公司官方博客/公告和主流科技媒体",
+                "每条补一条“为什么值得关注”的中文影响句",
+            ],
+            "source_whitelist": [
+                "Reuters",
+                "Associated Press",
+                "Bloomberg",
+                "Financial Times",
+                "The Verge",
+                "TechCrunch",
+                "官方公告",
+            ],
+            "source_blacklist": previous.get("source_blacklist", []) + ["低质量聚合站"],
+            "quality_checks": [
+                "去掉同一事件的重复来源",
+                "主推候选必须带至少 3 张可用图片的来源",
+            ],
+        }
+    return common | {
+        "strategy_label": f"collector-xhs-cycle-{cycle_no}-tight-briefs",
+        "summary": "体育娱乐/其他板块优先官方渠道，短讯更紧凑，图片稳定性优先。",
+        "execution_strategy": [
+            "优先赛事官方、主流文娱媒体和国际主流媒体",
+            "短讯先保留结果、时间、影响范围，再补背景",
+            "图片优先首发稿源或官方图床",
+        ],
+        "source_whitelist": [
+            "ESPN",
+            "BBC Sport",
+            "官方赛事渠道",
+            "Variety",
+            "Reuters",
+            "AP",
+        ],
+        "source_blacklist": previous.get("source_blacklist", []) + ["无来源转载站"],
+        "quality_checks": [
+            "减少边缘八卦内容，优先全球影响更大的事件",
+            "图片链接必须直接可访问",
+        ],
+    }
+
+
+def self_optimize_agent(run_id: str, agent_id: str) -> dict:
+    project_id, cycle_no = get_run_project_context(run_id)
+    previous = get_project_memory(project_id, agent_id)
+    summary_row = fetch_one(
+        "SELECT retrospective_summary FROM project_cycles WHERE project_id=%s AND cycle_no=%s",
+        (project_id, cycle_no),
+    )
+    summary = summary_row[0] if summary_row and summary_row[0] else "本轮需要强化规则前置与热点筛选。"
+    thread = _retro_thread_rows(run_id)
+    relevant = []
+    for msg in thread:
+        to_agent = msg["to_agent"] or ""
+        if msg["from_agent"] == agent_id or agent_id in to_agent or to_agent in {"all", "team"}:
+            relevant.append(msg)
+    memory = _agent_memory_blueprint(agent_id, cycle_no, summary, previous)
+    data = _local_self_optimize(agent_id, cycle_no, summary, previous, relevant, memory)
+    memory.update(
+        {
+            "summary": data.get("summary") or fallback["summary"],
+            "exposed_issues": data.get("exposed_issues") or fallback["exposed_issues"],
+            "next_cycle_strategy": data.get("next_cycle_strategy") or fallback["next_cycle_strategy"],
+            "next_cycle_quality_checks": data.get("next_cycle_quality_checks") or fallback["next_cycle_quality_checks"],
+            "role_improvement_plan": data.get("role_improvement_plan") or fallback["role_improvement_plan"],
+        }
+    )
+    if memory.get("next_cycle_strategy"):
+        memory["execution_strategy"] = memory["next_cycle_strategy"]
+    if memory.get("next_cycle_quality_checks"):
+        memory["quality_checks"] = memory["next_cycle_quality_checks"]
+    execute(
+        """
+        INSERT INTO agent_optimizations(project_id, cycle_no, run_id, agent_id, summary_text, optimization_json)
+        VALUES (%s,%s,%s,%s,%s,%s::jsonb)
+        """,
+        (project_id, cycle_no, run_id, agent_id, memory["summary"], jdump(memory)),
+    )
+    execute(
+        """
+        INSERT INTO project_agent_memory(project_id, agent_id, current_memory)
+        VALUES (%s,%s,%s::jsonb)
+        ON CONFLICT (project_id, agent_id) DO UPDATE
+        SET current_memory=EXCLUDED.current_memory, updated_at=NOW()
+        """,
+        (project_id, agent_id, jdump(memory)),
+    )
+    return memory
+
+
+def _cycle_dir(project_id: str, cycle_no: int) -> Path:
+    return PROJECT_OUTPUT_DIR / project_id / "cycles" / f"{cycle_no:03d}"
+
+
+def _sync_project_files(project_id: str, cycle_no: int, run_id: str):
+    cycle_dir = _cycle_dir(project_id, cycle_no)
+    cycle_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = RUN_OUTPUT_DIR / run_id
+    for name in ["final_report.html", "final_report.md", "final_report.json"]:
+        src = run_dir / name
+        if src.exists():
+            (cycle_dir / name).write_text(src.read_text())
+    (cycle_dir / "conversation.html").write_text(render_conversation_html(run_id))
+    (cycle_dir / "review-thread.html").write_text(render_review_thread_html(run_id))
+    (cycle_dir / "retrospective.html").write_text(render_retrospective_html(run_id))
+    optimization_rows = fetch_all(
+        """
+        SELECT agent_id, summary_text, optimization_json::text
+        FROM agent_optimizations
+        WHERE project_id=%s AND cycle_no=%s
+        ORDER BY agent_id
+        """,
+        (project_id, cycle_no),
+    )
+    optimization_summary = {
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "run_id": run_id,
+        "agents": {
+            agent_id: {"summary": summary_text, "memory": _load_json(opt_json)}
+            for agent_id, summary_text, opt_json in optimization_rows
+        },
+    }
+    (cycle_dir / "optimization_summary.json").write_text(
+        json.dumps(optimization_summary, ensure_ascii=False, indent=2)
+    )
+    for agent_id in ["neko", "33", "xhs"]:
+        memory = get_project_memory(project_id, agent_id)
+        (cycle_dir / f"agent_{agent_id}_memory.json").write_text(
+            json.dumps(memory, ensure_ascii=False, indent=2)
+        )
+
+
+def _sync_project_indexes(project_id: str):
+    project_dir = PROJECT_OUTPUT_DIR / project_id
+    project_dir.mkdir(parents=True, exist_ok=True)
+    project = _project_row(project_id)
+    cycles = fetch_all(
+        """
+        SELECT cycle_no, run_id, status, started_at, completed_at, retrospective_summary, optimization_snapshot::text
+        FROM project_cycles
+        WHERE project_id=%s
+        ORDER BY cycle_no
+        """,
+        (project_id,),
+    )
+    overview = {
+        "project_id": project_id,
+        "workflow_id": project[1],
+        "status": project[2],
+        "current_cycle_no": project[3],
+        "max_cycles": project[4],
+        "latest_run_id": project[10],
+        "next_cycle_at": project[11].isoformat() if project[11] else None,
+        "paused_reason": project[12],
+        "notes": _load_json(project[13]),
+    }
+    (project_dir / "project_overview.json").write_text(json.dumps(overview, ensure_ascii=False, indent=2))
+    cycle_index = []
+    changelog_lines = [f"# Project {project_id} Changelog", ""]
+    improvement_lines = [f"# Project {project_id} Improvement History", ""]
+    prev_snapshot = {}
+    for cycle_no, run_id, status, started_at, completed_at, retro_summary, snapshot_text in cycles:
+        snapshot = _load_json(snapshot_text)
+        cycle_index.append(
+            {
+                "cycle_no": cycle_no,
+                "run_id": run_id,
+                "status": status,
+                "started_at": started_at.isoformat() if started_at else None,
+                "completed_at": completed_at.isoformat() if completed_at else None,
+                "retrospective_summary": retro_summary,
+            }
+        )
+        changelog_lines.append(f"## Cycle {cycle_no}")
+        changelog_lines.append(f"- run_id: {run_id}")
+        changelog_lines.append(f"- status: {status}")
+        changelog_lines.append(
+            f"- retrospective: {(retro_summary or '无').splitlines()[0]}"
+        )
+        changelog_lines.append("")
+        improvement_lines.append(f"## Cycle {cycle_no}")
+        for agent_id in ["neko", "33", "xhs"]:
+            current_summary = (snapshot.get(agent_id) or {}).get("summary", "无")
+            previous_summary = (prev_snapshot.get(agent_id) or {}).get("summary", "无")
+            improvement_lines.append(f"- {agent_id}: 当前 `{current_summary}`；上一轮 `{previous_summary}`")
+        improvement_lines.append("")
+        prev_snapshot = snapshot
+    (project_dir / "cycle_index.json").write_text(json.dumps(cycle_index, ensure_ascii=False, indent=2))
+    (project_dir / "changelog.md").write_text("\n".join(changelog_lines))
+    (project_dir / "improvement_history.md").write_text("\n".join(improvement_lines))
+
+
+def create_project(
+    project_id: str | None = None,
+    *,
+    max_cycles: int | None = None,
+    max_consecutive_failures: int | None = None,
+    discussion_seconds: int | None = None,
+    retrospective_seconds: int | None = None,
+    next_cycle_delay_seconds: int | None = None,
+    auto_start: bool = True,
+) -> dict:
+    project_id = project_id or f"newsloop-{uuid.uuid4().hex[:8]}"
+    execute(
+        """
+        INSERT INTO projects(
+            project_id, workflow_id, status, current_cycle_no, max_cycles, max_consecutive_failures,
+            consecutive_failures, discussion_seconds, retrospective_seconds, next_cycle_delay_seconds, notes
+        )
+        VALUES (%s,%s,'running',0,%s,%s,0,%s,%s,%s,%s::jsonb)
+        ON CONFLICT (project_id) DO NOTHING
+        """,
+        (
+            project_id,
+            WORKFLOW_ID,
+            max_cycles if max_cycles is not None else SETTINGS.project_max_cycles_default,
+            max_consecutive_failures
+            if max_consecutive_failures is not None
+            else SETTINGS.project_max_consecutive_failures,
+            discussion_seconds if discussion_seconds is not None else SETTINGS.discussion_test_seconds,
+            retrospective_seconds
+            if retrospective_seconds is not None
+            else SETTINGS.project_retrospective_default_seconds,
+            next_cycle_delay_seconds
+            if next_cycle_delay_seconds is not None
+            else SETTINGS.project_next_cycle_delay_default_seconds,
+            jdump(
+                {
+                    "defaults": {
+                        "discussion_seconds": SETTINGS.discussion_default_seconds,
+                        "retrospective_seconds": SETTINGS.project_retrospective_default_seconds,
+                        "next_cycle_delay_seconds": SETTINGS.project_next_cycle_delay_default_seconds,
+                    },
+                    "test_values": {
+                        "discussion_seconds": discussion_seconds
+                        if discussion_seconds is not None
+                        else SETTINGS.discussion_test_seconds,
+                        "retrospective_seconds": retrospective_seconds
+                        if retrospective_seconds is not None
+                        else SETTINGS.project_retrospective_default_seconds,
+                        "next_cycle_delay_seconds": next_cycle_delay_seconds
+                        if next_cycle_delay_seconds is not None
+                        else SETTINGS.project_next_cycle_delay_default_seconds,
+                    },
+                }
+            ),
+        ),
+    )
+    _sync_project_indexes(project_id)
+    run_id = start_next_cycle(project_id) if auto_start else None
+    return {"project_id": project_id, "run_id": run_id}
+
+
+def pause_project(project_id: str, reason: str = "manual pause") -> None:
+    execute(
+        "UPDATE projects SET status='paused', paused_reason=%s, updated_at=NOW() WHERE project_id=%s",
+        (reason, project_id),
+    )
+    execute(
+        """
+        UPDATE project_cycles
+        SET status='paused', updated_at=NOW()
+        WHERE project_id=%s AND status IN ('running', 'retrospective_running', 'optimizing')
+        """,
+        (project_id,),
+    )
+    execute(
+        """
+        UPDATE workflow_runs
+        SET status='paused'
+        WHERE project_id=%s AND status='running'
+        """,
+        (project_id,),
+    )
+    _sync_project_indexes(project_id)
+
+
+def resume_project(project_id: str) -> None:
+    execute(
+        """
+        UPDATE projects
+        SET status='running', paused_reason=NULL,
+            next_cycle_at=COALESCE(next_cycle_at, NOW()), updated_at=NOW()
+        WHERE project_id=%s
+        """,
+        (project_id,),
+    )
+    execute(
+        """
+        UPDATE project_cycles
+        SET status=CASE
+            WHEN retrospective_started_at IS NOT NULL AND retrospective_completed_at IS NULL THEN 'retrospective_running'
+            WHEN retrospective_completed_at IS NOT NULL AND completed_at IS NULL THEN 'optimizing'
+            ELSE 'running'
+        END,
+        updated_at=NOW()
+        WHERE project_id=%s AND status='paused'
+        """,
+        (project_id,),
+    )
+    execute(
+        """
+        UPDATE workflow_runs
+        SET status='running'
+        WHERE project_id=%s AND status='paused'
+        """,
+        (project_id,),
+    )
+    _sync_project_indexes(project_id)
+
+
+def stop_project(project_id: str, reason: str = "manual stop") -> None:
+    execute(
+        """
+        UPDATE projects
+        SET status='stopped', paused_reason=%s, next_cycle_at=NULL, updated_at=NOW()
+        WHERE project_id=%s
+        """,
+        (reason, project_id),
+    )
+    execute(
+        """
+        UPDATE project_cycles
+        SET status='stopped', updated_at=NOW()
+        WHERE project_id=%s AND status IN ('running', 'retrospective_running', 'optimizing', 'paused')
+        """,
+        (project_id,),
+    )
+    execute(
+        """
+        UPDATE workflow_runs
+        SET status='stopped'
+        WHERE project_id=%s AND status IN ('running', 'paused')
+        """,
+        (project_id,),
+    )
+    _sync_project_indexes(project_id)
+
+
+def start_next_cycle(project_id: str) -> str | None:
+    project = _project_row(project_id)
+    if not project or project[2] != "running":
+        return None
+    active = fetch_one(
+        """
+        SELECT COUNT(*)
+        FROM project_cycles
+        WHERE project_id=%s AND status IN ('running', 'retrospective_running', 'optimizing')
+        """,
+        (project_id,),
+    )[0]
+    if active:
+        return None
+    if project[4] and project[3] >= project[4]:
+        stop_project(project_id, "reached max cycles")
+        return None
+    guard = _resource_guard()
+    if not guard["ok"]:
+        pause_project(project_id, f"resource guard: {guard['reason']}")
+        return None
+    cycle_no = project[3] + 1
+    attrs = {
+        "workflow_id": WORKFLOW_ID,
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "run_id": None,
+        "task_id": None,
+        "parent_task_id": None,
+        "agent_id": "orchestrator",
+        "agent_role": "orchestrator",
+        "section": "全局",
+        "phase": "cycle.start_next",
+        "retry_count": 0,
+        "status": "started",
+    }
+    with workflow_span("orchestrator", "cycle.start_next", attrs):
+        run_id = new_run(
+            discussion_seconds=project[7],
+            project_id=project_id,
+            cycle_no=cycle_no,
+        )
+    execute(
+        """
+        INSERT INTO project_cycles(project_id, cycle_no, run_id, status, started_at, updated_at)
+        VALUES (%s,%s,%s,'running',NOW(),NOW())
+        ON CONFLICT (project_id, cycle_no) DO UPDATE
+        SET run_id=EXCLUDED.run_id, status='running', started_at=NOW(), updated_at=NOW()
+        """,
+        (project_id, cycle_no, run_id),
+    )
+    execute(
+        """
+        UPDATE projects
+        SET current_cycle_no=%s, latest_run_id=%s, next_cycle_at=NULL, updated_at=NOW()
+        WHERE project_id=%s
+        """,
+        (cycle_no, run_id, project_id),
+    )
+    _sync_project_indexes(project_id)
+    return run_id
+
+
+def _finalize_cycle(project_id: str, cycle_no: int, run_id: str):
+    project = _project_row(project_id)
+    optimization_rows = fetch_all(
+        """
+        SELECT agent_id, optimization_json::text
+        FROM agent_optimizations
+        WHERE project_id=%s AND cycle_no=%s
+        ORDER BY agent_id
+        """,
+        (project_id, cycle_no),
+    )
+    snapshot = {agent_id: _load_json(text) for agent_id, text in optimization_rows}
+    execute(
+        """
+        UPDATE project_cycles
+        SET status='completed', completed_at=NOW(), updated_at=NOW(), optimization_snapshot=%s::jsonb
+        WHERE project_id=%s AND cycle_no=%s
+        """,
+        (jdump(snapshot), project_id, cycle_no),
+    )
+    execute(
+        """
+        UPDATE workflow_runs
+        SET status='completed', current_phase='agent.self_optimize', completed_at=NOW()
+        WHERE run_id=%s
+        """,
+        (run_id,),
+    )
+    _sync_project_files(project_id, cycle_no, run_id)
+    _sync_project_indexes(project_id)
+    if project[4] and cycle_no >= project[4]:
+        stop_project(project_id, "reached max cycles")
+        return
+    guard = _resource_guard()
+    if not guard["ok"]:
+        pause_project(project_id, f"resource guard: {guard['reason']}")
+        return
+    next_cycle_at = now_local() + timedelta(seconds=project[9])
+    attrs = {
+        "workflow_id": WORKFLOW_ID,
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "run_id": run_id,
+        "task_id": None,
+        "parent_task_id": None,
+        "agent_id": "orchestrator",
+        "agent_role": "orchestrator",
+        "section": "全局",
+        "phase": "cycle.schedule_next",
+        "retry_count": 0,
+        "status": "scheduled",
+    }
+    with workflow_span("orchestrator", "cycle.schedule_next", attrs):
+        execute(
+            """
+            UPDATE project_cycles
+            SET next_cycle_at=%s, updated_at=NOW()
+            WHERE project_id=%s AND cycle_no=%s
+            """,
+            (next_cycle_at, project_id, cycle_no),
+        )
+        execute(
+            """
+            UPDATE projects
+            SET status='running', paused_reason=NULL, next_cycle_at=%s,
+                consecutive_failures=0, updated_at=NOW()
+            WHERE project_id=%s
+            """,
+            (next_cycle_at, project_id),
+        )
+    _sync_project_indexes(project_id)
+
+
+def _dispatch_retro_comment_tasks(
+    run_id: str,
+    project_id: str,
+    cycle_no: int,
+    trace_ctx: dict,
+    *,
+    round_no: int,
+    agents: list[str],
+    reply_to_message_id: str | None,
+    topic: str,
+    target_type: str,
+    to_agent: str,
+    intent: str,
+):
+    for agent_id in agents:
+        exists = fetch_one(
+            """
+            SELECT COUNT(*) FROM tasks
+            WHERE run_id=%s AND phase='retrospective.comment'
+              AND agent_id=%s
+              AND COALESCE((payload->>'round_no')::int, 0)=%s
+            """,
+            (run_id, agent_id, round_no),
+        )[0]
+        if exists:
+            continue
+        dispatch_task(
+            run_id,
+            None,
+            agent_id,
+            AGENT_ROLES[agent_id],
+            "全局",
+            "retrospective.comment",
+            0,
+            {
+                "round_no": round_no,
+                "reply_to_message_id": reply_to_message_id,
+                "topic": topic,
+                "target_type": target_type,
+                "to_agent": to_agent,
+                "intent": intent,
+            },
+            trace_ctx,
+            project_id,
+            cycle_no,
+        )
+
+
+def _retro_messages_by_round(run_id: str, round_no: int) -> list[dict]:
+    return [msg for msg in _retro_thread_rows(run_id) if msg["round_no"] == round_no]
+
+
+def project_tick():
+    for project_id, cycle_no, run_id, status in fetch_all(
+        """
+        SELECT project_id, cycle_no, run_id, status
+        FROM project_cycles
+        WHERE status IN ('running', 'retrospective_running', 'optimizing')
+        ORDER BY project_id, cycle_no
+        """
+    ):
+        run_state = fetch_one("SELECT status FROM workflow_runs WHERE run_id=%s", (run_id,))
+        if run_state and run_state[0] == "failed":
+            project = _project_row(project_id)
+            failures = project[6] + 1
+            new_status = "paused" if failures >= project[5] else "running"
+            execute(
+                """
+                UPDATE projects
+                SET consecutive_failures=%s, status=%s, paused_reason=%s, updated_at=NOW(), next_cycle_at=NULL
+                WHERE project_id=%s
+                """,
+                (failures, new_status, "run failed", project_id),
+            )
+            _sync_project_indexes(project_id)
+            continue
+        self_opt_done = fetch_one(
+            """
+            SELECT COUNT(*) FROM tasks
+            WHERE project_id=%s AND cycle_no=%s AND phase='agent.self_optimize' AND status='completed'
+            """,
+            (project_id, cycle_no),
+        )[0]
+        if self_opt_done >= 3:
+            already_done = fetch_one(
+                "SELECT status FROM project_cycles WHERE project_id=%s AND cycle_no=%s",
+                (project_id, cycle_no),
+            )[0]
+            if already_done != "completed":
+                _finalize_cycle(project_id, cycle_no, run_id)
+
+    for project in fetch_all(
+        """
+        SELECT project_id, status, next_cycle_at
+        FROM projects
+        WHERE status='running' AND next_cycle_at IS NOT NULL
+        ORDER BY updated_at
+        """
+    ):
+        project_id, _, next_cycle_at = project
+        if next_cycle_at and now_local() >= next_cycle_at.astimezone():
+            start_next_cycle(project_id)
+
+
+def _run_current_phase(run_id: str, phase: str):
+    execute("UPDATE workflow_runs SET current_phase=%s WHERE run_id=%s", (phase, run_id))
+
+
+def orchestrator_tick():
+    runs = fetch_all(
+        """
+        SELECT run_id, project_id, cycle_no, status, discussion_seconds, current_phase, started_at
+        FROM workflow_runs
+        WHERE status='running'
+        ORDER BY started_at
+        """
+    )
+    for run_id, project_id, cycle_no, _, discussion_seconds, _, _ in runs:
+        trace_ctx = get_run_trace_context(run_id)
+        for section, agent_id in ALL_SECTION_ASSIGNMENTS:
+            latest_collect = fetch_one(
+                """
+                SELECT task_id, retry_count
+                FROM tasks
+                WHERE run_id=%s AND section=%s AND agent_id=%s AND phase='material.collect' AND status='completed'
+                ORDER BY retry_count DESC, finished_at DESC NULLS LAST
+                LIMIT 1
+                """,
+                (run_id, section, agent_id),
+            )
+            if not latest_collect:
+                continue
+            review_exists = fetch_one(
+                """
+                SELECT COUNT(*) FROM tasks
+                WHERE run_id=%s AND section=%s AND phase='material.review' AND retry_count=%s
+                """,
+                (run_id, section, latest_collect[1]),
+            )[0]
+            if review_exists == 0:
+                dispatch_task(
+                    run_id,
+                    latest_collect[0],
+                    "neko",
+                    "manager",
+                    section,
+                    "material.review",
+                    latest_collect[1],
+                    {},
+                    trace_ctx,
+                    project_id,
+                    cycle_no,
+                )
+                _run_current_phase(run_id, "material.review")
+
+        for section, agent_id in ALL_SECTION_ASSIGNMENTS:
+            latest_review = fetch_one(
+                """
+                SELECT r.approved, r.reason, t.retry_count
+                FROM reviews r
+                JOIN tasks t ON t.task_id = r.review_task_id
+                WHERE r.run_id=%s AND r.section=%s
+                ORDER BY t.retry_count DESC, r.created_at DESC
+                LIMIT 1
+                """,
+                (run_id, section),
+            )
+            if latest_review and not latest_review[0]:
+                newer_collect_exists = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND section=%s AND phase='material.collect' AND retry_count>%s
+                    """,
+                    (run_id, section, latest_review[2]),
+                )[0]
+                if newer_collect_exists == 0:
+                    retry = latest_review[2] + 1
+                    collect_task_id = dispatch_task(
+                        run_id,
+                        None,
+                        agent_id,
+                        "collector",
+                        section,
+                        "material.collect",
+                        retry,
+                        {"target_count": 12, "rework_reason": latest_review[1]},
+                        trace_ctx,
+                        project_id,
+                        cycle_no,
+                    )
+                    dispatch_task(
+                        run_id,
+                        collect_task_id,
+                        agent_id,
+                        "collector",
+                        section,
+                        "material.submit",
+                        retry,
+                        {},
+                        trace_ctx,
+                        project_id,
+                        cycle_no,
+                    )
+                    _run_current_phase(run_id, "material.rework")
+
+        approved_count = 0
+        for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+            latest_review = fetch_one(
+                """
+                SELECT r.approved
+                FROM reviews r
+                JOIN tasks t ON t.task_id = r.review_task_id
+                WHERE r.run_id=%s AND r.section=%s
+                ORDER BY t.retry_count DESC, r.created_at DESC
+                LIMIT 1
+                """,
+                (run_id, section),
+            )
+            if latest_review and latest_review[0]:
+                approved_count += 1
+        compose_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.compose'", (run_id,))[0]
+        if approved_count == 4 and compose_exists == 0:
+            dispatch_task(run_id, None, "neko", "manager", "全局", "draft.compose", 0, {}, trace_ctx, project_id, cycle_no)
+            _run_current_phase(run_id, "draft.compose")
+
+        compose_done = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.compose' AND status='completed'", (run_id,))[0]
+        discussion_start_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='discussion.start'", (run_id,))[0]
+        if compose_done > 0 and discussion_start_exists == 0:
+            dispatch_task(
+                run_id,
+                None,
+                "neko",
+                "manager",
+                "全局",
+                "discussion.start",
+                0,
+                {"discussion_seconds": discussion_seconds},
+                trace_ctx,
+                project_id,
+                cycle_no,
+            )
+            dispatch_task(run_id, None, "33", "collector", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+            dispatch_task(run_id, None, "xhs", "collector", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+            dispatch_task(run_id, None, "neko", "manager", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+            _run_current_phase(run_id, "discussion.start")
+
+        discussion_started = fetch_one(
+            """
+            SELECT started_at, payload::text
+            FROM tasks
+            WHERE run_id=%s AND phase='discussion.start' AND status='completed'
+            ORDER BY started_at DESC LIMIT 1
+            """,
+            (run_id,),
+        )
+        summarize_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='discussion.summarize'", (run_id,))[0]
+        if discussion_started and summarize_exists == 0:
+            started = discussion_started[0]
+            payload = json.loads(discussion_started[1])
+            comments_done = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='discussion.comment' AND status='completed'",
+                (run_id,),
+            )[0]
+            if comments_done >= 3 and (datetime.now(started.tzinfo) - started).total_seconds() >= payload["discussion_seconds"]:
+                dispatch_task(run_id, None, "neko", "manager", "全局", "discussion.summarize", 0, {}, trace_ctx, project_id, cycle_no)
+                _run_current_phase(run_id, "discussion.summarize")
+
+        summarize_done = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='discussion.summarize' AND status='completed'", (run_id,))[0]
+        revise_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.revise'", (run_id,))[0]
+        if summarize_done > 0 and revise_exists == 0:
+            dispatch_task(run_id, None, "neko", "manager", "全局", "draft.revise", 0, {}, trace_ctx, project_id, cycle_no)
+            dispatch_task(run_id, None, "neko", "manager", "全局", "report.publish", 0, {}, trace_ctx, project_id, cycle_no)
+            _run_current_phase(run_id, "draft.revise")
+
+        if project_id:
+            report_done = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='report.publish' AND status='completed'",
+                (run_id,),
+            )[0]
+            retro_start_exists = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.start'",
+                (run_id,),
+            )[0]
+            if report_done > 0 and retro_start_exists == 0:
+                project = _project_row(project_id)
+                dispatch_task(
+                    run_id,
+                    None,
+                    "neko",
+                    "manager",
+                    "全局",
+                    "retrospective.start",
+                    0,
+                    {"retrospective_seconds": project[8]},
+                    trace_ctx,
+                    project_id,
+                    cycle_no,
+                )
+                execute(
+                    """
+                    UPDATE project_cycles
+                    SET status='retrospective_running', retrospective_started_at=NOW(), updated_at=NOW()
+                    WHERE project_id=%s AND cycle_no=%s
+                    """,
+                    (project_id, cycle_no),
+                )
+                _run_current_phase(run_id, "retrospective.start")
+
+            retro_started = fetch_one(
+                """
+                SELECT task_id, started_at, payload::text, result::text
+                FROM tasks
+                WHERE run_id=%s AND phase='retrospective.start' AND status='completed'
+                ORDER BY started_at DESC LIMIT 1
+                """,
+                (run_id,),
+            )
+            retro_summary_exists = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.summary'",
+                (run_id,),
+            )[0]
+            if retro_started:
+                start_task_id = retro_started[0]
+                started = retro_started[1]
+                payload = json.loads(retro_started[2])
+                start_result = _load_json(retro_started[3])
+                round1 = _retro_messages_by_round(run_id, 1)
+                if not round1:
+                    next_agents = [agent for agent in (start_result.get("next_agents") or ["33", "xhs"]) if agent in {"33", "xhs"}]
+                    if not next_agents:
+                        next_agents = ["33", "xhs"]
+                    _dispatch_retro_comment_tasks(
+                        run_id,
+                        project_id,
+                        cycle_no,
+                        trace_ctx,
+                        round_no=1,
+                        agents=next_agents,
+                        reply_to_message_id=start_task_id,
+                        topic=start_result.get("topic") or "问题",
+                        target_type="agent",
+                        to_agent="neko",
+                        intent="critique",
+                    )
+                    for agent in next_agents:
+                        execute(
+                            "UPDATE tasks SET payload=jsonb_set(payload,'{mode}',to_jsonb(%s::text),true) WHERE run_id=%s AND phase='retrospective.comment' AND agent_id=%s AND COALESCE((payload->>'round_no')::int,0)=1",
+                            ("open", run_id, agent),
+                        )
+                round1 = _retro_messages_by_round(run_id, 1)
+                round2_task_exists = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND phase='retrospective.comment'
+                      AND agent_id IN ('33','xhs')
+                      AND COALESCE((payload->>'round_no')::int, 0)=2
+                    """,
+                    (run_id,),
+                )[0]
+                if len([msg for msg in round1 if msg["from_agent"] in {"33", "xhs"}]) >= 2 and round2_task_exists == 0:
+                    for agent_id in ["33", "xhs"]:
+                        peer = "xhs" if agent_id == "33" else "33"
+                        peer_msg = next((msg for msg in reversed(round1) if msg["from_agent"] == peer), None)
+                        dispatch_task(
+                            run_id,
+                            None,
+                            agent_id,
+                            AGENT_ROLES[agent_id],
+                            "全局",
+                            "retrospective.comment",
+                            0,
+                            {
+                                "round_no": 2,
+                                "mode": "peer_reaction",
+                                "reply_to_message_id": peer_msg["message_id"] if peer_msg else start_task_id,
+                                "topic": "观点延展",
+                                "target_type": "agent",
+                                "to_agent": peer,
+                                "intent": "critique",
+                            },
+                            trace_ctx,
+                            project_id,
+                            cycle_no,
+                        )
+                round2 = _retro_messages_by_round(run_id, 2)
+                round3_task_exists = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND phase='retrospective.comment' AND agent_id='neko'
+                      AND COALESCE((payload->>'round_no')::int, 0)=3
+                    """,
+                    (run_id,),
+                )[0]
+                if len([msg for msg in round2 if msg["from_agent"] in {"33", "xhs"}]) >= 2 and round3_task_exists == 0:
+                    reply_to = round2[-1]["message_id"]
+                    _dispatch_retro_comment_tasks(
+                        run_id,
+                        project_id,
+                        cycle_no,
+                        trace_ctx,
+                        round_no=3,
+                        agents=["neko"],
+                        reply_to_message_id=reply_to,
+                        topic="分歧追问",
+                        target_type="agent",
+                        to_agent="33,xhs",
+                        intent="question",
+                    )
+                    execute(
+                        "UPDATE tasks SET payload=jsonb_set(payload,'{mode}',to_jsonb(%s::text),true) WHERE run_id=%s AND phase='retrospective.comment' AND agent_id='neko' AND COALESCE((payload->>'round_no')::int,0)=3",
+                        ("moderator_followup", run_id),
+                    )
+                round3 = _retro_messages_by_round(run_id, 3)
+                round4_exists = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND phase='retrospective.comment'
+                      AND agent_id IN ('33','xhs')
+                      AND COALESCE((payload->>'round_no')::int, 0)=4
+                    """,
+                    (run_id,),
+                )[0]
+                if round3 and round4_exists == 0:
+                    moderator_msg = round3[-1]
+                    target_agents = [agent.strip() for agent in (moderator_msg.get("to_agent") or "").split(",") if agent.strip() in {"33", "xhs"}]
+                    if not target_agents:
+                        target_agents = ["33", "xhs"]
+                    _dispatch_retro_comment_tasks(
+                        run_id,
+                        project_id,
+                        cycle_no,
+                        trace_ctx,
+                        round_no=4,
+                        agents=target_agents,
+                        reply_to_message_id=moderator_msg["message_id"],
+                        topic=moderator_msg.get("topic") or "协作优化",
+                        target_type=moderator_msg.get("target_type") or "agent",
+                        to_agent="neko",
+                        intent="proposal",
+                    )
+                    for agent in target_agents:
+                        execute(
+                            "UPDATE tasks SET payload=jsonb_set(payload,'{mode}',to_jsonb(%s::text),true) WHERE run_id=%s AND phase='retrospective.comment' AND agent_id=%s AND COALESCE((payload->>'round_no')::int,0)=4",
+                            ("respond_moderator", run_id, agent),
+                        )
+                round4 = _retro_messages_by_round(run_id, 4)
+                round5_exists = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND phase='retrospective.comment'
+                      AND agent_id IN ('33','xhs')
+                      AND COALESCE((payload->>'round_no')::int, 0)=5
+                    """,
+                    (run_id,),
+                )[0]
+                if round4 and round5_exists == 0 and (datetime.now(started.tzinfo) - started).total_seconds() < max(payload["retrospective_seconds"] - 10, 1):
+                    for agent_id in ["33", "xhs"]:
+                        peer = "xhs" if agent_id == "33" else "33"
+                        peer_msg = next((msg for msg in reversed(round4) if msg["from_agent"] == peer), None)
+                        dispatch_task(
+                            run_id,
+                            None,
+                            agent_id,
+                            AGENT_ROLES[agent_id],
+                            "全局",
+                            "retrospective.comment",
+                            0,
+                            {
+                                "round_no": 5,
+                                "mode": "freeform_close",
+                                "reply_to_message_id": peer_msg["message_id"] if peer_msg else round4[-1]["message_id"],
+                                "topic": "最后补充",
+                                "target_type": "team",
+                                "to_agent": "neko",
+                                "intent": "proposal",
+                            },
+                            trace_ctx,
+                            project_id,
+                            cycle_no,
+                        )
+                pending_comments = fetch_one(
+                    """
+                    SELECT COUNT(*) FROM tasks
+                    WHERE run_id=%s AND phase='retrospective.comment' AND status IN ('pending', 'running')
+                    """,
+                    (run_id,),
+                )[0]
+                retro_thread = _retro_thread_rows(run_id)
+                if retro_summary_exists == 0 and pending_comments == 0 and len(retro_thread) >= RETRO_MIN_THREAD_MESSAGES:
+                    if (datetime.now(started.tzinfo) - started).total_seconds() >= payload["retrospective_seconds"]:
+                        dispatch_task(run_id, None, "neko", "manager", "全局", "retrospective.summary", 0, {}, trace_ctx, project_id, cycle_no)
+                        _run_current_phase(run_id, "retrospective.summary")
+
+            retro_summary_done = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.summary' AND status='completed'",
+                (run_id,),
+            )[0]
+            self_opt_exists = fetch_one(
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='agent.self_optimize'",
+                (run_id,),
+            )[0]
+            if retro_summary_done > 0 and self_opt_exists == 0:
+                for agent_id in ["neko", "33", "xhs"]:
+                    dispatch_task(
+                        run_id,
+                        None,
+                        agent_id,
+                        AGENT_ROLES[agent_id],
+                        "全局",
+                        "agent.self_optimize",
+                        0,
+                        {},
+                        trace_ctx,
+                        project_id,
+                        cycle_no,
+                    )
+                execute(
+                    """
+                    UPDATE project_cycles
+                    SET status='optimizing', updated_at=NOW()
+                    WHERE project_id=%s AND cycle_no=%s
+                    """,
+                    (project_id, cycle_no),
+                )
+                _run_current_phase(run_id, "agent.self_optimize")
+
+
+def run_worker(agent_id: str):
+    service_name = "orchestrator" if agent_id == "orchestrator" else f"agent-{agent_id}"
+    while True:
+        task = claim_task(agent_id)
+        if not task:
+            time.sleep(2)
+            continue
+        attrs = {
+            "workflow_id": WORKFLOW_ID,
+            "project_id": task["project_id"],
+            "cycle_no": task["cycle_no"],
+            "run_id": task["run_id"],
+            "task_id": task["task_id"],
+            "parent_task_id": task["parent_task_id"],
+            "agent_id": task["agent_id"],
+            "agent_role": task["agent_role"],
+            "section": task["section"],
+            "phase": task["phase"],
+            "retry_count": task["retry_count"],
+            "status": "running",
+        }
+        try:
+            with workflow_span(service_name, task["phase"], attrs, context=extract_context(task["payload"].get("trace_context"))) as span:
+                if task["phase"] == "material.collect":
+                    items = collect_news(task["section"], 16)
+                    save_materials(task["run_id"], task["task_id"], task["section"], task["agent_id"], items)
+                    memory_note = _memory_summary(task["payload"].get("agent_memory_snapshot"))
+                    span.set_attribute("status", "collected")
+                    span.set_attribute("source_count", len(items))
+                    complete_task(
+                        task["task_id"],
+                        {
+                            "status": "collected",
+                            "source_count": len(items),
+                            "memory_summary": memory_note,
+                            "message_body": f"已完成【{task['section']}】板块采集，收集到 {len(items)} 条候选素材。本轮应用策略：{memory_note}。",
+                        },
+                    )
+                elif task["phase"] == "material.submit":
+                    count = fetch_one(
+                        "SELECT COUNT(*) FROM materials WHERE run_id=%s AND section=%s AND source_agent=%s",
+                        (task["run_id"], task["section"], task["agent_id"]),
+                    )[0]
+                    top_rows = fetch_all(
+                        """
+                        SELECT title, source_media
+                        FROM materials
+                        WHERE run_id=%s AND section=%s AND source_agent=%s
+                        ORDER BY published_at DESC
+                        LIMIT 5
+                        """,
+                        (task["run_id"], task["section"], task["agent_id"]),
+                    )
+                    message = [f"提交【{task['section']}】板块候选素材，共 {count} 条。"]
+                    for title, source_media in top_rows:
+                        message.append(f"- {title} | {source_media}")
+                    span.set_attribute("status", "submitted")
+                    span.set_attribute("source_count", count)
+                    complete_task(task["task_id"], {"status": "submitted", "source_count": count, "message_body": "\n".join(message)})
+                elif task["phase"] == "material.review":
+                    result = review_section(task["run_id"], task["section"], task["task_id"])
+                    phase = "material.reject" if not result["approved"] else "material.review"
+                    with workflow_span(service_name, phase, attrs | {"status": "rejected" if not result["approved"] else "approved"}):
+                        pass
+                    span.set_attribute("status", "approved" if result["approved"] else "rejected")
+                    span.set_attribute("source_count", len(result["selected_material_ids"]))
+                    complete_task(task["task_id"], result | {"status": "approved" if result["approved"] else "rejected"})
+                elif task["phase"] == "draft.compose":
+                    result = compose_draft(task["run_id"])
+                    span.set_attribute("status", "drafted")
+                    complete_task(task["task_id"], {"status": "drafted", "draft_len": len(result["draft_markdown"])})
+                elif task["phase"] == "discussion.start":
+                    seconds = task["payload"].get("discussion_seconds", SETTINGS.discussion_test_seconds)
+                    span.set_attribute("status", "started")
+                    complete_task(
+                        task["task_id"],
+                        {
+                            "discussion_seconds": seconds,
+                            "status": "started",
+                            "message_body": f"讨论阶段开始，当前测试轮讨论时长设为 {seconds} 秒。",
+                        },
+                    )
+                elif task["phase"] == "discussion.comment":
+                    comment = create_discussion_comment(task["run_id"], task["task_id"], task["agent_id"])
+                    span.set_attribute("status", "commented")
+                    complete_task(task["task_id"], {"status": "commented", "comment_text": comment})
+                elif task["phase"] == "discussion.summarize":
+                    plan = summarize_discussion(task["run_id"])
+                    span.set_attribute("status", "summarized")
+                    complete_task(task["task_id"], {"status": "summarized", "revision_plan": plan, "message_body": plan})
+                elif task["phase"] == "draft.revise":
+                    span.set_attribute("status", "revised")
+                    complete_task(task["task_id"], {"status": "revised"})
+                elif task["phase"] == "report.publish":
+                    result = revise_and_publish(task["run_id"])
+                    span.set_attribute("status", "published")
+                    complete_task(task["task_id"], result | {"status": "published"})
+                elif task["phase"] == "retrospective.start":
+                    seconds = task["payload"].get("retrospective_seconds", SETTINGS.project_retrospective_default_seconds)
+                    kickoff = start_retrospective_thread(task["run_id"], task["task_id"])
+                    span.set_attribute("status", "started")
+                    complete_task(
+                        task["task_id"],
+                        {
+                            "status": "started",
+                            "retrospective_seconds": seconds,
+                            "message_id": kickoff["message_id"],
+                            "next_agents": kickoff["next_agents"],
+                            "topic": kickoff["topic"],
+                            "message_body": kickoff["body"],
+                        },
+                    )
+                elif task["phase"] == "retrospective.comment":
+                    comment = create_retrospective_comment(task["run_id"], task["task_id"], task["agent_id"], task["payload"])
+                    span.set_attribute("status", "commented")
+                    complete_task(
+                        task["task_id"],
+                        {
+                            "status": "commented",
+                            "message_id": comment["message_id"],
+                            "reply_to_message_id": comment["reply_to_message_id"],
+                            "topic": comment["topic"],
+                            "intent": comment["intent"],
+                            "to_agent": comment["to_agent"],
+                            "comment_text": comment["body"],
+                            "message_body": comment["body"],
+                        },
+                    )
+                elif task["phase"] == "retrospective.summary":
+                    summary = summarize_retrospective(task["run_id"])
+                    span.set_attribute("status", "summarized")
+                    complete_task(task["task_id"], {"status": "summarized", "message_body": summary})
+                elif task["phase"] == "agent.self_optimize":
+                    memory = self_optimize_agent(task["run_id"], task["agent_id"])
+                    span.set_attribute("status", "optimized")
+                    complete_task(
+                        task["task_id"],
+                        {
+                            "status": "optimized",
+                            "message_body": memory["summary"],
+                            "memory_version": memory["version_cycle"],
+                        },
+                    )
+                else:
+                    raise RuntimeError(f"unknown phase {task['phase']}")
+        except Exception as exc:
+            fail_task(task["task_id"], str(exc))
+            time.sleep(1)

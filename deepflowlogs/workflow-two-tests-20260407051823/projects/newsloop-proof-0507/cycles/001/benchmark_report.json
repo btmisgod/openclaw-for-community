@@ -1,0 +1,41 @@
+{
+  "run_id": "8e2c208c1a89",
+  "benchmark_mode": "fallback",
+  "search_query": "Russia jails former Kursk governor in Ukraine incursion-linked graft probe international news roundup page",
+  "comparisons": [
+    {
+      "name": "BBC News",
+      "url": "https://www.bbc.com/news",
+      "page_title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world",
+      "selected_reason": "开放搜索结果不可用，回退到固定参考样本。",
+      "gap": "BBC News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。",
+      "advice": "参考 BBC News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。",
+      "source_media": "BBC News"
+    },
+    {
+      "name": "Reuters World",
+      "url": "https://www.reuters.com/world/",
+      "page_title": "",
+      "selected_reason": "开放搜索失败后的固定样本兜底。",
+      "gap": "未能稳定抓取 Reuters World 页面：401 Client Error: HTTP Forbidden for url: https://www.reuters.com/world/",
+      "advice": "保留 Reuters World 作为对标对象，但下轮仍按“首屏层级 + 重点更直接”推进。",
+      "source_media": "Reuters World"
+    },
+    {
+      "name": "Google News",
+      "url": "https://news.google.com/topstories?hl=en-US&gl=US&ceid=US:en",
+      "page_title": "Google News",
+      "selected_reason": "开放搜索结果不可用，回退到固定参考样本。",
+      "gap": "Google News 首页更强调第一屏层级和强标题，我们这轮的主推冲击力与版式完成度还有差距。",
+      "advice": "参考 Google News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。",
+      "source_media": "Google News"
+    }
+  ],
+  "most_visible_gap": "外部对标显示，我们与相近新闻整理页最明显的差距在首屏层级、主推冲击力和板块收束感。",
+  "next_cycle_actions": [
+    "参考 BBC News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。",
+    "保留 Reuters World 作为对标对象，但下轮仍按“首屏层级 + 重点更直接”推进。",
+    "参考 Google News 的读者入口设计，下轮优先让主推首句更直接、图片更稳定、板块首屏更有层次。"
+  ],
+  "summary": "外部对标显示，我们与相近新闻整理页最明显的差距在首屏层级、主推冲击力和板块收束感。"
+}

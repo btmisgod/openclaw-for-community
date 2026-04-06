@@ -1,0 +1,46 @@
+{
+  "summary": "审核前置、主推影响优先、复盘收敛更结构化。",
+  "agent_id": "neko",
+  "updated_at": "2026-04-07T04:36:53.527988+08:00",
+  "version_cycle": 1,
+  "exposed_issues": [
+    "别人指出：我先挑《Video: Trump threatens to jail reporter over Iran airman rescue leak》这类条目说。真正拖后腿的不是素材量，而是判断句太晚出现，结果像“政治经济和科技板块有些条目更…",
+    "我认领：这轮先不做礼貌性收口，只抓最值得争的点。 1. 政治经济 板块在《Video: Trump threatens to jail reporter over Iran airman rescue leak》这条主线上，测试覆盖：受控触发一次…"
+  ],
+  "quality_checks": [
+    "每板块至少 10 条且主推/副推图片满足结构要求",
+    "review/reject 原因必须可执行",
+    "复盘总结必须包含问题、堵点、缺失能力、下一轮建议",
+    "新增自检：确认“这轮先不做礼貌性收口，只抓最值得争的点。 1. 政治经济 板块在《Video: Trump thr…”不再重复出现"
+  ],
+  "strategy_label": "neko-cycle-1-review-first",
+  "optimization_log": {
+    "combined": [],
+    "human_guidance": [],
+    "agent_generated": []
+  },
+  "review_standards": [
+    "拒绝图片不稳定、来源不可靠、发布时间超窗的候选",
+    "主推必须具备影响描述和三图资源"
+  ],
+  "execution_strategy": [
+    "dispatch 时明确给出热点性、图片数、时效三条硬约束",
+    "审核优先看图片和时效，再看热点性和去重",
+    "终稿前先校对四板块主推首句是否直达影响",
+    "针对复盘指出的问题，优先修正：我先挑《Video: Trump threatens to jail reporter over Iran airma…"
+  ],
+  "next_cycle_strategy": [
+    "dispatch 时明确给出热点性、图片数、时效三条硬约束",
+    "审核优先看图片和时效，再看热点性和去重",
+    "终稿前先校对四板块主推首句是否直达影响",
+    "针对复盘指出的问题，优先修正：我先挑《Video: Trump threatens to jail reporter over Iran airma…"
+  ],
+  "retrospective_memory": "问题：政治经济：测试覆盖：受控触发一次打回重做，请补充更强热点和更稳定图片来源；政治经济和科技板块有些条目更像资讯堆叠，影响读者抓重点；我先挑《Video: Trump threatens to jail reporter over Iran airman rescue leak》这类条目说。…；我更在意的是成品扫读感。像《Is ‘The Pitt’ Building an Emmy Dynasty? Why Noah Wyle’s Medical D…\n原因：采集阶段的规则前置还不够硬，图片稳定性、热点阈值、去重和交接标准没有在 worker 侧先收紧，导致问题沿着流程一路传到正文和复盘。\n改法：下一轮把采集前自检、板块边界、图片可用性和主推影响句前置；worker 提交时写清交接说明，manager 在初审时只盯最关键的硬约束，不再把模糊建议留到最后。 本轮已经跑顺的部分可保留：科技：科技板块容易把同源事件堆在一起，影响主副推区分；体育娱乐：体育娱乐板块的话题边界和主推权重还不够稳。\n下轮责任分配：33 负责把政治经济/科技的热点阈值、去重和影响句前置；xhs 负责收紧体育娱乐/其他的题材边界与图片稳定性；neko 负责在 review 前明确硬标准，并在复盘中继续抓住分歧追问，不让讨论空转。",
+  "role_improvement_plan": "neko 下一轮会把别人点到的问题前置处理，并把复盘总结里的要求拆成可执行检查。 当前收敛基线：问题：政治经济：测试覆盖：受控触发一次打回重做，请补充更强热点和更稳定图片来源；政治经济和科技板块有些条目更像资讯堆叠，影响读者抓重点；我先挑《Video: Trump threatens to jail reporter over Ir…",
+  "next_cycle_quality_checks": [
+    "每板块至少 10 条且主推/副推图片满足结构要求",
+    "review/reject 原因必须可执行",
+    "复盘总结必须包含问题、堵点、缺失能力、下一轮建议",
+    "新增自检：确认“这轮先不做礼貌性收口，只抓最值得争的点。 1. 政治经济 板块在《Video: Trump thr…”不再重复出现"
+  ]
+}

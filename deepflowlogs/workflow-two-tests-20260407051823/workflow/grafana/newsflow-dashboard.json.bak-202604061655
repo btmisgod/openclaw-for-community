@@ -1,0 +1,127 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "newsflow-mvp",
+    "title": "Newsflow MVP Workflow Observability",
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "10s",
+    "tags": ["newsflow", "workflow", "mvp"],
+    "panels": [
+      {
+        "id": 1,
+        "type": "table",
+        "title": "Recent Workflow Runs",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT started_at AS \"Started\", run_id AS \"Run ID\", status AS \"Status\", current_phase AS \"Current Phase\", discussion_seconds AS \"Discussion(s)\", completed_at AS \"Completed\", report_markdown_path AS \"Markdown\" FROM workflow_runs ORDER BY started_at DESC LIMIT 20;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 2,
+        "type": "timeseries",
+        "title": "Phase Duration (Current Run)",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawSql": "SELECT COALESCE(started_at, created_at) AS time, EXTRACT(EPOCH FROM (COALESCE(finished_at, NOW()) - COALESCE(started_at, created_at)))::double precision AS value, phase AS metric FROM tasks WHERE run_id = '$run_id' ORDER BY 1;"
+          }
+        ],
+        "fieldConfig": {"defaults": {"unit": "s"}}
+      },
+      {
+        "id": 3,
+        "type": "table",
+        "title": "Agent Task Stats (Current Run)",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT agent_id AS \"Agent\", COUNT(*) AS \"Tasks\", COUNT(*) FILTER (WHERE status='completed') AS \"Completed\", COUNT(*) FILTER (WHERE status='failed') AS \"Failed\", COUNT(*) FILTER (WHERE phase='material.review' AND task_id IN (SELECT review_task_id FROM reviews WHERE run_id='$run_id' AND approved=FALSE)) AS \"Rejected Reviews\" FROM tasks WHERE run_id = '$run_id' GROUP BY agent_id ORDER BY agent_id;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Section Material Status (Current Run)",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "WITH latest_review AS (SELECT DISTINCT ON (r.section) r.section, CASE WHEN r.approved THEN 'approved' ELSE 'rejected' END AS review_status, r.reason, r.created_at FROM reviews r WHERE r.run_id='$run_id' ORDER BY r.section, r.created_at DESC) SELECT m.section AS \"Section\", COUNT(*) AS \"Materials\", COALESCE(l.review_status, 'pending') AS \"Review Status\", MAX(m.published_at) AS \"Latest Published At\", COALESCE(l.reason, '') AS \"Reason\" FROM materials m LEFT JOIN latest_review l ON l.section = m.section WHERE m.run_id = '$run_id' GROUP BY m.section, l.review_status, l.reason ORDER BY m.section;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 5,
+        "type": "table",
+        "title": "Phase Timeline (Current Run)",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT phase AS \"Phase\", agent_id AS \"Agent\", section AS \"Section\", status AS \"Status\", retry_count AS \"Retry\", created_at AS \"Created\", started_at AS \"Started\", finished_at AS \"Finished\" FROM tasks WHERE run_id = '$run_id' ORDER BY created_at;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Failures / Rejections (Current Run)",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 16},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT (COUNT(*) FILTER (WHERE status='failed') + COUNT(*) FILTER (WHERE phase='material.review' AND task_id IN (SELECT review_task_id FROM reviews WHERE run_id='$run_id' AND approved=FALSE)))::double precision AS value FROM tasks WHERE run_id = '$run_id';"
+          }
+        ],
+        "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "orientation": "auto"}
+      },
+      {
+        "id": 7,
+        "type": "text",
+        "title": "Run Links",
+        "gridPos": {"h": 6, "w": 18, "x": 6, "y": 16},
+        "options": {
+          "mode": "markdown",
+          "content": "当前演示以 Grafana 看板呈现 workflow 痕迹。\\n\\n- 终稿 Markdown: `/opt/newsflow-mvp/output/9d2e7d0f3326/final_report.md`\\n- 终稿 JSON: `/opt/newsflow-mvp/output/9d2e7d0f3326/final_report.json`\\n- 运行 ID: `9d2e7d0f3326`\\n- 过滤变量: `run_id`"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "run_id",
+          "type": "query",
+          "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+          "refresh": 2,
+          "query": "SELECT run_id AS __text, run_id AS __value FROM workflow_runs ORDER BY started_at DESC;",
+          "current": {"selected": true, "text": "9d2e7d0f3326", "value": "9d2e7d0f3326"}
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

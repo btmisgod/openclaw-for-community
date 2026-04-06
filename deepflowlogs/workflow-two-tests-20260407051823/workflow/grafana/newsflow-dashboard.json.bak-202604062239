@@ -1,0 +1,225 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "newsflow-mvp",
+    "title": "Newsflow MVP Workflow Observability",
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 4,
+    "refresh": "10s",
+    "tags": ["newsflow", "workflow", "mvp", "project"],
+    "panels": [
+      {
+        "id": 1,
+        "type": "table",
+        "title": "Workflow Overview",
+        "gridPos": {"h": 7, "w": 12, "x": 0, "y": 0},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT started_at AS \"Started\", project_id AS \"Project ID\", cycle_no AS \"Cycle\", run_id AS \"Run ID\", status AS \"Status\", current_phase AS \"Current Phase\", discussion_seconds AS \"Discussion(s)\", completed_at AS \"Completed\" FROM workflow_runs WHERE ('$project_id' = '' OR project_id = '$project_id') ORDER BY started_at DESC LIMIT 20;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 2,
+        "type": "timeseries",
+        "title": "Stage Timeline",
+        "gridPos": {"h": 7, "w": 12, "x": 12, "y": 0},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawSql": "SELECT COALESCE(started_at, created_at) AS time, EXTRACT(EPOCH FROM (COALESCE(finished_at, NOW()) - COALESCE(started_at, created_at)))::double precision AS value, phase AS metric FROM tasks WHERE run_id = '$run_id' ORDER BY 1;"
+          }
+        ],
+        "fieldConfig": {"defaults": {"unit": "s"}}
+      },
+      {
+        "id": 3,
+        "type": "table",
+        "title": "Agent Task Stats",
+        "gridPos": {"h": 7, "w": 8, "x": 0, "y": 7},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT agent_id AS \"Agent\", COUNT(*) AS \"Tasks\", COUNT(*) FILTER (WHERE status='completed') AS \"Completed\", COUNT(*) FILTER (WHERE status='failed') AS \"Failed\", COUNT(*) FILTER (WHERE phase='material.review' AND task_id IN (SELECT review_task_id FROM reviews WHERE run_id='$run_id' AND approved=FALSE)) AS \"Rejected Reviews\" FROM tasks WHERE run_id = '$run_id' GROUP BY agent_id ORDER BY agent_id;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Section Material Status",
+        "gridPos": {"h": 7, "w": 8, "x": 8, "y": 7},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "WITH latest_review AS (SELECT DISTINCT ON (r.section) r.section, CASE WHEN r.approved THEN 'approved' ELSE 'rejected' END AS review_status, r.reason, r.created_at FROM reviews r WHERE r.run_id='$run_id' ORDER BY r.section, r.created_at DESC) SELECT m.section AS \"Section\", COUNT(*) AS \"Materials\", COALESCE(l.review_status, 'pending') AS \"Review Status\", MAX(m.published_at) AS \"Latest Published At\", COALESCE(l.reason, '') AS \"Reason\" FROM materials m LEFT JOIN latest_review l ON l.section = m.section WHERE m.run_id = '$run_id' GROUP BY m.section, l.review_status, l.reason ORDER BY m.section;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 5,
+        "type": "table",
+        "title": "Trace / Run Metadata",
+        "gridPos": {"h": 7, "w": 8, "x": 16, "y": 7},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT workflow_id AS \"Workflow ID\", project_id AS \"Project ID\", cycle_no AS \"Cycle No\", run_id AS \"Run ID\", COALESCE(notes->>'trace_id', split_part(notes->'trace_context'->>'traceparent', '-', 2)) AS \"Trace ID\", current_phase AS \"Current Phase\", status AS \"Status\", started_at AS \"Started\", completed_at AS \"Completed\", 'orchestrator,agent-neko,agent-33,agent-xhs' AS \"Services\" FROM workflow_runs WHERE run_id='$run_id';"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 6,
+        "type": "text",
+        "title": "Agent Communication Feed",
+        "gridPos": {"h": 13, "w": 12, "x": 0, "y": 14},
+        "options": {
+          "mode": "html",
+          "content": "<iframe src=\"/newsflow/runs/$run_id/conversation.html\" style=\"width:100%;height:100%;min-height:720px;border:0;border-radius:12px;background:#fff;\"></iframe>"
+        }
+      },
+      {
+        "id": 7,
+        "type": "text",
+        "title": "Review & Reject Thread",
+        "gridPos": {"h": 13, "w": 12, "x": 12, "y": 14},
+        "options": {
+          "mode": "html",
+          "content": "<iframe src=\"/newsflow/runs/$run_id/review-thread.html\" style=\"width:100%;height:100%;min-height:720px;border:0;border-radius:12px;background:#fff;\"></iframe>"
+        }
+      },
+      {
+        "id": 8,
+        "type": "table",
+        "title": "Revision Plan",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 27},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT run_id AS \"Run ID\", revision_plan AS \"Revision Plan\", updated_at AS \"Updated\" FROM outputs WHERE run_id = '$run_id';"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 9,
+        "type": "table",
+        "title": "Final Report Links",
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 27},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT wr.run_id AS \"Run ID\", wr.report_markdown_path AS \"Markdown Path\", wr.report_json_path AS \"JSON Path\", COALESCE(wr.notes->>'final_report_html', CONCAT('/opt/newsflow-mvp/output/', wr.run_id, '/final_report.html')) AS \"HTML Path\", CONCAT('http://43.130.233.109:5555/newsflow/runs/', wr.run_id, '/final.html') AS \"HTML URL\", CONCAT('http://43.130.233.109:5555/newsflow/runs/', wr.run_id, '/conversation.html') AS \"Conversation URL\", CONCAT('http://43.130.233.109:5555/newsflow/runs/', wr.run_id, '/review-thread.html') AS \"Review Thread URL\", CONCAT('http://43.130.233.109:5555/newsflow/runs/', wr.run_id, '/retrospective.html') AS \"Retrospective URL\" FROM workflow_runs wr WHERE wr.run_id = '$run_id';"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 10,
+        "type": "text",
+        "title": "Final Report Preview",
+        "gridPos": {"h": 18, "w": 24, "x": 0, "y": 35},
+        "options": {
+          "mode": "html",
+          "content": "<iframe src=\"/newsflow/runs/$run_id/final.html\" style=\"width:100%;height:100%;min-height:1000px;border:0;border-radius:12px;background:#fff;\"></iframe>"
+        }
+      },
+      {
+        "id": 11,
+        "type": "table",
+        "title": "Project State",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 53},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT project_id AS \"Project ID\", status AS \"Status\", current_cycle_no AS \"Current Cycle\", max_cycles AS \"Max Cycles\", latest_run_id AS \"Latest Run\", next_cycle_at AS \"Next Cycle At\", paused_reason AS \"Paused Reason\" FROM projects WHERE project_id='$project_id';"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 12,
+        "type": "table",
+        "title": "Cycle History",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 53},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT cycle_no AS \"Cycle\", run_id AS \"Run ID\", status AS \"Status\", started_at AS \"Started\", completed_at AS \"Completed\", retrospective_started_at AS \"Retro Started\", retrospective_completed_at AS \"Retro Completed\", next_cycle_at AS \"Next Cycle At\" FROM project_cycles WHERE project_id='$project_id' ORDER BY cycle_no DESC;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 13,
+        "type": "table",
+        "title": "Agent Optimization History",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 53},
+        "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawSql": "SELECT cycle_no AS \"Cycle\", agent_id AS \"Agent\", summary_text AS \"Optimization Summary\", created_at AS \"Created\" FROM agent_optimizations WHERE project_id='$project_id' ORDER BY cycle_no DESC, agent_id;"
+          }
+        ],
+        "options": {"showHeader": true}
+      },
+      {
+        "id": 14,
+        "type": "text",
+        "title": "Project Overview",
+        "gridPos": {"h": 16, "w": 24, "x": 0, "y": 61},
+        "options": {
+          "mode": "html",
+          "content": "<iframe src=\"/newsflow/projects/$project_id/overview.html\" style=\"width:100%;height:100%;min-height:900px;border:0;border-radius:12px;background:#fff;\"></iframe>"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "project_id",
+          "type": "query",
+          "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+          "refresh": 2,
+          "query": "SELECT project_id AS __text, project_id AS __value FROM projects ORDER BY created_at DESC;",
+          "current": {"selected": true, "text": "newsloop-7f9b97a1", "value": "newsloop-7f9b97a1"}
+        },
+        {
+          "name": "run_id",
+          "type": "query",
+          "datasource": {"type": "postgres", "uid": "newsflow-mvp-pg"},
+          "refresh": 2,
+          "query": "SELECT run_id AS __text, run_id AS __value FROM workflow_runs WHERE ('$project_id' = '' OR project_id = '$project_id') ORDER BY started_at DESC;",
+          "current": {"selected": true, "text": "57ca707e51d2", "value": "57ca707e51d2"}
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

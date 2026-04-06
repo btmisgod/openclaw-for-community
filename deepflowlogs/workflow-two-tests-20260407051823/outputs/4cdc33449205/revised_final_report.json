@@ -1,0 +1,536 @@
+{
+  "其他": {
+    "main": {
+      "id": 2745,
+      "link": "https://www.bbc.com/news/videos/c5ylvz3rzyxo?at_medium=RSS&at_campaign=rss",
+      "title": "Emotional crew names Moon crater after commander's late wife",
+      "images": [
+        "https://ichef.bbci.co.uk/news/1024/branded_news/be39/live/ea9cf720-31f5-11f1-b297-95b0a0a8331e.jpg",
+        "https://static.files.bbci.co.uk/bbcdotcom/web/20260326-074245-a525cdfbda-web-2.43.1-1/grey-placeholder.png",
+        "https://ichef.bbci.co.uk/news/480/cpsprodpb/3866/live/8b9e2e10-2d27-11f1-a79a-77e93010d956.jpg.webp"
+      ],
+      "metadata": {
+        "summary_en": "Artemis II Commander Reid Wiseman's wife died from cancer in 2020 at age 46."
+      },
+      "summary_zh": "据BBC News报道，这则其他新闻围绕“Emotional crew names Moon crater after commander's late wife”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-06T20:25:10+00:00",
+      "source_media": "BBC News"
+    },
+    "briefs": [
+      {
+        "id": 2750,
+        "link": "https://www.nasa.gov/missions/station/nasas-northrop-grumman-crs-24-mission-overview/",
+        "title": "NASA’s Northrop Grumman CRS-24 Mission Overview",
+        "images": [],
+        "metadata": {
+          "summary_en": "NASA’s Northrop Grumman Commercial Resupply Services 24 mission, or Northrop Grumman CRS-24, will deliver approximately 11,000 pounds of science and supplies to the International Space Station. This mission will be the second flight of the Cygnus XL, the larger, more cargo-capable version of the company’s solar-powered spacecraft."
+        },
+        "summary_zh": "据NASA报道，这则其他新闻围绕“NASA’s Northrop Grumman CRS-24 M。",
+        "published_at": "2026-04-06T19:29:22+00:00",
+        "source_media": "NASA"
+      },
+      {
+        "id": 2746,
+        "link": "https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby",
+        "title": "Artemis II Moon Flyby: Live Updates: Artemis II Astronauts Travel Farther From Earth Than Ever Before",
+        "images": [],
+        "metadata": {
+          "summary_en": "At 1:56 p.m. Eastern time, the crew’s distance from Earth passed 248,655 miles, the record set in 1970. Later, the four astronauts will pass behind the moon."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Artemis II Moon Flyby:。",
+        "published_at": "2026-04-06T20:25:00+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2747,
+        "link": "https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/human-eyes-are-seeing-the-far-side-of-the-moon-for-the-first-time-in-a-long-time",
+        "title": "Human eyes are seeing the far side of the moon for the first time in a long time.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Human eyes are seeing t。",
+        "published_at": "2026-04-06T20:22:40+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2751,
+        "link": "https://www.nytimes.com/2026/04/06/health/trump-foreign-aid.html",
+        "title": "Trump’s USAID Overhaul Sent Millions More Dollars to Big U.S.-Based Contractors",
+        "images": [],
+        "metadata": {
+          "summary_en": "While organizations in the developing world were nearly shut out, the big aid agencies DOGE had called wasteful received huge infusions of cash, a new analysis found."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Trump’s USAID Overhaul。",
+        "published_at": "2026-04-06T19:19:50+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2752,
+        "link": "https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/this-is-the-most-important-science-experiment-aboard-artemis-ii",
+        "title": "This is the most important science experiment aboard Artemis II.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“This is the most import。",
+        "published_at": "2026-04-06T19:15:05+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2753,
+        "link": "https://www.nytimes.com/live/2026/04/06/science/nasa-artemis-ii-moon-lunar-flyby/heres-the-latest",
+        "title": "Here’s the latest.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Here’s the latest.”展开，更。",
+        "published_at": "2026-04-06T19:12:34+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2754,
+        "link": "https://www.nytimes.com/2026/04/06/climate/forlit-exxon-dci-hacking-extradition.html",
+        "title": "Suspect in Hacking of Climate Activists Is Extradited to New York",
+        "images": [],
+        "metadata": {
+          "summary_en": "Prosecutors say Amit Forlit ran a global hacking operation on behalf of a Washington lobbying group that aimed to thwart environmental lawsuits against oil companies."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Suspect in Hacking of C。",
+        "published_at": "2026-04-06T18:59:14+00:00",
+        "source_media": "NYT > Science"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 2748,
+        "link": "https://www.nytimes.com/video/science/space/100000010788127/exploring-the-far-side-of-the-moon.html",
+        "title": "Exploring the Far Side of the Moon",
+        "images": [
+          "https://static01.nyt.com/images/2026/03/18/science/space/Marco_Thumbnail-3/Marco_Thumbnail-3-facebookJumbo.png?video-overlay"
+        ],
+        "metadata": {
+          "summary_en": "As Artemis II flies around the far side of the moon, our graphics editor Marco Hernandez describes what the astronauts are looking for."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Exploring the Far Side of the Moon”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-06T20:00:01+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 2749,
+        "link": "https://www.nasa.gov/news-release/nasas-artemis-ii-crew-eclipses-record-for-farthest-human-spaceflight/",
+        "title": "NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight",
+        "images": [
+          "https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-crew-in-orion-broadcast-screenshot-april-6-2026.png"
+        ],
+        "metadata": {
+          "summary_en": "Four astronauts aboard NASA’s Artemis II test flight around the Moon made history at 12:56 p.m. CDT on Monday, traveling 248,655 miles from Earth, surpassing the record for human spaceflight’s farthest distance previously set by the Apollo 13 mission in 1970. At its farthest point, crew inside the Orion spacecraft will have traveled about 252,760 […]"
+        },
+        "summary_zh": "据NASA报道，这则其他新闻围绕“NASA’s Artemis II Crew Eclipses Record for Farthest Human Spaceflight”展开，更多细节与背景请查。",
+        "published_at": "2026-04-06T19:46:20+00:00",
+        "source_media": "NASA"
+      }
+    ]
+  },
+  "科技": {
+    "main": {
+      "id": 2713,
+      "link": "https://techcrunch.com/2026/04/06/google-quietly-releases-an-offline-first-ai-dictation-app-on-ios/",
+      "title": "Google quietly launched an AI dictation app that works offline",
+      "images": [
+        "https://techcrunch.com/wp-content/uploads/2026/02/google-logo.jpg?resize=1200,800",
+        "https://techcrunch.com/wp-content/uploads/2024/09/tc-lockup.svg",
+        "https://techcrunch.com/wp-content/uploads/2024/09/tc-logo-mobile.svg"
+      ],
+      "metadata": {
+        "summary_en": "Google's new offline-first dictation app uses Gemma AI models to take on the apps like Wispr Flow."
+      },
+      "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Google quietly launched an AI dictation app that works offline”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-06T18:54:33+00:00",
+      "source_media": "TechCrunch"
+    },
+    "briefs": [
+      {
+        "id": 2716,
+        "link": "https://techcrunch.com/2026/04/06/netflix-launches-a-standalone-app-for-kids-games/",
+        "title": "Netflix is expanding into kids’ games with a new standalone app",
+        "images": [],
+        "metadata": {
+          "summary_en": "Netflix says the app gives children access to an \"ever-growing\" library of games for kids."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Netflix is expanding into。",
+        "published_at": "2026-04-06T18:21:49+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 2717,
+        "link": "https://arstechnica.com/space/2026/04/nasas-moon-ship-and-rocket-seem-to-be-working-well-so-what-about-the-landers/",
+        "title": "NASA's Moon ship and rocket seem to be working well, so what about the landers?",
+        "images": [],
+        "metadata": {
+          "summary_en": "Lori Glaze: \"We have seen real commitment to try and do that... from both Blue and from SpaceX.\""
+        },
+        "summary_zh": "据Ars Technica - All content报道，这则科技新闻围绕“NASA's Moo。",
+        "published_at": "2026-04-06T18:19:07+00:00",
+        "source_media": "Ars Technica - All content"
+      },
+      {
+        "id": 2718,
+        "link": "https://techcrunch.com/2026/04/06/tesla-actually-smart-summon-nhtsa-investigation-smart-parking/",
+        "title": "Why safety regulators closed their investigation into Tesla’s remote parking feature",
+        "images": [],
+        "metadata": {
+          "summary_en": "NHTSA closed its investigation into Tesla's \"Actually Smart Summon\" feature, saying that only a fraction of cases resulted in an incident, and that no incidents resulted in injury. Tesla has also issued a number of software updates."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Why safety regulators clos。",
+        "published_at": "2026-04-06T18:17:23+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 2719,
+        "link": "https://www.theverge.com/transportation/907478/robotaxi-remote-assistance-markey-investigation-waymo-tesla",
+        "title": "Robotaxi companies won’t say how often remote operators intervene",
+        "images": [],
+        "metadata": {
+          "summary_en": "Autonomous vehicle companies are refusing to disclose key details about their use of remote assistance teams, including how often these workers are forced to intervene to help their self-driving cars. Sen. Ed Markey (D-MA) had asked robotaxi companies to disclose the information as part of an investigation by his office into the use of remote […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“Robotaxi companies won’t sa。",
+        "published_at": "2026-04-06T18:15:51+00:00",
+        "source_media": "The Verge"
+      },
+      {
+        "id": 2720,
+        "link": "https://techcrunch.com/2026/04/06/iran-threatens-stargate-ai-data-centers/",
+        "title": "Iran threatens ‘Stargate’ AI data centers",
+        "images": [],
+        "metadata": {
+          "summary_en": "Iran said it will target U.S.-linked data centers with new missile strikes, as the war between the U.S. and Iran escalates."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Iran threatens ‘Stargate’。",
+        "published_at": "2026-04-06T18:06:28+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 2721,
+        "link": "https://arstechnica.com/gadgets/2026/04/teardown-of-unreleased-lg-rollable-shows-why-rollable-phones-arent-a-thing/",
+        "title": "Teardown of unreleased LG Rollable shows why rollable phones aren't a thing",
+        "images": [],
+        "metadata": {
+          "summary_en": "LG almost released a rollable smartphone in 2021, and this is what it looked like inside."
+        },
+        "summary_zh": "据Ars Technica - All content报道，这则科技新闻围绕“Teardown o。",
+        "published_at": "2026-04-06T17:39:07+00:00",
+        "source_media": "Ars Technica - All content"
+      },
+      {
+        "id": 2722,
+        "link": "https://techcrunch.com/2026/04/06/apple-epic-games-lawsuit-supreme-court-appeal-app-store-commission/",
+        "title": "Apple is taking its App Store fight to the Supreme Court — again",
+        "images": [],
+        "metadata": {
+          "summary_en": "Apple plans to ask the Supreme Court to review its App Store fight with Epic Games, as it challenges a ruling limiting its ability to charge fees on external payments."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Apple is taking its App St。",
+        "published_at": "2026-04-06T17:38:05+00:00",
+        "source_media": "TechCrunch"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 2714,
+        "link": "https://www.theverge.com/22399419/apple-macbook-air-pro-mac-mini-imac-deals",
+        "title": "The best deals on MacBooks right now",
+        "images": [
+          "https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268408_Apple_MacBook_Air_15_M5_laptop_ADiBenedetto_0026.jpg?quality=90&strip=all&crop=0%2C10.732984293194%2C100%2C78.534031413613&w=1200"
+        ],
+        "metadata": {
+          "summary_en": "It’s 2026, and that means Apple sells MacBooks equipped with not just its capable M-series processors but A-series chips that were previously exclusive to the iPhone. With the MacBook Neo starting at $599, the company now offers a wider range of options with more sizes and price points than ever before, all of which run […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“The best deals on MacBooks right now”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-06T18:50:06+00:00",
+        "source_media": "The Verge"
+      },
+      {
+        "id": 2715,
+        "link": "https://www.theverge.com/gadgets/907582/dji-mic-mini-two-transmitters-deal-sale",
+        "title": "DJI’s Mic Mini records clear audio on the go, and it’s on sale for $60",
+        "images": [
+          "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/25755519/dji_mic_mini4.jpg?quality=90&strip=all&crop=0%2C10.732984293194%2C100%2C78.534031413613&w=1200"
+        ],
+        "metadata": {
+          "summary_en": "If you regularly create content for TikTok, Instagram, or YouTube on the go, bad sound quality can easily take away from an otherwise great video. DJI’s Mic Mini helps you record clear, reliable sound for videos without carrying around bulky, expensive gear, and it’s currently down to its all-time low price. You can buy the […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“DJI’s Mic Mini records clear audio on the go, and it’s on sale for $60”展开，更多细。",
+        "published_at": "2026-04-06T18:22:01+00:00",
+        "source_media": "The Verge"
+      }
+    ]
+  },
+  "体育娱乐": {
+    "main": {
+      "id": 2729,
+      "link": "https://variety.com/2026/tv/awards/the-pitt-emmys-record-drama-series-first-two-seasons-1236709644/",
+      "title": "Is ‘The Pitt’ Building an Emmy Dynasty? Why Noah Wyle’s Medical Drama Is Poised to Make History Again",
+      "images": [
+        "https://variety.com/wp-content/uploads/2026/04/alexandra-metz-patrick-ball-noah-wyle-gerran-howell-amielynn-abellera.jpg?crop=0px%2C0px%2C1918px%2C1080px&resize=1000%2C563",
+        "https://sb.scorecardresearch.com/p?c1=2&c2=6035310&c4=&cv=3.9&cj=1",
+        "https://variety.com/wp-content/uploads/2026/04/alexandra-metz-patrick-ball-noah-wyle-gerran-howell-amielynn-abellera.jpg?w=1000&h=667&crop=1"
+      ],
+      "metadata": {
+        "summary_en": "“The Pitt” is a popular hit, and its fandom on social media isn’t holding back from expressing strong feelings about this season’s direction as it winds down. All that attention puts the medical series in prime position for significant Emmy attention again this year. Last year, the HBO Max medical drama made a big splash […]"
+      },
+      "summary_zh": "据Variety报道，这则体育娱乐新闻围绕“Is ‘The Pitt’ Building an Emmy Dynasty? Why Noah Wyle’s Medical Drama Is Poised to Make History Again”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-06T20:27:19+00:00",
+      "source_media": "Variety"
+    },
+    "briefs": [
+      {
+        "id": 2732,
+        "link": "https://variety.com/gallery/and-just-like-that-auction-carrie-bradshaw-che-diaz/",
+        "title": "‘And Just Like That’ Auction: Carrie’s Furniture, Charlotte’s Costumes, Che Diaz Script and Hot Fellas Onesies",
+        "images": [],
+        "metadata": {
+          "summary_en": "If you ever wanted a chance to snag some of the antique furniture Carrie Bradshaw bought for her Gramercy mansion or maybe Charlotte’s adorable swimsuit, Julien’s Auctions will be selling off dozens of costumes and props from the late Max series “And Just Like That,” which was not renewed after its third season ended last […]"
+        },
+        "summary_zh": "据Variety报道，这则体育娱乐新闻围绕“‘And Just Like That’ Auctio。",
+        "published_at": "2026-04-06T19:35:43+00:00",
+        "source_media": "Variety"
+      },
+      {
+        "id": 2733,
+        "link": "https://www.hollywoodreporter.com/news/general-news/chloe-fineman-vanity-fair-interview-saturday-night-live-camp-1236556578/",
+        "title": "Chloe Fineman Goes Viral for Vanity Fair Clip About Pantsing 6-Year-Old Boy as Summer Camp Staffer",
+        "images": [],
+        "metadata": {
+          "summary_en": "A Vanity Fair interview featuring the cast of ‘Saturday Night Live’ has become the internet’s obsession for all the wrong reasons."
+        },
+        "summary_zh": "据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Chloe Finema。",
+        "published_at": "2026-04-06T19:32:14+00:00",
+        "source_media": "The Hollywood Reporter"
+      },
+      {
+        "id": 2734,
+        "link": "https://www.hollywoodreporter.com/business/business-news/netflix-illegally-issued-price-hikes-rome-court-1236556628/",
+        "title": "Netflix Illegally Issued Price Hikes, Rome Court Rules. Users Could Get Refunds",
+        "images": [],
+        "metadata": {
+          "summary_en": "Lawsuits filed in the European Union against Netflix threaten the way in which it implements price increases."
+        },
+        "summary_zh": "据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Netflix Ille。",
+        "published_at": "2026-04-06T19:25:31+00:00",
+        "source_media": "The Hollywood Reporter"
+      },
+      {
+        "id": 2735,
+        "link": "https://www.hollywoodreporter.com/business/business-news/middle-east-wealth-funds-back-paramount-warner-bros-deal-1236556430/",
+        "title": "Middle East Sovereign Wealth Funds Will Back Paramount’s Final Deal for Warner Bros.",
+        "images": [],
+        "metadata": {
+          "summary_en": "Funds from Saudi Arabia, Qatar and Abu Dhabi are in discussions to officially join the winning bid for the entertainment giant, backing David Ellison."
+        },
+        "summary_zh": "据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Middle East。",
+        "published_at": "2026-04-06T19:21:04+00:00",
+        "source_media": "The Hollywood Reporter"
+      },
+      {
+        "id": 2736,
+        "link": "https://www.billboard.com/pro/lil-nas-x-assault-charges-dropped-mental-health-treatment/",
+        "title": "Lil Nas X Assault Charges to Be Dropped if He Completes Mental Health Treatment",
+        "images": [],
+        "metadata": {
+          "summary_en": "The \"Old Town Road\" singer and rapper was granted a mental health diversion on Monday (April 6)."
+        },
+        "summary_zh": "据Billboard报道，这则体育娱乐新闻围绕“Lil Nas X Assault Charges。",
+        "published_at": "2026-04-06T19:15:14+00:00",
+        "source_media": "Billboard"
+      },
+      {
+        "id": 2737,
+        "link": "https://variety.com/2026/tv/news/ashley-hesseltine-debut-comedy-special-here-comes-the-bride-1236709371/",
+        "title": "‘Girls Gotta Eat’ Co-Host Ashley Hesseltine Sets Debut Comedy Special ‘Here Comes the Bride’ (EXCLUSIVE)",
+        "images": [],
+        "metadata": {
+          "summary_en": "Ashley Hesseltine, the stand-up comic and co-host fo the “Girls Gotta Eat” podcast, has announced her debut comedy special, “Here Comes the Bride.” The marriage-themed hour will debut live on YouTube on April 30 at 8 p.m. ET, followed by a release on Amazon Prime Video on May 1 in the U.S. Hesseltine shot the […]"
+        },
+        "summary_zh": "据Variety报道，这则体育娱乐新闻围绕“‘Girls Gotta Eat’ Co-Host A。",
+        "published_at": "2026-04-06T19:15:00+00:00",
+        "source_media": "Variety"
+      },
+      {
+        "id": 2738,
+        "link": "https://www.hollywoodreporter.com/movies/movie-news/the-comeback-king-glen-powell-judd-apatow-universal-release-1236556595/",
+        "title": "Glen Powell’s Comedy From Judd Apatow Reveals Title Ahead of 2027 Release",
+        "images": [],
+        "metadata": {
+          "summary_en": "Cristin Milioti and Madelyn Cline also star in the Universal Pictures feature that centers on a fallen country western star."
+        },
+        "summary_zh": "据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Glen Powell’。",
+        "published_at": "2026-04-06T18:57:26+00:00",
+        "source_media": "The Hollywood Reporter"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 2730,
+        "link": "https://variety.com/2026/music/news/lil-nas-x-assault-charges-dismissed-mental-health-program-1236709714/",
+        "title": "Lil Nas X to Have Assault Charges Dismissed After Continuing Mental Health Treatment",
+        "images": [
+          "https://variety.com/wp-content/uploads/2026/04/GettyImages-2265567474.jpg?w=1000&h=563&crop=1"
+        ],
+        "metadata": {
+          "summary_en": "Lil Nas X is one step closer to having his felony assault charges dismissed after a judge granted him entry into a mental health diversion program. The rapper, whose real name is Montero Hill, appeared in a Los Angeles courtroom on Monday, when Judge Alan Schneider determined that his charges would be cleared so long […]"
+        },
+        "summary_zh": "据Variety报道，这则体育娱乐新闻围绕“Lil Nas X to Have Assault Charges Dismissed After Continuing Mental Health Tr。",
+        "published_at": "2026-04-06T20:03:13+00:00",
+        "source_media": "Variety"
+      },
+      {
+        "id": 2731,
+        "link": "https://www.hollywoodreporter.com/tv/tv-news/savannah-guthrie-return-today-how-tv-news-covered-it-gma-1236556544/",
+        "title": "How the Other Morning Shows Covered — or Didn’t Cover — Savannah Guthrie’s Return to ‘Today’",
+        "images": [
+          "https://www.hollywoodreporter.com/wp-content/uploads/2026/04/181542_PL00109-H-2026.jpg?w=1296&h=730&crop=1"
+        ],
+        "metadata": {
+          "summary_en": "Competition or no competition, it was the news of the day."
+        },
+        "summary_zh": "据The Hollywood Reporter报道，这则体育娱乐新闻围绕“How the Other Morning Shows Covered — or Didn’t Cover — Savann。",
+        "published_at": "2026-04-06T19:45:54+00:00",
+        "source_media": "The Hollywood Reporter"
+      }
+    ]
+  },
+  "政治经济": {
+    "main": {
+      "id": 2700,
+      "link": "https://www.aljazeera.com/video/newsfeed/2026/4/6/video-trump-threatens-to-jail-reporter-over-iran-airman-rescue-leak?traffic_source=rss",
+      "title": "Video: Trump threatens to jail reporter over Iran airman rescue leak",
+      "images": [
+        "https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775505682.jpg?resize=1920%2C1080&quality=80",
+        "https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775505682.jpg?resize=730%2C410&quality=80",
+        "https://www.aljazeera.com/wp-content/uploads/2026/04/2026-04-06T172145Z_993377028_RC2TJKAWFT0K_RTRMADP_3_IRAN-CRISIS-USA-TRUMP_cropped-1775505717.jpg?resize=730%2C410&quality=80"
+      ],
+      "metadata": {
+        "summary_en": "Trump demanded the journalist who reported on the rescue of the US airman in Iran reveal their source."
+      },
+      "summary_zh": "据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Video: Trump threatens to jail reporter over Iran airman rescue leak”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-06T20:01:32+00:00",
+      "source_media": "Al Jazeera – Breaking News, World News and Video from Al Jazeera"
+    },
+    "briefs": [
+      {
+        "id": 2761,
+        "link": "https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel",
+        "title": "Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants",
+        "images": [],
+        "metadata": {
+          "summary_en": "President Trump and Iran sent mixed messages about escalating the war and diplomacy to end it ahead of his Tuesday deadline. At a news conference, Mr. Trump offered new details of the daring rescue of an American airman."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Iran War Live Upda。",
+        "published_at": "2026-04-06T20:14:54+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 2698,
+        "link": "https://www.nytimes.com/2026/04/06/business/oil-stocks-gas-prices-iran.html",
+        "title": "Oil Seesaws After Trump’s Latest Threats on Iran",
+        "images": [],
+        "metadata": {
+          "summary_en": "President Trump taunted Iranian leaders on Sunday, threatening to escalate attacks if the Strait of Hormuz was not reopened."
+        },
+        "summary_zh": "据NYT > Business报道，这则政治经济新闻围绕“Oil Seesaws After Tr。",
+        "published_at": "2026-04-06T20:11:08+00:00",
+        "source_media": "NYT > Business"
+      },
+      {
+        "id": 2762,
+        "link": "https://www.nytimes.com/2026/04/06/business/oil-stocks-gas-prices-iran.html",
+        "title": "Oil Seesaws After Trump’s Latest Threats on Iran",
+        "images": [],
+        "metadata": {
+          "summary_en": "President Trump taunted Iranian leaders on Sunday, threatening to escalate attacks if the Strait of Hormuz was not reopened."
+        },
+        "summary_zh": "据NYT > Business报道，这则政治经济新闻围绕“Oil Seesaws After Tr。",
+        "published_at": "2026-04-06T20:11:08+00:00",
+        "source_media": "NYT > Business"
+      },
+      {
+        "id": 2699,
+        "link": "https://www.nytimes.com/2026/04/06/world/middleeast/israel-attacks-lebanon-kill-dozens.html",
+        "title": "Israel Steps Up Attacks on Lebanon, Killing Dozens",
+        "images": [],
+        "metadata": {
+          "summary_en": "Sunday was a particularly deadly day, as Israel targeted areas around the country — including a Christian area long regarded as safe by residents."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Israel Steps Up At。",
+        "published_at": "2026-04-06T20:05:30+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 2763,
+        "link": "https://www.nytimes.com/2026/04/06/world/middleeast/israel-attacks-lebanon-kill-dozens.html",
+        "title": "Israel Steps Up Attacks on Lebanon, Killing Dozens",
+        "images": [],
+        "metadata": {
+          "summary_en": "Sunday was a particularly deadly day, as Israel targeted areas around the country — including a Christian area long regarded as safe by residents."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Israel Steps Up At。",
+        "published_at": "2026-04-06T20:05:30+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 2765,
+        "link": "https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel/heres-the-latest",
+        "title": "Here’s the latest.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Here’s the latest。",
+        "published_at": "2026-04-06T19:46:54+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 2701,
+        "link": "https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel/heres-the-latest",
+        "title": "Here’s the latest.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Here’s the latest。",
+        "published_at": "2026-04-06T19:46:54+00:00",
+        "source_media": "NYT > World News"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 2764,
+        "link": "https://www.aljazeera.com/video/newsfeed/2026/4/6/video-trump-threatens-to-jail-reporter-over-iran-airman-rescue-leak?traffic_source=rss",
+        "title": "Video: Trump threatens to jail reporter over Iran airman rescue leak",
+        "images": [
+          "https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775505682.jpg?resize=1920%2C1080&quality=80"
+        ],
+        "metadata": {
+          "summary_en": "Trump demanded the journalist who reported on the rescue of the US airman in Iran reveal their source."
+        },
+        "summary_zh": "据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Video: Trump threate。",
+        "published_at": "2026-04-06T20:01:32+00:00",
+        "source_media": "Al Jazeera – Breaking News, World News and Video from Al Jazeera"
+      },
+      {
+        "id": 2697,
+        "link": "https://www.nytimes.com/live/2026/04/06/world/iran-war-trump-israel",
+        "title": "Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants",
+        "images": [],
+        "metadata": {
+          "summary_en": "President Trump and Iran sent mixed messages about escalating the war and diplomacy to end it ahead of his Tuesday deadline. At a news conference, Mr. Trump offered new details of the daring rescue of an American airman."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and。",
+        "published_at": "2026-04-06T20:14:54+00:00",
+        "source_media": "NYT > World News"
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>neko 产品测试报告</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>neko 产品测试报告</h1><div class='body'># neko 产品测试报告<br><br>- run_id: 8e2c208c1a89<br>- 视角: 读者体验和编辑完成度<br><br>## 成品证据<br>- 政治经济 主推《Russia jails former Kursk governor in Ukraine incursion-linked graft probe》<br>- 政治经济 副推《Russia jails former Kursk governor in Ukraine incursion-linked graft probe / Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants》<br>- 科技 主推《Artemis II astronauts break a record, name a crater》<br>- 科技 副推《Google quietly launched an AI dictation app that works offline / The best deals on MacBooks right now》<br>- 体育娱乐 主推《Five takeaways from NCAA regionals -- and what they mean for nationals》<br>- 体育娱乐 副推《Sources: UNC to hire Malone as new hoops coach / Sky trade Reese to Dream for two 1st-rounders》<br><br>## 最明显的问题<br>- 四个板块的主推开头冲击力仍不够统一，读者第一屏体验还不够利落<br><br>## 最值得优先改的点<br>- 下轮先校对四个板块主推首句，再放行终稿<br><br>## 与我本轮执行的关系<br>- 终稿结构和主推语气统一由我兜底</div><h3>evidence</h3><ul><li>政治经济 主推《Russia jails former Kursk governor in Ukraine incursion-linked graft probe》</li><li>政治经济 副推《Russia jails former Kursk governor in Ukraine incursion-linked graft probe / Iran War Live Updates: Trump Renews Threat of Attacks on Bridges and Power Plants》</li><li>科技 主推《Artemis II astronauts break a record, name a crater》</li><li>科技 副推《Google quietly launched an AI dictation app that works offline / The best deals on MacBooks right now》</li><li>体育娱乐 主推《Five takeaways from NCAA regionals -- and what they mean for nationals》</li><li>体育娱乐 副推《Sources: UNC to hire Malone as new hoops coach / Sky trade Reese to Dream for two 1st-rounders》</li></ul><h3>most_obvious_problems</h3><ul><li>四个板块的主推开头冲击力仍不够统一，读者第一屏体验还不够利落</li></ul><h3>priority_improvements</h3><ul><li>下轮先校对四个板块主推首句，再放行终稿</li></ul><h3>execution_link</h3><ul><li>终稿结构和主推语气统一由我兜底</li></ul></section></body>
+</html>
