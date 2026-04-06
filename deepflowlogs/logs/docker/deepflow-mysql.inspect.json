@@ -1,0 +1,267 @@
+[
+    {
+        "Id": "cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5",
+        "Created": "2026-04-06T06:56:20.258071396Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "mysqld"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2844243,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T06:56:31.460863002Z",
+            "FinishedAt": "2026-04-06T06:56:31.421113823Z"
+        },
+        "Image": "sha256:7484689f290f1defe06b65befc54cb6ad91a667cf0af59a265ffe76c46bd0478",
+        "ResolvConfPath": "/var/lib/docker/containers/cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5/hostname",
+        "HostsPath": "/var/lib/docker/containers/cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5/hosts",
+        "LogPath": "/var/lib/docker/containers/cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5/cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5-json.log",
+        "Name": "/deepflow-mysql",
+        "RestartCount": 1,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/deepflow/mysql:/var/lib/mysql:rw,z",
+                "/opt/deepflow-deploy/common/config/mysql/my.cnf:/etc/my.cnf:rw",
+                "/opt/deepflow-deploy/common/config/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "deepflow-deploy_deepflow",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "cff91e3aa69909322525343ceae53dcc56a2f50ff0b34514c8231fd629eb7ca5",
+                "LowerDir": "/var/lib/docker/overlay2/3b06eb2ee1e6f3b6f50899c04aa2674aca5a1d983201536d48e38b9dddeaef5a-init/diff:/var/lib/docker/overlay2/5b5ec6fc26e5d78b06fdce235ffb5b0cc2f2bebbef38b59d2e5996a95a87ba7f/diff:/var/lib/docker/overlay2/66241bfa3151693c7afb8705012c38c9e98d10cad78c5a0aab9e43b6f97c7a8a/diff:/var/lib/docker/overlay2/34eb420328e948423b11df4c2abe1b8198beb524c3fb17f71b019358de1a8384/diff:/var/lib/docker/overlay2/f48f3bf543b56d4b737359157c8056f54e4ebc8adb873d7ff246bc6c113af34f/diff:/var/lib/docker/overlay2/4ffd3e28cfb3250ae2345d0034c9c45f3a832040a9f6b1d4fda5fe79519c295d/diff:/var/lib/docker/overlay2/ab2851195975458a94349c60a1322bcef73741b9d85ce139720497906825fefd/diff:/var/lib/docker/overlay2/8f4275d9db2ec430dc1a13e721d7385adccd27dd199612526ebadd2d6d9d7e5a/diff:/var/lib/docker/overlay2/da9930baf56feb4a0a6946cbbfeed8f74ed9345e878bfb9e4640a2ed1ad9cc5c/diff:/var/lib/docker/overlay2/e48b9699b8dd0195cdbc394cc4e39b0e486faf62afbec0790e179b25cc282c0b/diff:/var/lib/docker/overlay2/da93bc38bd922fe355f7db499fe9fd23b1460e446273c14912963953a79b8fe4/diff:/var/lib/docker/overlay2/8d0d04291de503515823e547dca92aaa2ab62fbafa474fa6e153f2d805775a7c/diff",
+                "MergedDir": "/var/lib/docker/overlay2/3b06eb2ee1e6f3b6f50899c04aa2674aca5a1d983201536d48e38b9dddeaef5a/merged",
+                "UpperDir": "/var/lib/docker/overlay2/3b06eb2ee1e6f3b6f50899c04aa2674aca5a1d983201536d48e38b9dddeaef5a/diff",
+                "WorkDir": "/var/lib/docker/overlay2/3b06eb2ee1e6f3b6f50899c04aa2674aca5a1d983201536d48e38b9dddeaef5a/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/mysql",
+                "Destination": "/var/lib/mysql",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/mysql/my.cnf",
+                "Destination": "/etc/my.cnf",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/mysql/init.sql",
+                "Destination": "/docker-entrypoint-initdb.d/init.sql",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "cff91e3aa699",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "3306/tcp": {},
+                "33060/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "MYSQL_ROOT_PASSWORD=deepflow",
+                "MYSQL_DATABASE=grafana",
+                "TZ=Asia/Shanghai",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GOSU_VERSION=1.14",
+                "MYSQL_MAJOR=8.0",
+                "MYSQL_VERSION=8.0.31-1.el8",
+                "MYSQL_SHELL_VERSION=8.0.31-1.el8"
+            ],
+            "Cmd": [
+                "mysqld"
+            ],
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/mysql:8.0.31",
+            "Volumes": {
+                "/var/lib/mysql": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "654f261b56c8959577ddf582575b9eacf32deafe4a01d9f0b25aceffa94c49fa",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:7484689f290f1defe06b65befc54cb6ad91a667cf0af59a265ffe76c46bd0478",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "deepflow-deploy",
+                "com.docker.compose.project.config_files": "/opt/deepflow-deploy/docker-compose.yaml",
+                "com.docker.compose.project.environment_file": "/opt/deepflow-deploy/.env",
+                "com.docker.compose.project.working_dir": "/opt/deepflow-deploy",
+                "com.docker.compose.service": "mysql",
+                "com.docker.compose.version": "2.37.1"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "59c1183fa54a74897ee5cc5648064fe723326d5f84e5888152d6ff6dc3ff5194",
+            "SandboxKey": "/var/run/docker/netns/59c1183fa54a",
+            "Ports": {
+                "3306/tcp": null,
+                "33060/tcp": null
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "deepflow-deploy_deepflow": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "deepflow-mysql",
+                        "mysql"
+                    ],
+                    "MacAddress": "fe:41:64:40:f4:e4",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "b3b78010d59529cc5a34fac2ec1c477af65e617ce9c8535a7b10cc3ccc0dfdc7",
+                    "EndpointID": "cbfa753c784ba94c552bb8f24716a5b40891a777e4f19ae634b6097f1b4c1b35",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "deepflow-mysql",
+                        "mysql",
+                        "cff91e3aa699"
+                    ]
+                }
+            }
+        }
+    }
+]

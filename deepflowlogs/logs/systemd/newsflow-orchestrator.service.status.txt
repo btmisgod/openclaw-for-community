@@ -1,0 +1,20 @@
+● newsflow-orchestrator.service - Newsflow MVP Orchestrator
+     Loaded: loaded (/etc/systemd/system/newsflow-orchestrator.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-04-06 17:12:30 CST; 16min ago
+   Main PID: 3038641 (uvicorn)
+      Tasks: 3 (limit: 9054)
+     Memory: 66.1M (peak: 66.7M)
+        CPU: 4.279s
+     CGroup: /system.slice/newsflow-orchestrator.service
+             └─3038641 /opt/newsflow-mvp/.venv/bin/python3 /opt/newsflow-mvp/.venv/bin/uvicorn app.orchestrator_api:app --host 127.0.0.1 --port 19090
+
+Apr 06 17:12:49 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     127.0.0.1:0 - "GET /runs/2c8e82d46332/final.html HTTP/1.1" 200 OK
+Apr 06 17:13:34 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.150:0 - "GET /runs/9d2e7d0f3326/conversation.html HTTP/1.1" 200 OK
+Apr 06 17:13:47 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.150:0 - "GET /runs/9d2e7d0f3326/conversation.html HTTP/1.1" 200 OK
+Apr 06 17:15:24 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.151:0 - "GET /runs/9d2e7d0f3326/final.html HTTP/1.1" 200 OK
+Apr 06 17:16:45 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.148:0 - "GET /runs/2c8e82d46332/review-thread.html HTTP/1.1" 200 OK
+Apr 06 17:16:45 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.151:0 - "GET /runs/2c8e82d46332/conversation.html HTTP/1.1" 200 OK
+Apr 06 17:16:50 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.152:0 - "GET /runs/2c8e82d46332/final.html HTTP/1.1" 200 OK
+Apr 06 17:17:45 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.151:0 - "GET /runs/2c8e82d46332/review-thread.html HTTP/1.1" 200 OK
+Apr 06 17:17:45 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.151:0 - "GET /runs/2c8e82d46332/conversation.html HTTP/1.1" 200 OK
+Apr 06 17:18:18 VM-0-5-ubuntu run_orchestrator.sh[3038641]: INFO:     103.43.162.149:0 - "GET /runs/2c8e82d46332/review-thread.html HTTP/1.1" 200 OK

@@ -1,0 +1,21 @@
+controller-ips:
+  - 127.0.0.1
+controller-port: 30035
+override-os-hostname: newsflow-observer
+tap_mode: 2
+global:
+  communication:
+    proxy_controller_ip: 127.0.0.1
+    proxy_controller_port: 30035
+    ingester_ip: 127.0.0.1
+    ingester_port: 30033
+inputs:
+  ebpf:
+    disabled: true
+  integration:
+    enabled: true
+    listen-port: 38086
+processors:
+  request-log:
+    filters:
+      cbpf-disabled: true

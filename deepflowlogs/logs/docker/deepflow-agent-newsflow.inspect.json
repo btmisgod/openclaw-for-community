@@ -1,0 +1,241 @@
+[
+    {
+        "Id": "8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e",
+        "Created": "2026-04-06T08:23:38.99637949Z",
+        "Path": "/bin/deepflow-agent",
+        "Args": [
+            "-f",
+            "/etc/deepflow-agent/deepflow-agent.yaml"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2986648,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T08:37:07.30550236Z",
+            "FinishedAt": "2026-04-06T08:37:07.271932424Z"
+        },
+        "Image": "sha256:9ed7d916e7c69ea76ee093c9eccd1712d677611285b0363c5d5baf50ad63e550",
+        "ResolvConfPath": "/var/lib/docker/containers/8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e/hostname",
+        "HostsPath": "/var/lib/docker/containers/8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e/hosts",
+        "LogPath": "/var/lib/docker/containers/8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e/8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e-json.log",
+        "Name": "/deepflow-agent-newsflow",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "unconfined",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/newsflow-mvp/config/deepflow-agent.yaml:/etc/deepflow-agent/deepflow-agent.yaml:ro",
+                "/sys/kernel/debug:/sys/kernel/debug:ro",
+                "/var/run/docker.sock:/var/run/docker.sock:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "host",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": [
+                "CAP_IPC_LOCK",
+                "CAP_NET_ADMIN",
+                "CAP_NET_RAW",
+                "CAP_SYSLOG",
+                "CAP_SYS_ADMIN",
+                "CAP_SYS_PTRACE",
+                "CAP_SYS_RESOURCE"
+            ],
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "host",
+            "Privileged": true,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "label=disable"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": null,
+            "ReadonlyPaths": null
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "8cc6bb82f2a7ccf144d948eca025b24feb20cf4ed7fb1e1cff2f739ad628c42e",
+                "LowerDir": "/var/lib/docker/overlay2/3bb02d83f657d7834cf52e8738de1b0477262e2964bc6781ee4ac6fc254b6e63-init/diff:/var/lib/docker/overlay2/d36eaa5283e720aff01864a73bc917c0fa1d9aee70242882de8d48e5568ecf84/diff:/var/lib/docker/overlay2/8d89764985bb3371dcdcd086b36eeaa2b813818cf0fce24d828d27822ac73628/diff",
+                "MergedDir": "/var/lib/docker/overlay2/3bb02d83f657d7834cf52e8738de1b0477262e2964bc6781ee4ac6fc254b6e63/merged",
+                "UpperDir": "/var/lib/docker/overlay2/3bb02d83f657d7834cf52e8738de1b0477262e2964bc6781ee4ac6fc254b6e63/diff",
+                "WorkDir": "/var/lib/docker/overlay2/3bb02d83f657d7834cf52e8738de1b0477262e2964bc6781ee4ac6fc254b6e63/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/newsflow-mvp/config/deepflow-agent.yaml",
+                "Destination": "/etc/deepflow-agent/deepflow-agent.yaml",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/sys/kernel/debug",
+                "Destination": "/sys/kernel/debug",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/var/run/docker.sock",
+                "Destination": "/var/run/docker.sock",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "VM-0-5-ubuntu",
+            "Domainname": "",
+            "User": "root",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "DEFAULT_TZ=Asia/Harbin",
+                "IN_CONTAINER=yes",
+                "RUST_BACKTRACE=1"
+            ],
+            "Cmd": [
+                "/bin/deepflow-agent",
+                "-f",
+                "/etc/deepflow-agent/deepflow-agent.yaml"
+            ],
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent:v6.6.1",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "aa14efd7122d1ebd35f46b29466b62ad5aaf27d0f629cc9fb6cbcc02d1d14836",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:9ed7d916e7c69ea76ee093c9eccd1712d677611285b0363c5d5baf50ad63e550",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "config",
+                "com.docker.compose.project.config_files": "/opt/newsflow-mvp/config/deepflow-agent-compose.yaml",
+                "com.docker.compose.project.working_dir": "/opt/newsflow-mvp/config",
+                "com.docker.compose.replace": "bf16f838abc479b4703a0a7500b0a0f330a55575c8c9f7d7a48c77263a1fd72e",
+                "com.docker.compose.service": "deepflow-agent-newsflow",
+                "com.docker.compose.version": "2.37.1",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "22.04"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "59a98519dde448f67862bdd6dc4dac0db6d9433490a91b837140db3a7865bdc4",
+            "SandboxKey": "/var/run/docker/netns/default",
+            "Ports": {},
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "MacAddress": "",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "78499a543e1c4724925613926d6159deb4ecd2e70f690f21a0c2e0dea69f6561",
+                    "EndpointID": "a0fe054fe47c05be4d0b5d25790adcc0725a5edc4718420f9606659a05bb7114",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        }
+    }
+]

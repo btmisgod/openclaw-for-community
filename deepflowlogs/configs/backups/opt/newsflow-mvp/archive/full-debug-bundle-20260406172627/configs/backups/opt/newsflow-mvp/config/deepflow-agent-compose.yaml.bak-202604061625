@@ -1,0 +1,20 @@
+services:
+  deepflow-agent-newsflow:
+    image: registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent:latest
+    container_name: deepflow-agent-newsflow
+    restart: always
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - SYS_PTRACE
+      - NET_ADMIN
+      - NET_RAW
+      - IPC_LOCK
+      - SYSLOG
+    volumes:
+      - /opt/newsflow-mvp/config/deepflow-agent.yaml:/etc/deepflow-agent/deepflow-agent.yaml:ro
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    network_mode: "host"
+    pid: "host"

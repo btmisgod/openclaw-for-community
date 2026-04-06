@@ -1,0 +1,262 @@
+[
+    {
+        "Id": "73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9",
+        "Created": "2026-04-06T06:56:20.257958447Z",
+        "Path": "/bin/sh",
+        "Args": [
+            "-c",
+            "python3 -u /root/app/app.py"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2841016,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T06:56:21.729692146Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:d36d3f79cf0d6d8c3efe8d60dd7679e29a4c6d8dd4360214ec38fbe2fcb52bfa",
+        "ResolvConfPath": "/var/lib/docker/containers/73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9/hostname",
+        "HostsPath": "/var/lib/docker/containers/73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9/hosts",
+        "LogPath": "/var/lib/docker/containers/73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9/73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9-json.log",
+        "Name": "/deepflow-app",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/deepflow-deploy/common/config/deepflow-app/app.yaml:/etc/deepflow/app.yaml:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "deepflow-deploy_deepflow",
+            "PortBindings": {
+                "20418/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "20418"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "73b952544ddd9d547357bfea06ad490b1117d2b37fd64e88e1525cc1d20317b9",
+                "LowerDir": "/var/lib/docker/overlay2/7b40802cc651cd4d8245ea8b09507fc0ccde36253bad993a18d41e3c92c98a4f-init/diff:/var/lib/docker/overlay2/688c10120f3b80e17c8b6d668360bcfee8b2376ddd7e2430a9b078e3ea96d088/diff:/var/lib/docker/overlay2/786245e4cd4c62643e63dab9e0b89c981049569d3e104dd8550e12d2ee1148fa/diff:/var/lib/docker/overlay2/548857d9a2ddd37bf83de9af19a0582b79068db7a34007788d711a65c2c8ac41/diff:/var/lib/docker/overlay2/dfcd1d3c2a5d02b2d172f992ac7651d3364e2b39f388c01c4540480c76f1a589/diff:/var/lib/docker/overlay2/32f5c7acb52a764af81e4ed81eecdf893f66e2561601fa75f68e4cdbc2cbf846/diff:/var/lib/docker/overlay2/feca9d929a74e72dfbb18d3a9a991900fd2dd188c97f5ab3708973310b179077/diff:/var/lib/docker/overlay2/62769fbd0eea1fdba4364214d7333fd6ddac5e8a830d034fbfbb6e68d6836099/diff:/var/lib/docker/overlay2/f890e254b703cfcf959cd020040e551154a94e5bfaa6241c63ac549c0ed05815/diff",
+                "MergedDir": "/var/lib/docker/overlay2/7b40802cc651cd4d8245ea8b09507fc0ccde36253bad993a18d41e3c92c98a4f/merged",
+                "UpperDir": "/var/lib/docker/overlay2/7b40802cc651cd4d8245ea8b09507fc0ccde36253bad993a18d41e3c92c98a4f/diff",
+                "WorkDir": "/var/lib/docker/overlay2/7b40802cc651cd4d8245ea8b09507fc0ccde36253bad993a18d41e3c92c98a4f/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/deepflow-app/app.yaml",
+                "Destination": "/etc/deepflow/app.yaml",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "73b952544ddd",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "20418/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "TZ=Asia/Shanghai",
+                "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "LANG=C.UTF-8",
+                "GPG_KEY=E3FF2839C048B25C084DEBE9B26995E310250568",
+                "PYTHON_VERSION=3.8.19",
+                "PYTHON_PIP_VERSION=23.0.1",
+                "PYTHON_SETUPTOOLS_VERSION=57.5.0",
+                "PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/e03e1607ad60522cf34a92e834138eb89f57667c/public/get-pip.py",
+                "PYTHON_GET_PIP_SHA256=ee09098395e42eb1f82ef4acb231a767a6ae85504a9cf9983223df0a7cbd35d7"
+            ],
+            "Cmd": [
+                "/bin/sh",
+                "-c",
+                "python3 -u /root/app/app.py"
+            ],
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-app:v6.6.1",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "acf8d49419d414cf004f9c47e6dcc15b6b08963c13f8cf39eab39f9e93217f3e",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:d36d3f79cf0d6d8c3efe8d60dd7679e29a4c6d8dd4360214ec38fbe2fcb52bfa",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "deepflow-deploy",
+                "com.docker.compose.project.config_files": "/opt/deepflow-deploy/docker-compose.yaml",
+                "com.docker.compose.project.environment_file": "/opt/deepflow-deploy/.env",
+                "com.docker.compose.project.working_dir": "/opt/deepflow-deploy",
+                "com.docker.compose.service": "deepflow-app",
+                "com.docker.compose.version": "2.37.1"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "c71cbc98ed18408a81888248347c98173afe6d962a6d0ba90371d49d041aa907",
+            "SandboxKey": "/var/run/docker/netns/c71cbc98ed18",
+            "Ports": {
+                "20418/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "20418"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "20418"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "deepflow-deploy_deepflow": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "deepflow-app",
+                        "deepflow-app"
+                    ],
+                    "MacAddress": "4e:f9:03:8e:6d:b4",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "b3b78010d59529cc5a34fac2ec1c477af65e617ce9c8535a7b10cc3ccc0dfdc7",
+                    "EndpointID": "78d27202e9a6ad45e4fb288b33404a4d355b68af4518087c55e93c487117d628",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "deepflow-app",
+                        "73b952544ddd"
+                    ]
+                }
+            }
+        }
+    }
+]

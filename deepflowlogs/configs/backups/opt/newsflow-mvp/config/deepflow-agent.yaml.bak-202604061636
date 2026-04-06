@@ -1,0 +1,14 @@
+controller-ips:
+  - 127.0.0.1
+controller-port: 30035
+override-os-hostname: newsflow-observer
+inputs:
+  ebpf:
+    disabled: true
+  integration:
+    enabled: true
+    listen-port: 38086
+processors:
+  request-log:
+    filters:
+      cbpf-disabled: true

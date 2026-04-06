@@ -1,0 +1,309 @@
+[
+    {
+        "Id": "52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb",
+        "Created": "2026-04-06T07:06:39.861054915Z",
+        "Path": "/run.sh",
+        "Args": [],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 3030312,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T09:07:34.01583421Z",
+            "FinishedAt": "2026-04-06T09:07:33.713017429Z"
+        },
+        "Image": "sha256:00a157ed8c1fce0cb3b176ed7b37b5a5e52ee6ba1d81beda252889b638091de2",
+        "ResolvConfPath": "/var/lib/docker/containers/52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb/hostname",
+        "HostsPath": "/var/lib/docker/containers/52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb/hosts",
+        "LogPath": "/var/lib/docker/containers/52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb/52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb-json.log",
+        "Name": "/deepflow-grafana",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/deepflow/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:rw,z",
+                "/opt/deepflow/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:rw,z",
+                "/opt/deepflow-deploy/common/config/grafana/grafana.ini:/etc/grafana/grafana.ini:rw",
+                "/opt/deepflow-deploy/common/custom/grafana-public/views/index.html:/usr/share/grafana/public/views/index.html:rw",
+                "/opt/deepflow/grafana/dashboards:/tmp/dashboards:rw,z",
+                "/opt/deepflow/grafana/plugins:/var/lib/grafana/plugins:rw,z"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "deepflow-deploy_deepflow",
+            "PortBindings": {
+                "3000/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "3000"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "52fea4dc6c6e078cf02da202611b7710812c7c0296e28d039cb81fe2c7c19aeb",
+                "LowerDir": "/var/lib/docker/overlay2/a2c3c8f048525a6d65d92962010258b95d670c3c4923b94be8011e7b7a81d9d9-init/diff:/var/lib/docker/overlay2/fb58537126ce110f6b6d4c9089af79c494acdf53c60980ded6b095264b1acb77/diff:/var/lib/docker/overlay2/15ffbc72cbe9a6b054e3f833a1f4bee6b8d55e1a1a5ff916841bae521259f94e/diff:/var/lib/docker/overlay2/5473bdcfb205bce503f827a3f3c1651325a8c542602ef64ef77fc2f1c154815f/diff:/var/lib/docker/overlay2/47002b8d80932ad06f695401cae5fec66eda825b0efcf73986431999dfa7d904/diff:/var/lib/docker/overlay2/668c985f4bf08faebef8a414f25eb71a6d9892e33e9651dbdd9c89e731e563ab/diff:/var/lib/docker/overlay2/682bee689a4a0142608fed0a708f6714b7f696419047a3589119ae736069c727/diff:/var/lib/docker/overlay2/5f9f656da81ce444c307c93b3b49279530131a13c7ce6d0ca2f70c1a9fd8da32/diff:/var/lib/docker/overlay2/ef97c8e08c9473839d22d920406b61398300124fe4abbe2c4b03eb2ed6ef8851/diff:/var/lib/docker/overlay2/e5cbcc1be0aa034566c9ebf0282cfe71291e3b55e2876ff1972cf8a6efa65ac9/diff:/var/lib/docker/overlay2/fb03b8b49c2c15017254ff5feb74e5921d1ebb4967238df8826100ab4bd594bb/diff",
+                "MergedDir": "/var/lib/docker/overlay2/a2c3c8f048525a6d65d92962010258b95d670c3c4923b94be8011e7b7a81d9d9/merged",
+                "UpperDir": "/var/lib/docker/overlay2/a2c3c8f048525a6d65d92962010258b95d670c3c4923b94be8011e7b7a81d9d9/diff",
+                "WorkDir": "/var/lib/docker/overlay2/a2c3c8f048525a6d65d92962010258b95d670c3c4923b94be8011e7b7a81d9d9/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/custom/grafana-public/views/index.html",
+                "Destination": "/usr/share/grafana/public/views/index.html",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/grafana/dashboards",
+                "Destination": "/tmp/dashboards",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/grafana/plugins",
+                "Destination": "/var/lib/grafana/plugins",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/grafana/provisioning/dashboards",
+                "Destination": "/etc/grafana/provisioning/dashboards",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/grafana/provisioning/datasources",
+                "Destination": "/etc/grafana/provisioning/datasources",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/grafana/grafana.ini",
+                "Destination": "/etc/grafana/grafana.ini",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "52fea4dc6c6e",
+            "Domainname": "",
+            "User": "472",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "3000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "CLICKHOUSE_PASSWORD=",
+                "GF_SECURITY_ADMIN_USER=admin",
+                "DEEPFLOW_TRACEURL=http://deepflow-app:20418",
+                "MYSQL_PASSWORD=deepflow",
+                "MYSQL_USER=root",
+                "TZ=Asia/Shanghai",
+                "CLICKHOUSE_USER=default",
+                "CLICKHOUSE_SERVER=deepflow-clickhouse",
+                "MYSQL_URL=deepflow-mysql:30130",
+                "GF_SECURITY_ADMIN_PASSWORD=deepflow",
+                "DEEPFLOW_REQUEST_URL=http://deepflow-server:20416",
+                "PATH=/usr/share/grafana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GF_PATHS_CONFIG=/etc/grafana/grafana.ini",
+                "GF_PATHS_DATA=/var/lib/grafana",
+                "GF_PATHS_HOME=/usr/share/grafana",
+                "GF_PATHS_LOGS=/var/log/grafana",
+                "GF_PATHS_PLUGINS=/var/lib/grafana/plugins",
+                "GF_PATHS_PROVISIONING=/etc/grafana/provisioning"
+            ],
+            "Cmd": null,
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/grafana:10.1.5",
+            "Volumes": null,
+            "WorkingDir": "/usr/share/grafana",
+            "Entrypoint": [
+                "/run.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "936ccce663c3684f88e44c77613cb61f7e47eaa473cc5d22ddc752b4dea0719a",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "deepflow-grafana-init-custom-plugins:service_started:false,deepflow-grafana-init-grafana-ds-dh:service_started:false",
+                "com.docker.compose.image": "sha256:00a157ed8c1fce0cb3b176ed7b37b5a5e52ee6ba1d81beda252889b638091de2",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "deepflow-deploy",
+                "com.docker.compose.project.config_files": "/opt/deepflow-deploy/docker-compose.yaml",
+                "com.docker.compose.project.environment_file": "/opt/deepflow-deploy/.env",
+                "com.docker.compose.project.working_dir": "/opt/deepflow-deploy",
+                "com.docker.compose.replace": "01b7f3a0a644873a08736611bfad2d2fb680739d40ae43565d2124380cf1d42c",
+                "com.docker.compose.service": "deepflow-grafana",
+                "com.docker.compose.version": "2.37.1",
+                "maintainer": "Grafana Labs <hello@grafana.com>"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "eb47fd695250d4594d667f015a8e90c75cb6468bdc2d7f82d1d56870d15b3a56",
+            "SandboxKey": "/var/run/docker/netns/eb47fd695250",
+            "Ports": {
+                "3000/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "3000"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "deepflow-deploy_deepflow": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "deepflow-grafana",
+                        "deepflow-grafana"
+                    ],
+                    "MacAddress": "72:e1:22:c8:1b:cc",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "b3b78010d59529cc5a34fac2ec1c477af65e617ce9c8535a7b10cc3ccc0dfdc7",
+                    "EndpointID": "73f5277d5b2329c9c6b7c8f1fd148834c7d4afe1f3889b19af54babf7b3eb82a",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.6",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "deepflow-grafana",
+                        "52fea4dc6c6e"
+                    ]
+                }
+            }
+        }
+    }
+]

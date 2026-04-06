@@ -1,0 +1,17 @@
+[Unit]
+Description=Newsflow MVP Orchestrator
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/newsflow-mvp
+Environment=PYTHONUNBUFFERED=1
+Environment=NEWSFLOW_OTLP_ENDPOINT=
+ExecStart=/opt/newsflow-mvp/scripts/run_orchestrator.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

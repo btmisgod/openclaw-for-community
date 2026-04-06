@@ -1,0 +1,280 @@
+[
+    {
+        "Id": "7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54",
+        "Created": "2026-04-06T06:56:21.66517571Z",
+        "Path": "/entrypoint.sh",
+        "Args": [],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2841256,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T06:56:21.897515897Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:b4adc5fa9c1dab5336a9f70c3937a23eb6a68d2d7ca4491f6fca1e7258398442",
+        "ResolvConfPath": "/var/lib/docker/containers/7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54/hostname",
+        "HostsPath": "/var/lib/docker/containers/7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54/hosts",
+        "LogPath": "/var/lib/docker/containers/7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54/7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54-json.log",
+        "Name": "/deepflow-clickhouse",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/deepflow/clickhouse_storage:/var/lib/clickhouse_storage:rw,z",
+                "/opt/deepflow-deploy/common/config/clickhouse/config.xml:/etc/clickhouse-server/config.xml:rw",
+                "/opt/deepflow-deploy/common/config/clickhouse/users.xml:/etc/clickhouse-server/users.xml:rw",
+                "/opt/deepflow/clickhouse:/var/lib/clickhouse:rw,z"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "deepflow-deploy_deepflow",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "7a574f96aa00454b0f1190bdc7ae20b14ff9057528c616ca31b5b8423f484b54",
+                "LowerDir": "/var/lib/docker/overlay2/5a18d856f56b9ad3fc5fccfa69960f304b7924785ac32c443da7459fe8f77fcb-init/diff:/var/lib/docker/overlay2/68c78ae2ff04ad6ff599935b593bcb69c28b35c2d3be4b86957c4efcd26bc861/diff:/var/lib/docker/overlay2/4dc5189484d825c9a9b42bfca3b6f9cd454197a5dc9742be68c6128ed4199ec0/diff:/var/lib/docker/overlay2/36baa3b0d93b305e6a3adcdbc35f21f68e05925297d14fb8daa38c3851242e53/diff:/var/lib/docker/overlay2/4c15eff19dd4d612184ff0039ddd930bc15c62cf71a8b363dd96320f24d2d6f6/diff:/var/lib/docker/overlay2/3b9f88271f6351517148b132370e1766b9291532aba913e49f5f6c9943c1fdd3/diff:/var/lib/docker/overlay2/480c63509e3850802d3652bcf39a3062ccabf95f9db1394cc9e283b260c41cf4/diff:/var/lib/docker/overlay2/ee6285b715efe5a142c8714e1f907847870cafd00997a10450ba93c19abb292c/diff:/var/lib/docker/overlay2/d3bf969195e3d54853cda9b1b1b4b851274ea82947639420fe647f23f7d3cb08/diff:/var/lib/docker/overlay2/7d5f03ffa8515e78baa9fcad31dbdc6427a64124f945fd2aade585f5f7fd6827/diff:/var/lib/docker/overlay2/3ee47834e5270aa0f8ec288800e939813701795252214cbfaec8f5429ab406d9/diff:/var/lib/docker/overlay2/ea8a88652d1fa62c640cb924b6651750032e50e9ac3ac912b248e14669f588ec/diff",
+                "MergedDir": "/var/lib/docker/overlay2/5a18d856f56b9ad3fc5fccfa69960f304b7924785ac32c443da7459fe8f77fcb/merged",
+                "UpperDir": "/var/lib/docker/overlay2/5a18d856f56b9ad3fc5fccfa69960f304b7924785ac32c443da7459fe8f77fcb/diff",
+                "WorkDir": "/var/lib/docker/overlay2/5a18d856f56b9ad3fc5fccfa69960f304b7924785ac32c443da7459fe8f77fcb/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/clickhouse_storage",
+                "Destination": "/var/lib/clickhouse_storage",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/clickhouse/config.xml",
+                "Destination": "/etc/clickhouse-server/config.xml",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/clickhouse/users.xml",
+                "Destination": "/etc/clickhouse-server/users.xml",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow/clickhouse",
+                "Destination": "/var/lib/clickhouse",
+                "Mode": "rw,z",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "7a574f96aa00",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "8123/tcp": {},
+                "9000/tcp": {},
+                "9009/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "TZ=Asia/Shanghai",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "CLICKHOUSE_CONFIG=/etc/clickhouse-server/config.xml"
+            ],
+            "Cmd": null,
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/clickhouse-server:23.8.7.24",
+            "Volumes": {
+                "/var/lib/clickhouse": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "build-url": "https://github.com/ClickHouse/ClickHouse/actions/runs/6903156034",
+                "com.clickhouse.build.githash": "812b95e14ba8cf744bf1d70e6de607cf130a79fa",
+                "com.docker.compose.config-hash": "8916b3db0b78e1045a5dc8d5b65f9a4216c8ac810702acb3fd77e74f8ef45048",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "mysql:service_started:true",
+                "com.docker.compose.image": "sha256:b4adc5fa9c1dab5336a9f70c3937a23eb6a68d2d7ca4491f6fca1e7258398442",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "deepflow-deploy",
+                "com.docker.compose.project.config_files": "/opt/deepflow-deploy/docker-compose.yaml",
+                "com.docker.compose.project.environment_file": "/opt/deepflow-deploy/.env",
+                "com.docker.compose.project.working_dir": "/opt/deepflow-deploy",
+                "com.docker.compose.service": "clickhouse",
+                "com.docker.compose.version": "2.37.1",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "20.04"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "845c5bcaa097cbf2d1539107d91e791bda315b501cd108a2c24799d1014df112",
+            "SandboxKey": "/var/run/docker/netns/845c5bcaa097",
+            "Ports": {
+                "8123/tcp": null,
+                "9000/tcp": null,
+                "9009/tcp": null
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "deepflow-deploy_deepflow": {
+                    "IPAMConfig": null,
+                    "Links": [
+                        "deepflow-mysql:mysql",
+                        "deepflow-mysql:mysql-1",
+                        "deepflow-mysql:deepflow-deploy-mysql-1"
+                    ],
+                    "Aliases": [
+                        "deepflow-clickhouse",
+                        "clickhouse"
+                    ],
+                    "MacAddress": "ba:e3:8d:c5:ac:7e",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "b3b78010d59529cc5a34fac2ec1c477af65e617ce9c8535a7b10cc3ccc0dfdc7",
+                    "EndpointID": "bbe2958cf99d656647e8045be16b4267a41a4eb685e4c59b148f5b823a7964e4",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.4",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "deepflow-clickhouse",
+                        "clickhouse",
+                        "7a574f96aa00"
+                    ]
+                }
+            }
+        }
+    }
+]

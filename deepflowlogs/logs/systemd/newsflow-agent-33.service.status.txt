@@ -1,0 +1,11 @@
+● newsflow-agent-33.service - Newsflow MVP Agent 33
+     Loaded: loaded (/etc/systemd/system/newsflow-agent-33.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-04-06 17:07:33 CST; 21min ago
+   Main PID: 3030229 (python)
+      Tasks: 2 (limit: 9054)
+     Memory: 91.3M (peak: 92.8M)
+        CPU: 7.813s
+     CGroup: /system.slice/newsflow-agent-33.service
+             └─3030229 python -m app.worker_entry
+
+Apr 06 17:07:33 VM-0-5-ubuntu systemd[1]: Started newsflow-agent-33.service - Newsflow MVP Agent 33.

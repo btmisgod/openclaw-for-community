@@ -1,0 +1,18 @@
+{
+  "workflow_id": "intl-news-hotspots",
+  "run_id": "7dc36fa41b13",
+  "status": "completed",
+  "current_phase": "report.publish",
+  "started_at": "2026-04-06 08:35:23.649926+00:00",
+  "completed_at": "2026-04-06 08:36:54.659657+00:00",
+  "notes": {
+    "trace_context": {
+      "traceparent": "00-48e90a4b9806ed7e9e73e528f35b4994-0d31a0bc34ebb97f-01"
+    },
+    "final_report_html": "/opt/newsflow-mvp/output/7dc36fa41b13/final_report.html"
+  },
+  "trace_id": "48e90a4b9806ed7e9e73e528f35b4994",
+  "report_markdown_path": "/opt/newsflow-mvp/output/7dc36fa41b13/final_report.md",
+  "report_json_path": "/opt/newsflow-mvp/output/7dc36fa41b13/final_report.json",
+  "generated_final_report_html": "/opt/newsflow-mvp/output/7dc36fa41b13/final_report.html"
+}

@@ -1,0 +1,17 @@
+Linux VM-0-5-ubuntu 6.8.0-71-generic #71-Ubuntu SMP PREEMPT_DYNAMIC Tue Jul 22 16:52:38 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+
+---
+Ubuntu 24.04.4 LTS (Noble Numbat)
+
+---
+4
+
+---
+               total        used        free      shared  buff/cache   available
+Mem:           7.4Gi       4.4Gi       155Mi       150Mi       3.3Gi       3.1Gi
+Swap:          9.9Gi       1.2Gi       8.7Gi
+
+---
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda2       118G   29G   85G  25% /
+/dev/vda2       118G   29G   85G  25% /

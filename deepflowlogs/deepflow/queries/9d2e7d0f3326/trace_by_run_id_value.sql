@@ -1,0 +1,1 @@
+SELECT time, app_service, endpoint, trace_id, span_id, parent_span_id, attribute_values FROM l7_flow_log WHERE time >= '2026-04-06 00:00:00' AND has(attribute_values, '9d2e7d0f3326') ORDER BY time DESC LIMIT 200

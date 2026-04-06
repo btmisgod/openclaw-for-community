@@ -1,0 +1,1182 @@
+[
+  {
+    "path": "communications/04b8d4019b72-session-summary.md",
+    "size": 12722,
+    "mtime": 1775467891.6789682
+  },
+  {
+    "path": "communications/2c8e82d46332-session-summary.md",
+    "size": 12353,
+    "mtime": 1775467891.679968
+  },
+  {
+    "path": "communications/7dc36fa41b13-session-summary.md",
+    "size": 12722,
+    "mtime": 1775467891.6789682
+  },
+  {
+    "path": "communications/9d2e7d0f3326-session-summary.md",
+    "size": 19466,
+    "mtime": 1775467891.6789682
+  },
+  {
+    "path": "communications/by_run/04b8d4019b72/communications.csv",
+    "size": 11214,
+    "mtime": 1775467891.3049717
+  },
+  {
+    "path": "communications/by_run/04b8d4019b72/communications.json",
+    "size": 18930,
+    "mtime": 1775467891.3049717
+  },
+  {
+    "path": "communications/by_run/04b8d4019b72/communications.md",
+    "size": 12722,
+    "mtime": 1775467891.3059716
+  },
+  {
+    "path": "communications/by_run/2c8e82d46332/communications.csv",
+    "size": 10845,
+    "mtime": 1775467891.6479683
+  },
+  {
+    "path": "communications/by_run/2c8e82d46332/communications.json",
+    "size": 18561,
+    "mtime": 1775467891.6479683
+  },
+  {
+    "path": "communications/by_run/2c8e82d46332/communications.md",
+    "size": 12353,
+    "mtime": 1775467891.6479683
+  },
+  {
+    "path": "communications/by_run/7dc36fa41b13/communications.csv",
+    "size": 11214,
+    "mtime": 1775467890.3799796
+  },
+  {
+    "path": "communications/by_run/7dc36fa41b13/communications.json",
+    "size": 18930,
+    "mtime": 1775467890.3789794
+  },
+  {
+    "path": "communications/by_run/7dc36fa41b13/communications.md",
+    "size": 12722,
+    "mtime": 1775467890.3799796
+  },
+  {
+    "path": "communications/by_run/9d2e7d0f3326/communications.csv",
+    "size": 17374,
+    "mtime": 1775467889.8799837
+  },
+  {
+    "path": "communications/by_run/9d2e7d0f3326/communications.json",
+    "size": 28184,
+    "mtime": 1775467889.8799837
+  },
+  {
+    "path": "communications/by_run/9d2e7d0f3326/communications.md",
+    "size": 19466,
+    "mtime": 1775467889.8809836
+  },
+  {
+    "path": "communications/by_run/cb7fff031c0f/communications.csv",
+    "size": 11214,
+    "mtime": 1775467890.8299758
+  },
+  {
+    "path": "communications/by_run/cb7fff031c0f/communications.json",
+    "size": 18930,
+    "mtime": 1775467890.828976
+  },
+  {
+    "path": "communications/by_run/cb7fff031c0f/communications.md",
+    "size": 12722,
+    "mtime": 1775467890.8299758
+  },
+  {
+    "path": "communications/cb7fff031c0f-session-summary.md",
+    "size": 12722,
+    "mtime": 1775467891.6789682
+  },
+  {
+    "path": "communications/communications.csv",
+    "size": 61521,
+    "mtime": 1775467891.6789682
+  },
+  {
+    "path": "communications/communications.json",
+    "size": 103527,
+    "mtime": 1775467891.676968
+  },
+  {
+    "path": "configs/backups/etc/nginx/sites-available/deepflow-grafana.bak-202604061710",
+    "size": 469,
+    "mtime": 1775466257.5553887
+  },
+  {
+    "path": "configs/backups/etc/systemd/system/newsflow-agent-33.service.bak-202604061645",
+    "size": 381,
+    "mtime": 1775464379.234854
+  },
+  {
+    "path": "configs/backups/etc/systemd/system/newsflow-agent-neko.service.bak-202604061645",
+    "size": 385,
+    "mtime": 1775464379.233854
+  },
+  {
+    "path": "configs/backups/etc/systemd/system/newsflow-agent-xhs.service.bak-202604061645",
+    "size": 383,
+    "mtime": 1775464379.236854
+  },
+  {
+    "path": "configs/backups/etc/systemd/system/newsflow-orchestrator.service.bak-202604061645",
+    "size": 373,
+    "mtime": 1775464379.230854
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/.env.bak-202604061649",
+    "size": 113,
+    "mtime": 1775465314.8391984
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/backups/20260406145438/.env",
+    "size": 113,
+    "mtime": 1775458395.670799
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/backups/20260406145438/docker-compose.yaml",
+    "size": 5396,
+    "mtime": 1775458395.670799
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/backups/20260406150223-grafana.ini",
+    "size": 524,
+    "mtime": 1775458395.670799
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/backups/20260406150559-docker-compose.yaml",
+    "size": 5406,
+    "mtime": 1775458489.3257978
+  },
+  {
+    "path": "configs/backups/opt/deepflow-deploy/common/config/grafana/grafana.ini.bak-202604061710",
+    "size": 684,
+    "mtime": 1775466257.5573888
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/app/orchestrator_api.py.bak-202604061710",
+    "size": 1309,
+    "mtime": 1775466257.552389
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/app/telemetry.py.bak-202604061655",
+    "size": 1500,
+    "mtime": 1775465553.5897167
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/app/workflow.py.bak-202604061710",
+    "size": 26873,
+    "mtime": 1775466257.5533888
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/etc/nginx/sites-available/deepflow-grafana.bak-202604061710",
+    "size": 469,
+    "mtime": 1775466257.5553887
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/etc/systemd/system/newsflow-agent-33.service.bak-202604061645",
+    "size": 381,
+    "mtime": 1775464379.234854
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/etc/systemd/system/newsflow-agent-neko.service.bak-202604061645",
+    "size": 385,
+    "mtime": 1775464379.233854
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/etc/systemd/system/newsflow-agent-xhs.service.bak-202604061645",
+    "size": 383,
+    "mtime": 1775464379.236854
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/etc/systemd/system/newsflow-orchestrator.service.bak-202604061645",
+    "size": 373,
+    "mtime": 1775464379.230854
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/deepflow-deploy/.env.bak-202604061649",
+    "size": 113,
+    "mtime": 1775465314.8391984
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/app/orchestrator_api.py.bak-202604061710",
+    "size": 1309,
+    "mtime": 1775466257.552389
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/app/telemetry.py.bak-202604061655",
+    "size": 1500,
+    "mtime": 1775465553.5897167
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/app/workflow.py.bak-202604061710",
+    "size": 26873,
+    "mtime": 1775466257.5533888
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/backups/deepflow-metadb-202604061638/metadb_subset.sql",
+    "size": 11038,
+    "mtime": 1775464229.032389
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/config/deepflow-agent-compose.yaml.bak-202604061557",
+    "size": 582,
+    "mtime": 1775462179.5547986
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/config/deepflow-agent-compose.yaml.bak-202604061625",
+    "size": 588,
+    "mtime": 1775463793.0239542
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/config/deepflow-agent.yaml.bak-202604061636",
+    "size": 250,
+    "mtime": 1775464190.8917847
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/backups/opt/newsflow-mvp/grafana/newsflow-dashboard.json.bak-202604061655",
+    "size": 5815,
+    "mtime": 1775465553.5927167
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-app/orchestrator_api.py.bak-202604061710",
+    "size": 1309,
+    "mtime": 1775466257.552389
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-app/telemetry.py.bak-202604061655",
+    "size": 1500,
+    "mtime": 1775465553.5897167
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-app/workflow.py.bak-202604061710",
+    "size": 26873,
+    "mtime": 1775466257.5533888
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-config-dir/deepflow-agent-compose.yaml.bak-202604061557",
+    "size": 582,
+    "mtime": 1775462179.5547986
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-config-dir/deepflow-agent-compose.yaml.bak-202604061625",
+    "size": 588,
+    "mtime": 1775463793.0239542
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/archive/full-debug-bundle-20260406172627/configs/current/newsflow-config-dir/deepflow-agent.yaml.bak-202604061636",
+    "size": 250,
+    "mtime": 1775464190.8917847
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/backups/deepflow-metadb-202604061638/metadb_subset.sql",
+    "size": 11038,
+    "mtime": 1775464229.032389
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/config/deepflow-agent-compose.yaml.bak-202604061557",
+    "size": 582,
+    "mtime": 1775462179.5547986
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/config/deepflow-agent-compose.yaml.bak-202604061625",
+    "size": 588,
+    "mtime": 1775463793.0239542
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/config/deepflow-agent.yaml.bak-202604061636",
+    "size": 250,
+    "mtime": 1775464190.8917847
+  },
+  {
+    "path": "configs/backups/opt/newsflow-mvp/grafana/newsflow-dashboard.json.bak-202604061655",
+    "size": 5815,
+    "mtime": 1775465553.5927167
+  },
+  {
+    "path": "configs/current/.env",
+    "size": 107,
+    "mtime": 1775465318.1751637
+  },
+  {
+    "path": "configs/current/deepflow-agent-compose.yaml",
+    "size": 588,
+    "mtime": 1775463796.5759187
+  },
+  {
+    "path": "configs/current/deepflow-agent.yaml",
+    "size": 407,
+    "mtime": 1775464570.5979187
+  },
+  {
+    "path": "configs/current/deepflow-grafana",
+    "size": 934,
+    "mtime": 1775466386.668006
+  },
+  {
+    "path": "configs/current/grafana.ini",
+    "size": 722,
+    "mtime": 1775466386.668006
+  },
+  {
+    "path": "configs/current/newsflow-agent-33.service",
+    "size": 403,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "configs/current/newsflow-agent-neko.service",
+    "size": 407,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "configs/current/newsflow-agent-xhs.service",
+    "size": 405,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "configs/current/newsflow-app/__init__.py",
+    "size": 23,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/__init__.cpython-312.pyc",
+    "size": 130,
+    "mtime": 1775466750.2462864
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/config.cpython-312.pyc",
+    "size": 2629,
+    "mtime": 1775466750.2472863
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/db.cpython-312.pyc",
+    "size": 6297,
+    "mtime": 1775466750.2492864
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/llm.cpython-312.pyc",
+    "size": 1752,
+    "mtime": 1775466750.2512863
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/news.cpython-312.pyc",
+    "size": 6519,
+    "mtime": 1775466750.2532864
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/orchestrator_api.cpython-312.pyc",
+    "size": 3537,
+    "mtime": 1775466750.2542863
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/rendering.cpython-312.pyc",
+    "size": 20387,
+    "mtime": 1775466750.2622862
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/telemetry.cpython-312.pyc",
+    "size": 3340,
+    "mtime": 1775466750.263286
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/worker_entry.cpython-312.pyc",
+    "size": 596,
+    "mtime": 1775466750.2642863
+  },
+  {
+    "path": "configs/current/newsflow-app/__pycache__/workflow.cpython-312.pyc",
+    "size": 32625,
+    "mtime": 1775466750.2762861
+  },
+  {
+    "path": "configs/current/newsflow-app/config.py",
+    "size": 1566,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "configs/current/newsflow-app/db.py",
+    "size": 4278,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "configs/current/newsflow-app/llm.py",
+    "size": 968,
+    "mtime": 1775462730.1841414
+  },
+  {
+    "path": "configs/current/newsflow-app/news.py",
+    "size": 4858,
+    "mtime": 1775462235.90322
+  },
+  {
+    "path": "configs/current/newsflow-app/orchestrator_api.py",
+    "size": 2039,
+    "mtime": 1775466386.668006
+  },
+  {
+    "path": "configs/current/newsflow-app/orchestrator_api.py.bak-202604061710",
+    "size": 1309,
+    "mtime": 1775466257.552389
+  },
+  {
+    "path": "configs/current/newsflow-app/rendering.py",
+    "size": 17317,
+    "mtime": 1775466739.9133909
+  },
+  {
+    "path": "configs/current/newsflow-app/telemetry.py",
+    "size": 1930,
+    "mtime": 1775465608.5261402
+  },
+  {
+    "path": "configs/current/newsflow-app/telemetry.py.bak-202604061655",
+    "size": 1500,
+    "mtime": 1775465553.5897167
+  },
+  {
+    "path": "configs/current/newsflow-app/worker_entry.py",
+    "size": 253,
+    "mtime": 1775461979.1759884
+  },
+  {
+    "path": "configs/current/newsflow-app/workflow.py",
+    "size": 30133,
+    "mtime": 1775466386.668006
+  },
+  {
+    "path": "configs/current/newsflow-app/workflow.py.bak-202604061710",
+    "size": 26873,
+    "mtime": 1775466257.5533888
+  },
+  {
+    "path": "configs/current/newsflow-config-dir/deepflow-agent-compose.yaml",
+    "size": 588,
+    "mtime": 1775463796.5759187
+  },
+  {
+    "path": "configs/current/newsflow-config-dir/deepflow-agent-compose.yaml.bak-202604061557",
+    "size": 582,
+    "mtime": 1775462179.5547986
+  },
+  {
+    "path": "configs/current/newsflow-config-dir/deepflow-agent-compose.yaml.bak-202604061625",
+    "size": 588,
+    "mtime": 1775463793.0239542
+  },
+  {
+    "path": "configs/current/newsflow-config-dir/deepflow-agent.yaml",
+    "size": 407,
+    "mtime": 1775464570.5979187
+  },
+  {
+    "path": "configs/current/newsflow-config-dir/deepflow-agent.yaml.bak-202604061636",
+    "size": 250,
+    "mtime": 1775464190.8917847
+  },
+  {
+    "path": "configs/current/newsflow-dashboard.json",
+    "size": 7334,
+    "mtime": 1775466539.0684211
+  },
+  {
+    "path": "configs/current/newsflow-orchestrator.service",
+    "size": 395,
+    "mtime": 1775464505.1865942
+  },
+  {
+    "path": "configs/notes/config-diff-notes.md",
+    "size": 675,
+    "mtime": 1775467891.679968
+  },
+  {
+    "path": "db_exports/discussions.csv",
+    "size": 4789,
+    "mtime": 1775467891.7669673
+  },
+  {
+    "path": "db_exports/discussions.json",
+    "size": 6715,
+    "mtime": 1775467891.7669673
+  },
+  {
+    "path": "db_exports/materials.csv",
+    "size": 375757,
+    "mtime": 1775467891.7659674
+  },
+  {
+    "path": "db_exports/materials.json",
+    "size": 497396,
+    "mtime": 1775467891.7599673
+  },
+  {
+    "path": "db_exports/newsflow_mvp_workflow_tables.sql",
+    "size": 893705,
+    "mtime": 1775467733.9462988
+  },
+  {
+    "path": "db_exports/outputs.csv",
+    "size": 316248,
+    "mtime": 1775467891.772967
+  },
+  {
+    "path": "db_exports/outputs.json",
+    "size": 318223,
+    "mtime": 1775467891.7699673
+  },
+  {
+    "path": "db_exports/reviews.csv",
+    "size": 5845,
+    "mtime": 1775467891.7669673
+  },
+  {
+    "path": "db_exports/reviews.json",
+    "size": 11953,
+    "mtime": 1775467891.7669673
+  },
+  {
+    "path": "db_exports/run_ids.tsv",
+    "size": 65,
+    "mtime": 1775467734.032298
+  },
+  {
+    "path": "db_exports/tasks.csv",
+    "size": 64814,
+    "mtime": 1775467891.7519674
+  },
+  {
+    "path": "db_exports/tasks.json",
+    "size": 106501,
+    "mtime": 1775467891.7499673
+  },
+  {
+    "path": "db_exports/workflow_runs.csv",
+    "size": 2240,
+    "mtime": 1775467891.7469676
+  },
+  {
+    "path": "db_exports/workflow_runs.json",
+    "size": 3380,
+    "mtime": 1775467891.7459674
+  },
+  {
+    "path": "deepflow/queries/04b8d4019b72/services_by_trace_id.sql",
+    "size": 171,
+    "mtime": 1775467891.3209715
+  },
+  {
+    "path": "deepflow/queries/04b8d4019b72/trace_by_run_id_value.sql",
+    "size": 212,
+    "mtime": 1775467891.3239715
+  },
+  {
+    "path": "deepflow/queries/04b8d4019b72/trace_by_trace_id.sql",
+    "size": 184,
+    "mtime": 1775467891.3059716
+  },
+  {
+    "path": "deepflow/queries/2c8e82d46332/services_by_trace_id.sql",
+    "size": 171,
+    "mtime": 1775467891.6629682
+  },
+  {
+    "path": "deepflow/queries/2c8e82d46332/trace_by_run_id_value.sql",
+    "size": 212,
+    "mtime": 1775467891.6659682
+  },
+  {
+    "path": "deepflow/queries/2c8e82d46332/trace_by_trace_id.sql",
+    "size": 184,
+    "mtime": 1775467891.6479683
+  },
+  {
+    "path": "deepflow/queries/7dc36fa41b13/services_by_trace_id.sql",
+    "size": 171,
+    "mtime": 1775467890.3949795
+  },
+  {
+    "path": "deepflow/queries/7dc36fa41b13/trace_by_run_id_value.sql",
+    "size": 212,
+    "mtime": 1775467890.3969793
+  },
+  {
+    "path": "deepflow/queries/7dc36fa41b13/trace_by_trace_id.sql",
+    "size": 184,
+    "mtime": 1775467890.3799796
+  },
+  {
+    "path": "deepflow/queries/9d2e7d0f3326/services_by_trace_id.sql",
+    "size": 139,
+    "mtime": 1775467889.9159832
+  },
+  {
+    "path": "deepflow/queries/9d2e7d0f3326/trace_by_run_id_value.sql",
+    "size": 212,
+    "mtime": 1775467889.9179833
+  },
+  {
+    "path": "deepflow/queries/9d2e7d0f3326/trace_by_trace_id.sql",
+    "size": 152,
+    "mtime": 1775467889.8809836
+  },
+  {
+    "path": "deepflow/queries/cb7fff031c0f/services_by_trace_id.sql",
+    "size": 171,
+    "mtime": 1775467890.8439758
+  },
+  {
+    "path": "deepflow/queries/cb7fff031c0f/trace_by_run_id_value.sql",
+    "size": 212,
+    "mtime": 1775467890.8469758
+  },
+  {
+    "path": "deepflow/queries/cb7fff031c0f/trace_by_trace_id.sql",
+    "size": 184,
+    "mtime": 1775467890.8299758
+  },
+  {
+    "path": "deepflow/results/04b8d4019b72/services_by_trace_id.json",
+    "size": 40,
+    "mtime": 1775467891.3239715
+  },
+  {
+    "path": "deepflow/results/04b8d4019b72/trace_by_run_id_value.json",
+    "size": 40,
+    "mtime": 1775467891.3319714
+  },
+  {
+    "path": "deepflow/results/04b8d4019b72/trace_by_trace_id.json",
+    "size": 16482,
+    "mtime": 1775467891.3209715
+  },
+  {
+    "path": "deepflow/results/04b8d4019b72/trace_id.txt",
+    "size": 33,
+    "mtime": 1775467891.3319714
+  },
+  {
+    "path": "deepflow/results/2c8e82d46332/services_by_trace_id.json",
+    "size": 40,
+    "mtime": 1775467891.6659682
+  },
+  {
+    "path": "deepflow/results/2c8e82d46332/trace_by_run_id_value.json",
+    "size": 40,
+    "mtime": 1775467891.6749682
+  },
+  {
+    "path": "deepflow/results/2c8e82d46332/trace_by_trace_id.json",
+    "size": 19189,
+    "mtime": 1775467891.6629682
+  },
+  {
+    "path": "deepflow/results/2c8e82d46332/trace_id.txt",
+    "size": 33,
+    "mtime": 1775467891.6759682
+  },
+  {
+    "path": "deepflow/results/7dc36fa41b13/services_by_trace_id.json",
+    "size": 40,
+    "mtime": 1775467890.3959794
+  },
+  {
+    "path": "deepflow/results/7dc36fa41b13/trace_by_run_id_value.json",
+    "size": 40,
+    "mtime": 1775467890.4049792
+  },
+  {
+    "path": "deepflow/results/7dc36fa41b13/trace_by_trace_id.json",
+    "size": 647,
+    "mtime": 1775467890.3939793
+  },
+  {
+    "path": "deepflow/results/7dc36fa41b13/trace_id.txt",
+    "size": 33,
+    "mtime": 1775467890.4049792
+  },
+  {
+    "path": "deepflow/results/9d2e7d0f3326/services_by_trace_id.json",
+    "size": 40,
+    "mtime": 1775467889.9179833
+  },
+  {
+    "path": "deepflow/results/9d2e7d0f3326/trace_by_run_id_value.json",
+    "size": 40,
+    "mtime": 1775467889.9279833
+  },
+  {
+    "path": "deepflow/results/9d2e7d0f3326/trace_by_trace_id.json",
+    "size": 10716,
+    "mtime": 1775467889.9159832
+  },
+  {
+    "path": "deepflow/results/9d2e7d0f3326/trace_id.txt",
+    "size": 1,
+    "mtime": 1775467889.9279833
+  },
+  {
+    "path": "deepflow/results/cb7fff031c0f/services_by_trace_id.json",
+    "size": 40,
+    "mtime": 1775467890.8459756
+  },
+  {
+    "path": "deepflow/results/cb7fff031c0f/trace_by_run_id_value.json",
+    "size": 40,
+    "mtime": 1775467890.8559756
+  },
+  {
+    "path": "deepflow/results/cb7fff031c0f/trace_by_trace_id.json",
+    "size": 647,
+    "mtime": 1775467890.8439758
+  },
+  {
+    "path": "deepflow/results/cb7fff031c0f/trace_id.txt",
+    "size": 33,
+    "mtime": 1775467890.8559756
+  },
+  {
+    "path": "logs/docker/deepflow-agent-newsflow.inspect.json",
+    "size": 9650,
+    "mtime": 1775467733.6413007
+  },
+  {
+    "path": "logs/docker/deepflow-agent-newsflow.log",
+    "size": 578146,
+    "mtime": 1775467733.625301
+  },
+  {
+    "path": "logs/docker/deepflow-app.inspect.json",
+    "size": 10916,
+    "mtime": 1775467733.4133022
+  },
+  {
+    "path": "logs/docker/deepflow-app.log",
+    "size": 1742,
+    "mtime": 1775467733.3943024
+  },
+  {
+    "path": "logs/docker/deepflow-clickhouse.inspect.json",
+    "size": 12226,
+    "mtime": 1775467733.5643013
+  },
+  {
+    "path": "logs/docker/deepflow-clickhouse.log",
+    "size": 36831,
+    "mtime": 1775467733.5493014
+  },
+  {
+    "path": "logs/docker/deepflow-grafana.inspect.json",
+    "size": 13570,
+    "mtime": 1775467733.4683018
+  },
+  {
+    "path": "logs/docker/deepflow-grafana.log",
+    "size": 53507,
+    "mtime": 1775467733.452302
+  },
+  {
+    "path": "logs/docker/deepflow-mysql.inspect.json",
+    "size": 11300,
+    "mtime": 1775467733.5153015
+  },
+  {
+    "path": "logs/docker/deepflow-mysql.log",
+    "size": 7122,
+    "mtime": 1775467733.4993017
+  },
+  {
+    "path": "logs/docker/deepflow-server.inspect.json",
+    "size": 13617,
+    "mtime": 1775467733.3573027
+  },
+  {
+    "path": "logs/docker/deepflow-server.log",
+    "size": 997952,
+    "mtime": 1775467733.3393028
+  },
+  {
+    "path": "logs/docker/docker-ps.jsonl",
+    "size": 14130,
+    "mtime": 1775467733.6693006
+  },
+  {
+    "path": "logs/nginx/access.log",
+    "size": 510396,
+    "mtime": 1775467607.9504285
+  },
+  {
+    "path": "logs/nginx/error.log",
+    "size": 2032,
+    "mtime": 1775466495.150875
+  },
+  {
+    "path": "logs/nginx/nginx.status.txt",
+    "size": 1493,
+    "mtime": 1775467733.2683032
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-33.service.raw.log",
+    "size": 40235,
+    "mtime": 1775467733.1603038
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-33.service.readable.log",
+    "size": 41156,
+    "mtime": 1775467733.1713037
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-33.service.status.txt",
+    "size": 544,
+    "mtime": 1775467733.1813037
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-neko.service.raw.log",
+    "size": 31687,
+    "mtime": 1775467733.130304
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-neko.service.readable.log",
+    "size": 32416,
+    "mtime": 1775467733.139304
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-neko.service.status.txt",
+    "size": 556,
+    "mtime": 1775467733.149304
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-xhs.service.raw.log",
+    "size": 22223,
+    "mtime": 1775467733.1893036
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-xhs.service.readable.log",
+    "size": 22739,
+    "mtime": 1775467733.1993036
+  },
+  {
+    "path": "logs/systemd/newsflow-agent-xhs.service.status.txt",
+    "size": 550,
+    "mtime": 1775467733.2083037
+  },
+  {
+    "path": "logs/systemd/newsflow-orchestrator.service.raw.log",
+    "size": 17122,
+    "mtime": 1775467733.1023042
+  },
+  {
+    "path": "logs/systemd/newsflow-orchestrator.service.readable.log",
+    "size": 17539,
+    "mtime": 1775467733.110304
+  },
+  {
+    "path": "logs/systemd/newsflow-orchestrator.service.status.txt",
+    "size": 2017,
+    "mtime": 1775467733.120304
+  },
+  {
+    "path": "logs/systemd/running-services.txt",
+    "size": 3923,
+    "mtime": 1775467733.7013004
+  },
+  {
+    "path": "logs/systemd/ss-lntp.txt",
+    "size": 9494,
+    "mtime": 1775467733.6953003
+  },
+  {
+    "path": "metadata/run_ids.txt",
+    "size": 65,
+    "mtime": 1775467733.0883043
+  },
+  {
+    "path": "metadata/server_info.txt",
+    "size": 520,
+    "mtime": 1775467733.0953043
+  },
+  {
+    "path": "runs/04b8d4019b72/conversation.html",
+    "size": 30887,
+    "mtime": 1775467891.0719738
+  },
+  {
+    "path": "runs/04b8d4019b72/db_snapshot.json",
+    "size": 187164,
+    "mtime": 1775467891.1739728
+  },
+  {
+    "path": "runs/04b8d4019b72/final_report.html",
+    "size": 29793,
+    "mtime": 1775467891.1199734
+  },
+  {
+    "path": "runs/04b8d4019b72/final_report.json",
+    "size": 33869,
+    "mtime": 1775467891.1199734
+  },
+  {
+    "path": "runs/04b8d4019b72/final_report.md",
+    "size": 17807,
+    "mtime": 1775467891.1189735
+  },
+  {
+    "path": "runs/04b8d4019b72/materials_summary.md",
+    "size": 17821,
+    "mtime": 1775467891.174973
+  },
+  {
+    "path": "runs/04b8d4019b72/review-thread.html",
+    "size": 5036,
+    "mtime": 1775467891.0989735
+  },
+  {
+    "path": "runs/04b8d4019b72/reviews.md",
+    "size": 640,
+    "mtime": 1775467891.174973
+  },
+  {
+    "path": "runs/04b8d4019b72/revision_plan.md",
+    "size": 437,
+    "mtime": 1775467891.174973
+  },
+  {
+    "path": "runs/04b8d4019b72/run_api.json",
+    "size": 5203,
+    "mtime": 1775467890.9179752
+  },
+  {
+    "path": "runs/04b8d4019b72/run_meta.json",
+    "size": 753,
+    "mtime": 1775467890.8859754
+  },
+  {
+    "path": "runs/2c8e82d46332/conversation.html",
+    "size": 30541,
+    "mtime": 1775467891.46897
+  },
+  {
+    "path": "runs/2c8e82d46332/db_snapshot.json",
+    "size": 187217,
+    "mtime": 1775467891.5729692
+  },
+  {
+    "path": "runs/2c8e82d46332/final_report.html",
+    "size": 29019,
+    "mtime": 1775467891.5159698
+  },
+  {
+    "path": "runs/2c8e82d46332/final_report.json",
+    "size": 32954,
+    "mtime": 1775467891.5159698
+  },
+  {
+    "path": "runs/2c8e82d46332/final_report.md",
+    "size": 17392,
+    "mtime": 1775467891.5159698
+  },
+  {
+    "path": "runs/2c8e82d46332/materials_summary.md",
+    "size": 17881,
+    "mtime": 1775467891.5729692
+  },
+  {
+    "path": "runs/2c8e82d46332/review-thread.html",
+    "size": 5036,
+    "mtime": 1775467891.4959698
+  },
+  {
+    "path": "runs/2c8e82d46332/reviews.md",
+    "size": 640,
+    "mtime": 1775467891.5739691
+  },
+  {
+    "path": "runs/2c8e82d46332/revision_plan.md",
+    "size": 437,
+    "mtime": 1775467891.5729692
+  },
+  {
+    "path": "runs/2c8e82d46332/run_api.json",
+    "size": 5261,
+    "mtime": 1775467891.376971
+  },
+  {
+    "path": "runs/2c8e82d46332/run_meta.json",
+    "size": 805,
+    "mtime": 1775467891.3579712
+  },
+  {
+    "path": "runs/7dc36fa41b13/conversation.html",
+    "size": 30887,
+    "mtime": 1775467890.1379814
+  },
+  {
+    "path": "runs/7dc36fa41b13/db_snapshot.json",
+    "size": 187221,
+    "mtime": 1775467890.2409806
+  },
+  {
+    "path": "runs/7dc36fa41b13/final_report.html",
+    "size": 29793,
+    "mtime": 1775467890.184981
+  },
+  {
+    "path": "runs/7dc36fa41b13/final_report.json",
+    "size": 33869,
+    "mtime": 1775467890.184981
+  },
+  {
+    "path": "runs/7dc36fa41b13/final_report.md",
+    "size": 17807,
+    "mtime": 1775467890.1839812
+  },
+  {
+    "path": "runs/7dc36fa41b13/materials_summary.md",
+    "size": 17821,
+    "mtime": 1775467890.2409806
+  },
+  {
+    "path": "runs/7dc36fa41b13/review-thread.html",
+    "size": 5036,
+    "mtime": 1775467890.1639812
+  },
+  {
+    "path": "runs/7dc36fa41b13/reviews.md",
+    "size": 640,
+    "mtime": 1775467890.2419806
+  },
+  {
+    "path": "runs/7dc36fa41b13/revision_plan.md",
+    "size": 437,
+    "mtime": 1775467890.2409806
+  },
+  {
+    "path": "runs/7dc36fa41b13/run_api.json",
+    "size": 5263,
+    "mtime": 1775467889.9809828
+  },
+  {
+    "path": "runs/7dc36fa41b13/run_meta.json",
+    "size": 753,
+    "mtime": 1775467889.958983
+  },
+  {
+    "path": "runs/9d2e7d0f3326/conversation.html",
+    "size": 43911,
+    "mtime": 1775467889.5619862
+  },
+  {
+    "path": "runs/9d2e7d0f3326/db_snapshot.json",
+    "size": 215835,
+    "mtime": 1775467889.6879852
+  },
+  {
+    "path": "runs/9d2e7d0f3326/final_report.html",
+    "size": 27253,
+    "mtime": 1775467889.6299856
+  },
+  {
+    "path": "runs/9d2e7d0f3326/final_report.json",
+    "size": 20478,
+    "mtime": 1775467889.6299856
+  },
+  {
+    "path": "runs/9d2e7d0f3326/final_report.md",
+    "size": 15848,
+    "mtime": 1775467889.6299856
+  },
+  {
+    "path": "runs/9d2e7d0f3326/materials_summary.md",
+    "size": 19194,
+    "mtime": 1775467889.6879852
+  },
+  {
+    "path": "runs/9d2e7d0f3326/review-thread.html",
+    "size": 6556,
+    "mtime": 1775467889.6049857
+  },
+  {
+    "path": "runs/9d2e7d0f3326/reviews.md",
+    "size": 868,
+    "mtime": 1775467889.6879852
+  },
+  {
+    "path": "runs/9d2e7d0f3326/revision_plan.md",
+    "size": 1136,
+    "mtime": 1775467889.6879852
+  },
+  {
+    "path": "runs/9d2e7d0f3326/run_api.json",
+    "size": 6825,
+    "mtime": 1775467889.353988
+  },
+  {
+    "path": "runs/9d2e7d0f3326/run_meta.json",
+    "size": 612,
+    "mtime": 1775467889.3109882
+  },
+  {
+    "path": "runs/cb7fff031c0f/conversation.html",
+    "size": 30887,
+    "mtime": 1775467890.5989778
+  },
+  {
+    "path": "runs/cb7fff031c0f/db_snapshot.json",
+    "size": 187223,
+    "mtime": 1775467890.7019768
+  },
+  {
+    "path": "runs/cb7fff031c0f/final_report.html",
+    "size": 29793,
+    "mtime": 1775467890.6469774
+  },
+  {
+    "path": "runs/cb7fff031c0f/final_report.json",
+    "size": 33869,
+    "mtime": 1775467890.6459773
+  },
+  {
+    "path": "runs/cb7fff031c0f/final_report.md",
+    "size": 17807,
+    "mtime": 1775467890.6459773
+  },
+  {
+    "path": "runs/cb7fff031c0f/materials_summary.md",
+    "size": 17821,
+    "mtime": 1775467890.7019768
+  },
+  {
+    "path": "runs/cb7fff031c0f/review-thread.html",
+    "size": 5036,
+    "mtime": 1775467890.6249776
+  },
+  {
+    "path": "runs/cb7fff031c0f/reviews.md",
+    "size": 640,
+    "mtime": 1775467890.7019768
+  },
+  {
+    "path": "runs/cb7fff031c0f/revision_plan.md",
+    "size": 437,
+    "mtime": 1775467890.7019768
+  },
+  {
+    "path": "runs/cb7fff031c0f/run_api.json",
+    "size": 5263,
+    "mtime": 1775467890.450979
+  },
+  {
+    "path": "runs/cb7fff031c0f/run_meta.json",
+    "size": 753,
+    "mtime": 1775467890.430979
+  }
+]

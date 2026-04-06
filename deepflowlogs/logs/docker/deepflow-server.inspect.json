@@ -1,0 +1,340 @@
+[
+    {
+        "Id": "5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e",
+        "Created": "2026-04-06T08:48:44.406399938Z",
+        "Path": "/bin/sh",
+        "Args": [
+            "-c",
+            "/bin/deepflow-server"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 3002583,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-06T08:48:45.945408273Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:89b4a14a4d39342aae02e9b2bb18e9949e861359be3aa2b0c6493bbeb3ba9072",
+        "ResolvConfPath": "/var/lib/docker/containers/5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e/hostname",
+        "HostsPath": "/var/lib/docker/containers/5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e/hosts",
+        "LogPath": "/var/lib/docker/containers/5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e/5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e-json.log",
+        "Name": "/deepflow-server",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/opt/deepflow-deploy/common/config/deepflow-server/server.yaml:/etc/server.yaml:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "deepflow-deploy_deepflow",
+            "PortBindings": {
+                "20033/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "30033"
+                    }
+                ],
+                "20035/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "30035"
+                    }
+                ],
+                "20416/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "20416"
+                    }
+                ],
+                "20417/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "30417"
+                    }
+                ],
+                "20419/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "20419"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "5e13e2b0004be1e7e87f7b9e468b0ee893bdb9f563a14ee7c5bf51a3e7c2913e",
+                "LowerDir": "/var/lib/docker/overlay2/38bbc4260c51af01d2f0f188ededd2265745821a007f7712e503251d6f58ab2d-init/diff:/var/lib/docker/overlay2/dc3cb463e84b1add4a70bd8ddd9f64ad6d8e41469abed9a9aae59b71b327a5f0/diff:/var/lib/docker/overlay2/40871eb3803122bbcd195005dd78c0cf99f2bfe280ba3348d909f2ef60a270d5/diff:/var/lib/docker/overlay2/7c9a349ef0e87bd5fe50169331c1dc42f38618d81a190aebab6780aceaed9128/diff:/var/lib/docker/overlay2/fc812eb8470244b4b89441b4b110467059af4e37ecb1061b7a8188a337bd10be/diff:/var/lib/docker/overlay2/08f23115117c71272ef0795c413f0e81de9c69b63212cb690e5a9513e07a829a/diff:/var/lib/docker/overlay2/43e59e6f19d9de4d402fc57c4b578008904f32fa1881e43fa620a8e82f1865ae/diff:/var/lib/docker/overlay2/c1d345facf86355041450b8dacc3d36cde1d9ce3d06c783e750eb25b16009fa6/diff:/var/lib/docker/overlay2/9b3d27f33f9546dd4a273695782959f30becd72bddb160515ba599fd5bea9a0b/diff",
+                "MergedDir": "/var/lib/docker/overlay2/38bbc4260c51af01d2f0f188ededd2265745821a007f7712e503251d6f58ab2d/merged",
+                "UpperDir": "/var/lib/docker/overlay2/38bbc4260c51af01d2f0f188ededd2265745821a007f7712e503251d6f58ab2d/diff",
+                "WorkDir": "/var/lib/docker/overlay2/38bbc4260c51af01d2f0f188ededd2265745821a007f7712e503251d6f58ab2d/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/opt/deepflow-deploy/common/config/deepflow-server/server.yaml",
+                "Destination": "/etc/server.yaml",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "5e13e2b0004b",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "20033/tcp": {},
+                "20035/tcp": {},
+                "20416/tcp": {},
+                "20417/tcp": {},
+                "20419/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "K8S_POD_NAME_FOR_DEEPFLOW=deepflow-container",
+                "TZ=Asia/Shanghai",
+                "DEEPFLOW_SERVER_RUNNING_MODE=STANDALONE",
+                "K8S_POD_IP_FOR_DEEPFLOW=127.0.0.1",
+                "K8S_NODE_IP_FOR_DEEPFLOW=10.7.0.5",
+                "K8S_NAMESPACE_FOR_DEEPFLOW=deepflow",
+                "K8S_NODE_NAME_FOR_DEEPFLOW=deepflow-host",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "/bin/sh",
+                "-c",
+                "/bin/deepflow-server"
+            ],
+            "Image": "registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-server:v6.6.1",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "66f15570a3ef4ac45a4dce48b4f2194b8b631f7c98e1035123516a2dc137d171",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "deepflow-app:service_started:true,mysql:service_started:true,clickhouse:service_started:true",
+                "com.docker.compose.image": "sha256:89b4a14a4d39342aae02e9b2bb18e9949e861359be3aa2b0c6493bbeb3ba9072",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "deepflow-deploy",
+                "com.docker.compose.project.config_files": "/opt/deepflow-deploy/docker-compose.yaml",
+                "com.docker.compose.project.environment_file": "/opt/deepflow-deploy/.env",
+                "com.docker.compose.project.working_dir": "/opt/deepflow-deploy",
+                "com.docker.compose.replace": "1410db7c3889219dc7579abb39a5232604e22761151fce9db4774e75bf60f87f",
+                "com.docker.compose.service": "deepflow-server",
+                "com.docker.compose.version": "2.37.1"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "457a7f86f5b42b562a5ff1869626a7aaf6f00742eb88aea5ad57fadee789f295",
+            "SandboxKey": "/var/run/docker/netns/457a7f86f5b4",
+            "Ports": {
+                "20033/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "30033"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "30033"
+                    }
+                ],
+                "20035/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "30035"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "30035"
+                    }
+                ],
+                "20416/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "20416"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "20416"
+                    }
+                ],
+                "20417/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "30417"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "30417"
+                    }
+                ],
+                "20419/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "20419"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "20419"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "deepflow-deploy_deepflow": {
+                    "IPAMConfig": null,
+                    "Links": [
+                        "deepflow-mysql:mysql",
+                        "deepflow-mysql:mysql-1",
+                        "deepflow-mysql:deepflow-deploy-mysql-1",
+                        "deepflow-clickhouse:clickhouse",
+                        "deepflow-clickhouse:clickhouse-1",
+                        "deepflow-clickhouse:deepflow-deploy-clickhouse-1",
+                        "deepflow-app:deepflow-app",
+                        "deepflow-app:deepflow-app-1",
+                        "deepflow-app:deepflow-deploy-deepflow-app-1"
+                    ],
+                    "Aliases": [
+                        "deepflow-server",
+                        "deepflow-server"
+                    ],
+                    "MacAddress": "de:de:e0:56:b8:0a",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "b3b78010d59529cc5a34fac2ec1c477af65e617ce9c8535a7b10cc3ccc0dfdc7",
+                    "EndpointID": "95517d8cbf21d4f07ea2e1acf8931823f1ff79d78bba1347954b96fd43ff16b5",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "deepflow-server",
+                        "5e13e2b0004b"
+                    ]
+                }
+            }
+        }
+    }
+]

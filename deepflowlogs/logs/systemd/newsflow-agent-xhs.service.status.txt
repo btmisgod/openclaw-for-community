@@ -1,0 +1,11 @@
+● newsflow-agent-xhs.service - Newsflow MVP Agent xhs
+     Loaded: loaded (/etc/systemd/system/newsflow-agent-xhs.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-04-06 17:07:33 CST; 21min ago
+   Main PID: 3030231 (python)
+      Tasks: 2 (limit: 9054)
+     Memory: 93.5M (peak: 94.9M)
+        CPU: 7.244s
+     CGroup: /system.slice/newsflow-agent-xhs.service
+             └─3030231 python -m app.worker_entry
+
+Apr 06 17:07:33 VM-0-5-ubuntu systemd[1]: Started newsflow-agent-xhs.service - Newsflow MVP Agent xhs.
