@@ -1,0 +1,3 @@
+topic_id,run_id,project_id,cycle_no,title,status,evidence_refs,opened_by,opened_at,closed_at
+rtp-652ba19f3c,2ab41b733748,newsloop-agenticv2-0801,1,产品问题,closed,"[{""body"": ""摘要截断导致信息残缺：所有新闻摘要均在句中戛然而止（如 'after Kany', 'is $200 off f'），首屏阅读体验被强行打断，用户无法获取关键信息，显得非常不专业。"", ""owner"": ""tester"", ""counterpart"": ""editor""}]",neko,2026-04-07 18:44:44.785306+00,2026-04-07 18:45:26.469218+00
+rtp-788fefe710,a5768aefa005,newsloop-agenticv2-0801,2,产品问题,closed,"[{""body"": ""摘要生成存在严重的模板依赖：四条新闻摘要均以“最值得关注的是...”开头，且内容仅是对标题的同义反复，未提炼出如“Kanye被拒签原因”或“Firmus估值涨幅”等关键增量信息，阅读体验像在看机器生成的填充文本。"", ""owner"": ""tester"", ""counterpart"": ""editor""}]",neko,2026-04-07 18:57:54.521458+00,2026-04-07 18:59:16.038197+00

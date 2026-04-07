@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Draft Report</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>Draft Report</h1><div class='body'># 近24小时国际新闻热点（初稿）<br><br>- workflow_id: intl-news-hotspots<br>- project_id: newsloop-agenticv2-0801<br>- cycle_no: 2<br>- run_id: a5768aefa005<br>- 时区: Asia/Shanghai<br><br>## 政治经济<br>### 主推 | Wireless Festival cancelled after Kanye West blocked from coming to UK<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T18:37:19+00:00<br>- 原文链接: https://www.bbc.com/news/articles/c4gxk3kxjr0o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg, https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png, https://ichef.bbci.co.uk/news/480/cpsprodpb/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg.webp<br>最值得关注的是，BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kanye West blocked from coming to UK”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T18:11:38+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cyv16lq2rp1o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/5723/live/da544df0-3295-11f1-934f-036468834728.jpg<br>据BBC News报道，这则政治经济新闻围绕“JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU”。<br><br>### 副推2 | Afghanistan brands China peace talks with Pakistan ‘useful’<br>- 来源: Al Jazeera – Breaking News, World News and Video from Al Jazeera<br>- 发布时间: 2026-04-07T18:21:24+00:00<br>- 原文链接: https://www.aljazeera.com/news/2026/4/7/afghanistan-brands-china-peace-talks-with-pakistan-useful?traffic_source=rss<br>- 图片: https://www.aljazeera.com/wp-content/uploads/2026/02/afp-newsml.afp_.com_.20260227T081656Z.doc-99698k2-1772184482.jpg?resize=1920%2C1440<br>据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Afghanistan brands C。<br><br>### 其他 7 条<br>- UK blocks rapper Kanye West from entry over anti-Semitism and Nazi support | Al Jazeera – Breaking News, World News and Video from Al Jazeera | 2026-04-07T18:13:05+00:00 | https://www.aljazeera.com/news/2026/4/7/uk-blocks-rapper-kanye-west-from-entry-over-anti-semitism-and-nazi-support?traffic_source=rss | 据Al Jazeera – Breaking News, World News and Video。<br>- Iran War Live Updates: Trump Calls to Wipe Out a ‘Whole Civilization’ as Iranians Reject Threats | NYT &gt; World News | 2026-04-07T18:46:38+00:00 | https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。<br>- Pentagon Stays Mum on School Strike, Even As Trump Boasts of Iran Rescue | NYT &gt; World News | 2026-04-07T18:45:20+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/iran-school-strike-pentagon.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Pentagon Stays Mum。<br>- Iranians Voice Shock and Defiance in Face of Trump’s Looming Deadline | NYT &gt; World News | 2026-04-07T18:43:16+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/iran-shock-defiance-trump-deadline-threat.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iranians Voice Sho。<br>- Iran Calls Off Indirect Talks With U.S. After Trump’s Latest Threat | NYT &gt; World News | 2026-04-07T18:37:07+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/iran-trump-negotiations-talks-threat.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iran Calls Off Ind。<br>- Shelly Kittleson, American Journalist Abducted in Iraq, Is Freed | NYT &gt; World News | 2026-04-07T18:30:42+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/shelly-kittleson-journalist-iraq.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Shelly Kittleson。<br>- Here’s the latest. | NYT &gt; World News | 2026-04-07T18:28:09+00:00 | https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news/heres-the-latest | 据NYT &gt; World News报道，这则政治经济新闻围绕“Here’s the latest。<br><br>## 科技<br>### 主推 | Firmus, the ‘Southgate’ AI datacenter builder backed by Nvidia, hits $5.5B valuation<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-07T18:46:55+00:00<br>- 原文链接: https://techcrunch.com/2026/04/07/firmus-the-southgate-ai-datacenter-builder-backed-by-nvidia-hits-5-5b-valuation/<br>- 图片: https://techcrunch.com/wp-content/uploads/2024/07/GettyImages-1955086330.jpg?resize=1200,675, https://techcrunch.com/wp-content/uploads/2024/09/tc-lockup.svg, https://techcrunch.com/wp-content/uploads/2024/09/tc-logo-mobile.svg<br>最值得关注的是，TechCrunch报道，这则科技新闻围绕“Firmus, the ‘Southgate’ AI datacenter builder backed by Nvidia, hits $5.5B valuation”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Samsung’s Galaxy S26 Ultra is $200 off for the first time<br>- 来源: The Verge<br>- 发布时间: 2026-04-07T18:16:52+00:00<br>- 原文链接: https://www.theverge.com/gadgets/908196/samsung-galaxy-s26-ultra-privacy-display-deal-sale-unlocked<br>- 图片: https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268399_Samsung_Galaxy_S26_Ultra_review_AJohnson_0005.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.723165084465%2C100%2C78.55366983107&amp;w=1200<br>据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off for the first time”展开，更多细节与背景请查看原文链接。<br><br>### 副推2 | Intel signs on to Elon Musk’s Terafab chips project<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-07T18:10:01+00:00<br>- 原文链接: https://techcrunch.com/2026/04/07/intel-signs-on-to-elon-musks-terafab-chips-project/<br>- 图片: https://techcrunch.com/wp-content/uploads/2026/04/HFTb6BbbcAANe5y-e1775584097859.jpeg?w=597<br>据TechCrunch报道，这则科技新闻围绕“Intel signs on to Elon Musk’s Terafab chips project”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- Anthropic debuts preview of powerful new AI model Mythos in new cybersecurity initiative | TechCrunch | 2026-04-07T18:00:00+00:00 | https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/ | 据TechCrunch报道，这则科技新闻围绕“Anthropic debuts preview o。<br>- A new Anthropic model found security problems ‘in every major operating system and web browser’ | The Verge | 2026-04-07T18:00:00+00:00 | https://www.theverge.com/ai-artificial-intelligence/908114/anthropic-project-glasswing-cybersecurity | 据The Verge报道，这则科技新闻围绕“A new Anthropic model found。<br>- Apple’s foldable iPhone is on track to launch in September, report says | TechCrunch | 2026-04-07T17:47:43+00:00 | https://techcrunch.com/2026/04/07/apples-foldable-iphone-is-on-track-to-launch-in-september-report-says/ | 据TechCrunch报道，这则科技新闻围绕“Apple’s foldable iPhone is。<br>- The rugged Bose Soundlink Flex is 25 percent off right now | The Verge | 2026-04-07T17:02:25+00:00 | https://www.theverge.com/gadgets/907744/bose-soundlink-flex-2nd-gen-google-nest-doorbell-deal-sale | 据The Verge报道，这则科技新闻围绕“The rugged Bose Soundlink F。<br>- Russian government hackers broke into thousands of home routers to steal passwords | TechCrunch | 2026-04-07T17:01:41+00:00 | https://techcrunch.com/2026/04/07/russian-government-hackers-broke-into-thousands-of-home-routers-to-steal-passwords/ | 据TechCrunch报道，这则科技新闻围绕“Russian government hackers。<br>- Chrome finally adds a better way to deal with too many open tabs | TechCrunch | 2026-04-07T17:00:00+00:00 | https://techcrunch.com/2026/04/07/chrome-is-finally-getting-vertical-tabs/ | 据TechCrunch报道，这则科技新闻围绕“Chrome finally adds a bett。<br>- Vertical browser tabs are better and you should use them | The Verge | 2026-04-07T17:00:00+00:00 | https://www.theverge.com/tech/907998/google-chrome-vertical-tabs | 据The Verge报道，这则科技新闻围绕“Vertical browser tabs are b。<br><br>## 体育娱乐<br>### 主推 | USMNT&#x27;s Agyemang (Achilles tendon) out of WC<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-07T19:21:38+00:00<br>- 原文链接: https://www.espn.com/soccer/story/_/id/48419832/usa-patrick-agyemang-world-cup-achilles-tendon-injury<br>- 图片: https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0323%2Fr1632854_1296x729_16%2D9.jpg, https://a.espncdn.com/combiner/i?img=%2Fredesign%2Fassets%2Fimg%2Ficons%2FESPN%2Dicon%2Dsoccer.png&amp;w=40&amp;h=40&amp;scale=crop&amp;cquality=40&amp;location=origin, https://a.espncdn.com/combiner/i?img=/i/content-reactions/check.png&amp;h=80&amp;w=80<br>最值得关注的是，www.espn.com - TOP报道，这则体育娱乐新闻围绕“USMNT&#x27;s Agyemang (Achilles tendon) out of WC”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Michigan hits &#x27;ultimate target,&#x27; wins NCAA title<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-07T19:21:38+00:00<br>- 原文链接: https://www.espn.com/mens-college-basketball/story/_/id/48416755/michigan-holds-uconn-win-second-ncaa-hoops-title<br>- 图片: https://a1.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0407%2Fr1639669_1296x729_16%2D9.jpg<br>据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Michigan hits &#x27;ultimate target,&#x27; wins NCAA title”展开，更多细节与背景请查看原文链接。<br><br>### 副推2 | Serrano to defend titles vs. Hanson at MVPW-03<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-07T19:21:38+00:00<br>- 原文链接: https://www.espn.com/boxing/story/_/id/48420692/amanda-serrano-defend-titles-vs-cheyenne-hanson-mvpw-03<br>- 图片: https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0104%2Fr1596326_1296x729_16%2D9.jpg<br>据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Serrano to defend titles vs. Hanson at MVPW-03”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- 🏀 Men&#x27;s Pain Index: Ranking every tourney loss | www.espn.com - TOP | 2026-04-07T19:21:38+00:00 | https://www.espn.com/mens-college-basketball/story/_/id/48273891/mens-march-madness-2026-pain-index-tournament-loss-hurt | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“🏀 Men&#x27;s Pain Ind。<br>- Staley talks to Geno, wants focus on growing game | www.espn.com - TOP | 2026-04-07T19:21:38+00:00 | https://www.espn.com/womens-college-basketball/story/_/id/48421840/staley-says-spoke-auriemma-wants-turn-page | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Staley talks to。<br>- Sources: Mendoza not planning to attend draft | www.espn.com - TOP | 2026-04-07T19:21:38+00:00 | https://www.espn.com/nfl/story/_/id/48421461/sources-fernando-mendoza-not-planning-attend-nfl-draft | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sources: Mendoza。<br>- Duke faves, Michigan next in &#x27;27 hoops title odds | www.espn.com - TOP | 2026-04-07T19:21:38+00:00 | https://www.espn.com/mens-college-basketball/story/_/id/48420580/duke-favored-win-27-men-hoop-title-michigan-florida-follow | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Duke faves, Mich。<br>- Inside the Bucks&#x27; lost season, and the looming &#x27;nasty breakup&#x27; with Giannis Antetokounmpo | www.espn.com - TOP | 2026-04-07T18:55:46+00:00 | https://www.espn.com/nba/story/_/id/48412620/inside-fractured-relationship-giannis-antetokounmpo-milwaukee-bucks | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Inside the Bucks。<br>- Valverde&#x27;s hunger, sacrifice and goals should have Madrid confident -- and Bayern fearful | www.espn.com - TOP | 2026-04-07T18:54:39+00:00 | https://www.espn.com/soccer/story/_/id/48405118/fede-valverde-real-madrid-confident-bayern-munich-fearful-ucl-clash | 据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Valverde&#x27;s hunge。<br>- Pershing Square’s Universal Music Group Bid: What You Need to Know | Billboard | 2026-04-07T18:50:04+00:00 | https://www.billboard.com/pro/pershing-square-universal-music-offer-shareholder-call/ | 据Billboard报道，这则体育娱乐新闻围绕“Pershing Square’s Univers。<br><br>## 其他<br>### 主推 | Experience the Rollout of SLS Hardware for Artemis III<br>- 来源: NASA<br>- 发布时间: 2026-04-07T17:52:09+00:00<br>- 原文链接: https://www.nasa.gov/general/experience-the-rollout-of-sls-hardware-for-artemis-iii/<br>- 图片: https://images-assets.nasa.gov/image/MAF_20240712_CS2_Bldg110_Rev-epb_01/MAF_20240712_CS2_Bldg110_Rev-epb_01~large.jpg, https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png, https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint<br>最值得关注的是，NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for Artemis III”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | NASA to Host Media Call with Artemis II Crew on Way Home from Moon<br>- 来源: NASA<br>- 发布时间: 2026-04-07T16:38:04+00:00<br>- 原文链接: https://www.nasa.gov/news-release/nasa-to-host-media-call-with-artemis-ii-crew-on-way-home-from-moon/<br>- 图片: https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-cnew-conference-advisory-april-7.jpg<br>据NASA报道，这则其他新闻围绕“NASA to Host Media Call with Artemis II Crew on Way Home from Moon”展开，更多细节与背景请查看原文。<br><br>### 副推2 | Has Artemis II shown we can land on the Moon again?<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T15:23:05+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cj60nkd8nrko?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/ea03/live/ffec2580-3298-11f1-934f-036468834728.jpg<br>据BBC News报道，这则其他新闻围绕“Has Artemis II shown we can land on the Moon again?”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- Earthset and a solar eclipse: Nasa releases first images from Moon fly-by | BBC News | 2026-04-07T14:53:18+00:00 | https://www.bbc.com/news/articles/cyv183v02j3o?at_medium=RSS&amp;at_campaign=rss | 据BBC News报道，这则其他新闻围绕“Earthset and a solar eclipse。<br>- Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife | NYT &gt; Science | 2026-04-07T18:26:11+00:00 | https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html | 据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。<br>- NASA’s Artemis II Astronauts Spread ‘Moon Joy’ to the Public | NYT &gt; Science | 2026-04-07T18:21:42+00:00 | https://www.nytimes.com/2026/04/07/science/nasa-artemis-ii-astronauts-moon-joy.html | 据NYT &gt; Science报道，这则其他新闻围绕“NASA’s Artemis II Astro。<br>- See First Photos From NASA’s Artemis II Moon Mission Capturing a Setting Earth and Eclipse | NYT &gt; Science | 2026-04-07T18:21:18+00:00 | https://www.nytimes.com/2026/04/07/science/nasa-artemis-moon-flyby-photos.html | 据NYT &gt; Science报道，这则其他新闻围绕“See First Photos From N。<br>- Finasteride for Male Baldness is Rewriting the Rules of Male Beauty | NYT &gt; Health | 2026-04-07T16:45:40+00:00 | https://www.nytimes.com/2026/04/07/magazine/male-hair-loss-treatment-finasteride.html | 据NYT &gt; Health报道，这则其他新闻围绕“Finasteride for Male Bal。<br>- How the Internet Became the ‘Cookbook’ of the Drug Trade | NYT &gt; Health | 2026-04-07T16:32:44+00:00 | https://www.nytimes.com/2026/03/31/science/drugs-psychoactive-nitazenes.html | 据NYT &gt; Health报道，这则其他新闻围绕“How the Internet Became。<br>- E.P.A. Targets Microplastics and Drugs in Drinking Water | NYT &gt; Health | 2026-04-07T16:03:29+00:00 | https://www.nytimes.com/2026/04/02/climate/microplastics-maha-epa.html | 据NYT &gt; Health报道，这则其他新闻围绕“E.P.A. Targets Microplas。<br></div><h3>draft_json</h3><pre>{
+  &quot;政治经济&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4792,
+      &quot;title&quot;: &quot;Wireless Festival cancelled after Kanye West blocked from coming to UK&quot;,
+      &quot;source_media&quot;: &quot;BBC News&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T18:37:19+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.bbc.com/news/articles/c4gxk3kxjr0o?at_medium=RSS&amp;at_campaign=rss&quot;,
+      &quot;images&quot;: [
+        &quot;https://ichef.bbci.co.uk/news/1024/branded_news/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg&quot;,
+        &quot;https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png&quot;,
+        &quot;https://ichef.bbci.co.uk/news/480/cpsprodpb/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg.webp&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;West was due to headline the festival in July but drew criticism over past antisemitic comments.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;最值得关注的是，BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kanye West blocked from coming to UK”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4793,
+        &quot;title&quot;: &quot;JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:11:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cyv16lq2rp1o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/5723/live/da544df0-3295-11f1-934f-036468834728.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;US Vice-President JD Vance intervenes in the campaign to give Orbán a ringing endorsement in Budapest.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则政治经济新闻围绕“JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU”。&quot;
+      },
+      {
+        &quot;id&quot;: 4794,
+        &quot;title&quot;: &quot;Afghanistan brands China peace talks with Pakistan ‘useful’&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:21:24+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/7/afghanistan-brands-china-peace-talks-with-pakistan-useful?traffic_source=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.aljazeera.com/wp-content/uploads/2026/02/afp-newsml.afp_.com_.20260227T081656Z.doc-99698k2-1772184482.jpg?resize=1920%2C1440&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Kabul&#x27;s foreign minister expresses hope that minor interpretations will not hinder progress.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“Afghanistan brands C。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4795,
+        &quot;title&quot;: &quot;UK blocks rapper Kanye West from entry over anti-Semitism and Nazi support&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:13:05+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/7/uk-blocks-rapper-kanye-west-from-entry-over-anti-semitism-and-nazi-support?traffic_source=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;British PM Keir Starmer said it was concerning that London&#x27;s Wireless Festival had booked West in the first place.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Al Jazeera – Breaking News, World News and Video。&quot;
+      },
+      {
+        &quot;id&quot;: 4796,
+        &quot;title&quot;: &quot;Iran War Live Updates: Trump Calls to Wipe Out a ‘Whole Civilization’ as Iranians Reject Threats&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:46:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The United States and Israel stepped up their attacks on Iran ahead of President Trump’s 8 p.m. Eastern deadline to make a deal to reopen the Strait of Hormuz. Iran is said to have withdrawn from negotiations.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。&quot;
+      },
+      {
+        &quot;id&quot;: 4797,
+        &quot;title&quot;: &quot;Pentagon Stays Mum on School Strike, Even As Trump Boasts of Iran Rescue&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:45:20+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/iran-school-strike-pentagon.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;President Trump and Secretary of Defense Pete Hegseth’s eagerness to recount details of the rescue of a downed airman followed weeks of silence on the deadly Tomahawk missile strike on an Iranian school.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Pentagon Stays Mum。&quot;
+      },
+      {
+        &quot;id&quot;: 4798,
+        &quot;title&quot;: &quot;Iranians Voice Shock and Defiance in Face of Trump’s Looming Deadline&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:43:16+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/iran-shock-defiance-trump-deadline-threat.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;President Trump has threatened devastating attacks if Iran does not reopen the Strait of Hormuz. Some Iranians questioned what had happened to American values.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iranians Voice Sho。&quot;
+      },
+      {
+        &quot;id&quot;: 4799,
+        &quot;title&quot;: &quot;Iran Calls Off Indirect Talks With U.S. After Trump’s Latest Threat&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:37:07+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/iran-trump-negotiations-talks-threat.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;As the United States’ 8 p.m. deadline to open the Strait of Hormuz approaches, Iran vowed to retaliate if its power plants were attacked.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran Calls Off Ind。&quot;
+      },
+      {
+        &quot;id&quot;: 4800,
+        &quot;title&quot;: &quot;Shelly Kittleson, American Journalist Abducted in Iraq, Is Freed&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:30:42+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/shelly-kittleson-journalist-iraq.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The journalist, Shelly Kittleson, was abducted by a militia allied with Iran and held for a week. Iraqi officials say she was freed in exchange for the release of militia members.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Shelly Kittleson。&quot;
+      },
+      {
+        &quot;id&quot;: 4801,
+        &quot;title&quot;: &quot;Here’s the latest.&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:28:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news/heres-the-latest&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Here’s the latest。&quot;
+      }
+    ]
+  },
+  &quot;科技&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4809,
+      &quot;title&quot;: &quot;Firmus, the ‘Southgate’ AI datacenter builder backed by Nvidia, hits $5.5B valuation&quot;,
+      &quot;source_media&quot;: &quot;TechCrunch&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T18:46:55+00:00&quot;,
+      &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/firmus-the-southgate-ai-datacenter-builder-backed-by-nvidia-hits-5-5b-valuation/&quot;,
+      &quot;images&quot;: [
+        &quot;https://techcrunch.com/wp-content/uploads/2024/07/GettyImages-1955086330.jpg?resize=1200,675&quot;,
+        &quot;https://techcrunch.com/wp-content/uploads/2024/09/tc-lockup.svg&quot;,
+        &quot;https://techcrunch.com/wp-content/uploads/2024/09/tc-logo-mobile.svg&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Nvidia-backed Asia AI data center provider Firmus has now raised $1.35 billion in six months.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;最值得关注的是，TechCrunch报道，这则科技新闻围绕“Firmus, the ‘Southgate’ AI datacenter builder backed by Nvidia, hits $5.5B valuation”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4810,
+        &quot;title&quot;: &quot;Samsung’s Galaxy S26 Ultra is $200 off for the first time&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:16:52+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/gadgets/908196/samsung-galaxy-s26-ultra-privacy-display-deal-sale-unlocked&quot;,
+        &quot;images&quot;: [
+          &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268399_Samsung_Galaxy_S26_Ultra_review_AJohnson_0005.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.723165084465%2C100%2C78.55366983107&amp;w=1200&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;My colleague Allison Johnson loved the Privacy Display in her review of the Samsung Galaxy S26 Ultra. The display feature, which blocks onlookers from getting a peep at what’s on the screen when viewed from the side, is worth getting the S26 Ultra for if you are serious about privacy during your commute or elsewhere. […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off for the first time”展开，更多细节与背景请查看原文链接。&quot;
+      },
+      {
+        &quot;id&quot;: 4811,
+        &quot;title&quot;: &quot;Intel signs on to Elon Musk’s Terafab chips project&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:10:01+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/intel-signs-on-to-elon-musks-terafab-chips-project/&quot;,
+        &quot;images&quot;: [
+          &quot;https://techcrunch.com/wp-content/uploads/2026/04/HFTb6BbbcAANe5y-e1775584097859.jpeg?w=597&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The partnership brings semiconductor experience to Musk&#x27;s latest high-tech project.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Intel signs on to Elon Musk’s Terafab chips project”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4812,
+        &quot;title&quot;: &quot;Anthropic debuts preview of powerful new AI model Mythos in new cybersecurity initiative&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The new model will be used by a small number of high-profile companies to engage in defensive cybersecurity work.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Anthropic debuts preview o。&quot;
+      },
+      {
+        &quot;id&quot;: 4813,
+        &quot;title&quot;: &quot;A new Anthropic model found security problems ‘in every major operating system and web browser’&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/ai-artificial-intelligence/908114/anthropic-project-glasswing-cybersecurity&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Anthropic is debuting a new AI model as part of a cybersecurity partnership with Nvidia, Google, Amazon Web Services, Apple, Microsoft, and other companies. Project Glasswing, as it&#x27;s called, is billed as a way for large companies, and potentially even the government, to flag vulnerabilities in their systems with virtually no human intervention. Anthropic is […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“A new Anthropic model found。&quot;
+      },
+      {
+        &quot;id&quot;: 4814,
+        &quot;title&quot;: &quot;Apple’s foldable iPhone is on track to launch in September, report says&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:47:43+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/apples-foldable-iphone-is-on-track-to-launch-in-september-report-says/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The news follows a report from Nikkei Asia on Tuesday that raised concerns the company’s foldable iPhone could be delayed due to challenges during the phone’s engineering test phase.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Apple’s foldable iPhone is。&quot;
+      },
+      {
+        &quot;id&quot;: 4815,
+        &quot;title&quot;: &quot;The rugged Bose Soundlink Flex is 25 percent off right now&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:02:25+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/gadgets/907744/bose-soundlink-flex-2nd-gen-google-nest-doorbell-deal-sale&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;We saw a host of excellent Bose discounts during Amazon’s so-called Big Spring Sale last month; however, none of them were quite as steep as the current price drop we’re seeing on the latest Bose Soundlink Flex. Right now, the portable speaker is on sale at Amazon, Walmart, and Best Buy for $119 ($40 off), […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“The rugged Bose Soundlink F。&quot;
+      },
+      {
+        &quot;id&quot;: 4816,
+        &quot;title&quot;: &quot;Russian government hackers broke into thousands of home routers to steal passwords&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:01:41+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/russian-government-hackers-broke-into-thousands-of-home-routers-to-steal-passwords/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Fancy Bear, also known as APT28, has taken over thousands of residential home routers to steal passwords and authentication tokens in a wide-ranging espionage operation.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Russian government hackers。&quot;
+      },
+      {
+        &quot;id&quot;: 4817,
+        &quot;title&quot;: &quot;Chrome finally adds a better way to deal with too many open tabs&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/chrome-is-finally-getting-vertical-tabs/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Google Chrome&#x27;s latest update brings vertical tabs and a cleaner Reading Mode to help manage cluttered browsing.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Chrome finally adds a bett。&quot;
+      },
+      {
+        &quot;id&quot;: 4818,
+        &quot;title&quot;: &quot;Vertical browser tabs are better and you should use them&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/tech/907998/google-chrome-vertical-tabs&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Google&#x27;s Chrome browser is getting a couple of new features, both of them extremely welcome and wildly overdue. The first is a reading mode, which does what it already does in most other browsers: strip out a lot of website cruft to make pages easier to read. Reading mode is good, you should use it, […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Vertical browser tabs are b。&quot;
+      }
+    ]
+  },
+  &quot;体育娱乐&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4841,
+      &quot;title&quot;: &quot;USMNT&#x27;s Agyemang (Achilles tendon) out of WC&quot;,
+      &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.espn.com/soccer/story/_/id/48419832/usa-patrick-agyemang-world-cup-achilles-tendon-injury&quot;,
+      &quot;images&quot;: [
+        &quot;https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0323%2Fr1632854_1296x729_16%2D9.jpg&quot;,
+        &quot;https://a.espncdn.com/combiner/i?img=%2Fredesign%2Fassets%2Fimg%2Ficons%2FESPN%2Dicon%2Dsoccer.png&amp;w=40&amp;h=40&amp;scale=crop&amp;cquality=40&amp;location=origin&quot;,
+        &quot;https://a.espncdn.com/combiner/i?img=/i/content-reactions/check.png&amp;h=80&amp;w=80&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;United States international Patrick Agyemang will miss his home World Cup after suffering a serious Achilles tendon injury.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;最值得关注的是，www.espn.com - TOP报道，这则体育娱乐新闻围绕“USMNT&#x27;s Agyemang (Achilles tendon) out of WC”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4839,
+        &quot;title&quot;: &quot;Michigan hits &#x27;ultimate target,&#x27; wins NCAA title&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mens-college-basketball/story/_/id/48416755/michigan-holds-uconn-win-second-ncaa-hoops-title&quot;,
+        &quot;images&quot;: [
+          &quot;https://a1.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0407%2Fr1639669_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Michigan won its second national title by becoming the first team since 2009 to beat UConn in the Sweet 16 or later.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Michigan hits &#x27;ultimate target,&#x27; wins NCAA title”展开，更多细节与背景请查看原文链接。&quot;
+      },
+      {
+        &quot;id&quot;: 4840,
+        &quot;title&quot;: &quot;Serrano to defend titles vs. Hanson at MVPW-03&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/boxing/story/_/id/48420692/amanda-serrano-defend-titles-vs-cheyenne-hanson-mvpw-03&quot;,
+        &quot;images&quot;: [
+          &quot;https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0104%2Fr1596326_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Amanda Serrano will return to the ring and defend her featherweight titles against Germany&#x27;s Cheyenne Hanson as part of MVPW-03 on May 30 in El Paso, Texas.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Serrano to defend titles vs. Hanson at MVPW-03”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4842,
+        &quot;title&quot;: &quot;🏀 Men&#x27;s Pain Index: Ranking every tourney loss&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mens-college-basketball/story/_/id/48273891/mens-march-madness-2026-pain-index-tournament-loss-hurt&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Some losses are understandable in the NCAA tournament. Others will haunt us forever (see: Duke). We rank them all.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“🏀 Men&#x27;s Pain Ind。&quot;
+      },
+      {
+        &quot;id&quot;: 4836,
+        &quot;title&quot;: &quot;Staley talks to Geno, wants focus on growing game&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/womens-college-basketball/story/_/id/48421840/staley-says-spoke-auriemma-wants-turn-page&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;South Carolina coach Dawn Staley said Tuesday that she has spoken to UConn&#x27;s Geno Auriemma and suggested for \&quot;everyone to turn the page\&quot; after their midcourt argument at the Final Four fueled a firestorm of controversy.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Staley talks to。&quot;
+      },
+      {
+        &quot;id&quot;: 4837,
+        &quot;title&quot;: &quot;Sources: Mendoza not planning to attend draft&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nfl/story/_/id/48421461/sources-fernando-mendoza-not-planning-attend-nfl-draft&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Fernando Mendoza has informed the NFL that he is not planning to attend the draft, sources told ESPN.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sources: Mendoza。&quot;
+      },
+      {
+        &quot;id&quot;: 4838,
+        &quot;title&quot;: &quot;Duke faves, Michigan next in &#x27;27 hoops title odds&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:21:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mens-college-basketball/story/_/id/48420580/duke-favored-win-27-men-hoop-title-michigan-florida-follow&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Duke is favored to win the 2027 men&#x27;s basketball national championship, according to bookmakers, with newly crowned &#x27;26 champion Michigan second in next year&#x27;s title odds.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Duke faves, Mich。&quot;
+      },
+      {
+        &quot;id&quot;: 4843,
+        &quot;title&quot;: &quot;Inside the Bucks&#x27; lost season, and the looming &#x27;nasty breakup&#x27; with Giannis Antetokounmpo&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:55:46+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nba/story/_/id/48412620/inside-fractured-relationship-giannis-antetokounmpo-milwaukee-bucks&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A lost season exacerbated a 13-year relationship that was already on the rocks, leading to more questions than answers in Milwaukee.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Inside the Bucks。&quot;
+      },
+      {
+        &quot;id&quot;: 4844,
+        &quot;title&quot;: &quot;Valverde&#x27;s hunger, sacrifice and goals should have Madrid confident -- and Bayern fearful&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:54:39+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/soccer/story/_/id/48405118/fede-valverde-real-madrid-confident-bayern-munich-fearful-ucl-clash&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;This has been something of a lost season for Real Madrid, but the tenacity and form of Federico Valverde may yet bring trophies to the Spanish capital.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Valverde&#x27;s hunge。&quot;
+      },
+      {
+        &quot;id&quot;: 4845,
+        &quot;title&quot;: &quot;Pershing Square’s Universal Music Group Bid: What You Need to Know&quot;,
+        &quot;source_media&quot;: &quot;Billboard&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:50:04+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.billboard.com/pro/pershing-square-universal-music-offer-shareholder-call/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;On a call with shareholders, Bill Ackman discussed Lucian Grainge&#x27;s contract and Pershing&#x27;s plan to take UMG&#x27;s share price to over 30 euros by 2030.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Billboard报道，这则体育娱乐新闻围绕“Pershing Square’s Univers。&quot;
+      }
+    ]
+  },
+  &quot;其他&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4780,
+      &quot;title&quot;: &quot;Experience the Rollout of SLS Hardware for Artemis III&quot;,
+      &quot;source_media&quot;: &quot;NASA&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T17:52:09+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.nasa.gov/general/experience-the-rollout-of-sls-hardware-for-artemis-iii/&quot;,
+      &quot;images&quot;: [
+        &quot;https://images-assets.nasa.gov/image/MAF_20240712_CS2_Bldg110_Rev-epb_01/MAF_20240712_CS2_Bldg110_Rev-epb_01~large.jpg&quot;,
+        &quot;https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png&quot;,
+        &quot;https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Digital creators and social media users are invited to register to attend the rollout of the third SLS (Space Launch System) core stage as it is prepped to head from NASA’s Michoud Assembly Facility to NASA’s Kennedy Space Center. Are you passionate about social media and communications? Do you love to create content for an […]&quot;
+      },
+      &quot;summary_zh&quot;: &quot;最值得关注的是，NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for Artemis III”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4781,
+        &quot;title&quot;: &quot;NASA to Host Media Call with Artemis II Crew on Way Home from Moon&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:38:04+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/news-release/nasa-to-host-media-call-with-artemis-ii-crew-on-way-home-from-moon/&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-cnew-conference-advisory-april-7.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Media will have an opportunity at 9:45 p.m. EDT on Wednesday, April 8, to speak with NASA’s Artemis II crew members as they continue their journey toward Earth during their historic mission around the Moon. The 20-minute virtual news conference will take place with NASA astronauts Reid Wiseman, Victor Glover, and Christina Koch, and CSA […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NASA报道，这则其他新闻围绕“NASA to Host Media Call with Artemis II Crew on Way Home from Moon”展开，更多细节与背景请查看原文。&quot;
+      },
+      {
+        &quot;id&quot;: 4782,
+        &quot;title&quot;: &quot;Has Artemis II shown we can land on the Moon again?&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T15:23:05+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cj60nkd8nrko?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/ea03/live/ffec2580-3298-11f1-934f-036468834728.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Artemis II mission has been near flawless to date, but has the test flight shown Nasa is ready to send humans to the lunar surface?&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“Has Artemis II shown we can land on the Moon again?”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4783,
+        &quot;title&quot;: &quot;Earthset and a solar eclipse: Nasa releases first images from Moon fly-by&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T14:53:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cyv183v02j3o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The first two images show an &#x27;Earthrise&#x27; and the solar eclipse the astronauts viewed.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“Earthset and a solar eclipse。&quot;
+      },
+      {
+        &quot;id&quot;: 4784,
+        &quot;title&quot;: &quot;Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:26:11+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The crew shared an emotional moment with mission control and the family of Reid Wiseman, whose wife, Carroll, died in 2020, on the ground in Houston.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。&quot;
+      },
+      {
+        &quot;id&quot;: 4785,
+        &quot;title&quot;: &quot;NASA’s Artemis II Astronauts Spread ‘Moon Joy’ to the Public&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:21:42+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/science/nasa-artemis-ii-astronauts-moon-joy.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;While science can seem colorless and plain, NASA’s lunar crew members have brought expressiveness and emotion about their journey to mission control and the public.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“NASA’s Artemis II Astro。&quot;
+      },
+      {
+        &quot;id&quot;: 4786,
+        &quot;title&quot;: &quot;See First Photos From NASA’s Artemis II Moon Mission Capturing a Setting Earth and Eclipse&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:21:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/science/nasa-artemis-moon-flyby-photos.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The White House and NASA released imagery captured by the cameras of the four astronauts of the Artemis II mission.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“See First Photos From N。&quot;
+      },
+      {
+        &quot;id&quot;: 4787,
+        &quot;title&quot;: &quot;Finasteride for Male Baldness is Rewriting the Rules of Male Beauty&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:45:40+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/magazine/male-hair-loss-treatment-finasteride.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A pill to cure baldness is changing the way men age — and how they see themselves.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“Finasteride for Male Bal。&quot;
+      },
+      {
+        &quot;id&quot;: 4788,
+        &quot;title&quot;: &quot;How the Internet Became the ‘Cookbook’ of the Drug Trade&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:32:44+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/03/31/science/drugs-psychoactive-nitazenes.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A baffling overdose death took investigators to the frontier of ultra-potent synthetic drugs. The clues were hauntingly familiar.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“How the Internet Became。&quot;
+      },
+      {
+        &quot;id&quot;: 4789,
+        &quot;title&quot;: &quot;E.P.A. Targets Microplastics and Drugs in Drinking Water&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:03:29+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/02/climate/microplastics-maha-epa.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The move drew praise from leaders of the Make America Healthy Again movement who had recently criticized the agency’s handling of toxic chemicals.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“E.P.A. Targets Microplas。&quot;
+      }
+    ]
+  }
+}</pre></section></body>
+</html>

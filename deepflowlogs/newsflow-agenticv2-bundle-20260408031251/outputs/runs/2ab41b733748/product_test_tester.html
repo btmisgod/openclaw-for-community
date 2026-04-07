@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tester 产品测试报告</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>tester 产品测试报告</h1><div class='body'># tester 产品测试报告<br><br>- run_id: 2ab41b733748<br>- 视角: 信息完整性与视觉规范<br><br>## 成品证据<br>- 政治经济 | main | Wireless Festival cancelled after Kanye West blocked from coming to UK | image_count=3 | 无线音乐节因Kanye West被禁止进入英国而被迫取消。据BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kany<br>- 科技 | main | Samsung’s Galaxy S26 Ultra is $200 off for the first time | image_count=3 | 三星Galaxy S26 Ultra首次降价200美元。据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off f<br>- 体育娱乐 | main | Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive) | image_count=3 | Noah Hawley确定执导华纳兄弟恐怖翻拍片《Terrified》。据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Noah Hawley to Di<br>- 其他 | main | Experience the Rollout of SLS Hardware for Artemis III | image_count=3 | 公众现可体验Artemis III任务SLS硬件的推出过程。据NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for <br><br>## 最明显的问题<br>- 摘要截断导致信息残缺：所有新闻摘要均在句中戛然而止（如 &#x27;after Kany&#x27;, &#x27;is $200 off f&#x27;），首屏阅读体验被强行打断，用户无法获取关键信息，显得非常不专业。<br>- 元数据裸露破坏沉浸感：&#x27;images=3&#x27; 等字段直接以文本形式穿插在标题与摘要之间，看起来像后台调试日志而非面向用户的产品界面，严重破坏了新闻阅读的严肃性。<br>- 分类逻辑粗糙：Artemis III 登月任务被归入&#x27;其他&#x27;类，而非科技或科学板块，导致板块收束感弱，高价值内容被稀释在无效分类中。<br><br>## 最值得优先改的点<br>- 增加摘要完整性校验机制，强制要求输出完整语句，或在字数限制处做优雅的省略号处理。<br>- 将图片数量字段转化为视觉图标或缩略图组，严禁直接展示原始数据字段。<br>- 细化分类标签体系，将航天、科学类新闻从&#x27;其他&#x27;中剥离，归入科技或独立板块，提升内容分发精准度。<br><br>## 与我本轮执行的关系<br>- slice_political_economic_summary_truncation<br>- slice_tech_metadata_display<br>- slice_other_category_logic</div><h3>evidence</h3><ul><li>{&#x27;section&#x27;: &#x27;政治经济&#x27;, &#x27;kind&#x27;: &#x27;main&#x27;, &#x27;title&#x27;: &#x27;Wireless Festival cancelled after Kanye West blocked from coming to UK&#x27;, &#x27;summary&#x27;: &#x27;无线音乐节因Kanye West被禁止进入英国而被迫取消。据BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kany&#x27;, &#x27;image_count&#x27;: 3}</li><li>{&#x27;section&#x27;: &#x27;科技&#x27;, &#x27;kind&#x27;: &#x27;main&#x27;, &#x27;title&#x27;: &#x27;Samsung’s Galaxy S26 Ultra is $200 off for the first time&#x27;, &#x27;summary&#x27;: &#x27;三星Galaxy S26 Ultra首次降价200美元。据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off f&#x27;, &#x27;image_count&#x27;: 3}</li><li>{&#x27;section&#x27;: &#x27;体育娱乐&#x27;, &#x27;kind&#x27;: &#x27;main&#x27;, &#x27;title&#x27;: &#x27;Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive)&#x27;, &#x27;summary&#x27;: &#x27;Noah Hawley确定执导华纳兄弟恐怖翻拍片《Terrified》。据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Noah Hawley to Di&#x27;, &#x27;image_count&#x27;: 3}</li><li>{&#x27;section&#x27;: &#x27;其他&#x27;, &#x27;kind&#x27;: &#x27;main&#x27;, &#x27;title&#x27;: &#x27;Experience the Rollout of SLS Hardware for Artemis III&#x27;, &#x27;summary&#x27;: &#x27;公众现可体验Artemis III任务SLS硬件的推出过程。据NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for &#x27;, &#x27;image_count&#x27;: 3}</li></ul><h3>most_obvious_problems</h3><ul><li>摘要截断导致信息残缺：所有新闻摘要均在句中戛然而止（如 &#x27;after Kany&#x27;, &#x27;is $200 off f&#x27;），首屏阅读体验被强行打断，用户无法获取关键信息，显得非常不专业。</li><li>元数据裸露破坏沉浸感：&#x27;images=3&#x27; 等字段直接以文本形式穿插在标题与摘要之间，看起来像后台调试日志而非面向用户的产品界面，严重破坏了新闻阅读的严肃性。</li><li>分类逻辑粗糙：Artemis III 登月任务被归入&#x27;其他&#x27;类，而非科技或科学板块，导致板块收束感弱，高价值内容被稀释在无效分类中。</li></ul><h3>priority_improvements</h3><ul><li>增加摘要完整性校验机制，强制要求输出完整语句，或在字数限制处做优雅的省略号处理。</li><li>将图片数量字段转化为视觉图标或缩略图组，严禁直接展示原始数据字段。</li><li>细化分类标签体系，将航天、科学类新闻从&#x27;其他&#x27;中剥离，归入科技或独立板块，提升内容分发精准度。</li></ul><h3>execution_link</h3><ul><li>slice_political_economic_summary_truncation</li><li>slice_tech_metadata_display</li><li>slice_other_category_logic</li></ul></section></body>
+</html>

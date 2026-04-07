@@ -1,0 +1,14 @@
+{
+  "run_id": "2ab41b733748",
+  "previous_run_id": null,
+  "improved_issues": [],
+  "unimproved_issues": [
+    "无上一轮可比样本，本轮作为跨轮对比基线",
+    "无上一轮可比样本，本轮作为跨轮对比基线",
+    "无上一轮可比样本，本轮作为跨轮对比基线",
+    "无上一轮可比样本，本轮作为跨轮对比基线"
+  ],
+  "regressed_areas": [],
+  "unimplemented_previous_optimization_suggestions": [],
+  "summary": "跨轮对比显示，本轮既有落地改进，也仍保留一部分未真正执行到成品的建议。"
+}

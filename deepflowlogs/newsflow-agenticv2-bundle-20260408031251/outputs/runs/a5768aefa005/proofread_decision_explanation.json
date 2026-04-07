@@ -1,0 +1,14 @@
+{
+  "summary": "本轮 proofread 共处理 0 个 issue，其中采纳 0 个，驳回 0 个。",
+  "accepted": [],
+  "rejected": [],
+  "required_actions": [],
+  "generation_mode": "fallback",
+  "generation_error": "RuntimeError: APITimeoutError: Request timed out.",
+  "timeout_ms": 60000,
+  "prompt_size": 290,
+  "input_size": 290,
+  "evidence_object_count": 3,
+  "started_at": "2026-04-08T02:57:44.098137+08:00",
+  "finished_at": "2026-04-08T02:58:44.405350+08:00"
+}

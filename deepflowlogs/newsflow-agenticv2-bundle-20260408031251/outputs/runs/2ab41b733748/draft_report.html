@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Draft Report</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>Draft Report</h1><div class='body'># 近24小时国际新闻热点（初稿）<br><br>- workflow_id: intl-news-hotspots<br>- project_id: newsloop-agenticv2-0801<br>- cycle_no: 1<br>- run_id: 2ab41b733748<br>- 时区: Asia/Shanghai<br><br>## 政治经济<br>### 主推 | Wireless Festival cancelled after Kanye West blocked from coming to UK<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T18:28:58+00:00<br>- 原文链接: https://www.bbc.com/news/articles/c4gxk3kxjr0o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg, https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png, https://ichef.bbci.co.uk/news/480/cpsprodpb/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg.webp<br>据BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kanye West blocked from coming to UK”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T18:11:38+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cyv16lq2rp1o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/5723/live/da544df0-3295-11f1-934f-036468834728.jpg<br>据BBC News报道，这则政治经济新闻围绕“JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU”。<br><br>### 副推2 | US journalist Shelly Kittleson to be released after kidnap in Iraq, militia says<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T17:50:17+00:00<br>- 原文链接: https://www.bbc.com/news/articles/crm1xjp08k3o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/598f/live/1cbbe940-329c-11f1-8cba-9df81803c83c.jpg<br>据BBC News报道，这则政治经济新闻围绕“US journalist Shelly Kittleson to be released after kidnap in Iraq, militia。<br><br>### 其他 7 条<br>- UK blocks rapper Kanye West from entry over anti-Semitism and Nazi support | Al Jazeera – Breaking News, World News and Video from Al Jazeera | 2026-04-07T18:13:05+00:00 | https://www.aljazeera.com/news/2026/4/7/uk-blocks-rapper-kanye-west-from-entry-over-anti-semitism-and-nazi-support?traffic_source=rss | 据Al Jazeera – Breaking News, World News and Video。<br>- Iran War Live Updates: Trump Calls to Wipe Out a ‘Whole Civilization’ as Iranians Reject Threats | NYT &gt; World News | 2026-04-07T18:31:30+00:00 | https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。<br>- Shelly Kittleson, American Journalist Abducted in Iraq, Is Freed | NYT &gt; World News | 2026-04-07T18:30:42+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/shelly-kittleson-journalist-iraq.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Shelly Kittleson。<br>- Here’s the latest. | NYT &gt; World News | 2026-04-07T18:28:09+00:00 | https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news/heres-the-latest | 据NYT &gt; World News报道，这则政治经济新闻围绕“Here’s the latest。<br>- Iran Calls Off Indirect Talks With U.S. After Trump Threatens to Destroy ‘A Whole Civilization’ | NYT &gt; World News | 2026-04-07T18:13:52+00:00 | https://www.nytimes.com/2026/04/07/world/middleeast/iran-trump-negotiations-talks-threat.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“Iran Calls Off Ind。<br>- The U.S. Has Been Accused of War Crimes in Iran. How Is Illegal Conduct Defined? | NYT &gt; World News | 2026-04-07T18:13:12+00:00 | https://www.nytimes.com/2026/04/07/us/politics/war-crimes-civilians.html | 据NYT &gt; World News报道，这则政治经济新闻围绕“The U.S. Has Been。<br>- Gulf Backers Invest $24 Billion in Paramount’s Deal for Warner Bros. | NYT &gt; Business | 2026-04-07T18:07:12+00:00 | https://www.nytimes.com/2026/04/07/business/gulf-invest-paramount-warner-bros.html | 据NYT &gt; Business报道，这则政治经济新闻围绕“Gulf Backers Invest。<br><br>## 科技<br>### 主推 | Samsung’s Galaxy S26 Ultra is $200 off for the first time<br>- 来源: The Verge<br>- 发布时间: 2026-04-07T18:16:52+00:00<br>- 原文链接: https://www.theverge.com/gadgets/908196/samsung-galaxy-s26-ultra-privacy-display-deal-sale-unlocked<br>- 图片: https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268399_Samsung_Galaxy_S26_Ultra_review_AJohnson_0005.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.723165084465%2C100%2C78.55366983107&amp;w=1200, https://www.google-analytics.com/g/collect?v=2&amp;tid=G-C3QZPB4GVE&amp;cid=555&amp;en=noscript_page_view, https://platform.theverge.com/wp-content/uploads/sites/2/chorus/author_profile_images/195800/CAMERON_FAULKNER.0.jpg?quality=90&amp;strip=all&amp;crop=0%2C0%2C100%2C100&amp;w=2400<br>据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off for the first time”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | Intel signs on to Elon Musk’s Terafab chips project<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-07T18:10:01+00:00<br>- 原文链接: https://techcrunch.com/2026/04/07/intel-signs-on-to-elon-musks-terafab-chips-project/<br>- 图片: https://techcrunch.com/wp-content/uploads/2026/04/HFTb6BbbcAANe5y-e1775584097859.jpeg?w=597<br>据TechCrunch报道，这则科技新闻围绕“Intel signs on to Elon Musk’s Terafab chips project”展开，更多细节与背景请查看原文链接。<br><br>### 副推2 | Anthropic debuts preview of powerful new AI model Mythos in new cybersecurity initiative<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-07T18:00:00+00:00<br>- 原文链接: https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/<br>- 图片: https://techcrunch.com/wp-content/uploads/2026/01/GettyImages-2256664479.jpg?resize=1200,800<br>据TechCrunch报道，这则科技新闻围绕“Anthropic debuts preview of powerful new AI model Mythos in new cybersecurit。<br><br>### 其他 7 条<br>- A new Anthropic model found security problems ‘in every major operating system and web browser’ | The Verge | 2026-04-07T18:00:00+00:00 | https://www.theverge.com/ai-artificial-intelligence/908114/anthropic-project-glasswing-cybersecurity | 据The Verge报道，这则科技新闻围绕“A new Anthropic model found。<br>- Apple’s foldable iPhone is on track to launch in September, report says | TechCrunch | 2026-04-07T17:47:43+00:00 | https://techcrunch.com/2026/04/07/apples-foldable-iphone-is-on-track-to-launch-in-september-report-says/ | 据TechCrunch报道，这则科技新闻围绕“Apple’s foldable iPhone is。<br>- The rugged Bose Soundlink Flex is 25 percent off right now | The Verge | 2026-04-07T17:02:25+00:00 | https://www.theverge.com/gadgets/907744/bose-soundlink-flex-2nd-gen-google-nest-doorbell-deal-sale | 据The Verge报道，这则科技新闻围绕“The rugged Bose Soundlink F。<br>- Russian government hackers broke into thousands of home routers to steal passwords | TechCrunch | 2026-04-07T17:01:41+00:00 | https://techcrunch.com/2026/04/07/russian-government-hackers-broke-into-thousands-of-home-routers-to-steal-passwords/ | 据TechCrunch报道，这则科技新闻围绕“Russian government hackers。<br>- Chrome is finally getting vertical tabs | TechCrunch | 2026-04-07T17:00:00+00:00 | https://techcrunch.com/2026/04/07/chrome-is-finally-getting-vertical-tabs/ | 据TechCrunch报道，这则科技新闻围绕“Chrome is finally getting。<br>- Vertical browser tabs are better and you should use them | The Verge | 2026-04-07T17:00:00+00:00 | https://www.theverge.com/tech/907998/google-chrome-vertical-tabs | 据The Verge报道，这则科技新闻围绕“Vertical browser tabs are b。<br>- Get more done with new vertical tabs and immersive reading mode in Chrome | The Keyword | 2026-04-07T17:00:00+00:00 | https://blog.google/products-and-platforms/products/chrome/new-chrome-productivity-features/ | 据The Keyword报道，这则科技新闻围绕“Get more done with new ve。<br><br>## 体育娱乐<br>### 主推 | Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive)<br>- 来源: The Hollywood Reporter<br>- 发布时间: 2026-04-07T18:30:00+00:00<br>- 原文链接: https://www.hollywoodreporter.com/movies/movie-news/noah-hawley-horror-terrified-warner-bros-1236557483/<br>- 图片: https://www.hollywoodreporter.com/wp-content/uploads/2026/04/Noah-Headshot_PC_-Carolyn-Fong.jpg?crop=0px%2C1172px%2C3719px%2C2084px&amp;resize=1440%2C810, https://sb.scorecardresearch.com/p?c1=2&amp;c2=6035310&amp;c4=&amp;cv=3.9&amp;cj=1, https://www.hollywoodreporter.com/wp-content/uploads/2026/04/Noah-Headshot_PC_-Carolyn-Fong.jpg?crop=0px%2C1172px%2C3719px%2C2084px&amp;resize=2000%2C1126<br>据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive)”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | LISTEN: Andra Day on Why She Supports No Kid Hungry’s Campaign to End Childhood Hunger: ‘It’s of the Utmost Importance’<br>- 来源: Variety<br>- 发布时间: 2026-04-07T18:24:58+00:00<br>- 原文链接: https://variety.com/2026/biz/news/andra-day-no-kid-hungry-fundraiser-percy-jackson-1236710650/<br>- 图片: https://variety.com/wp-content/uploads/2026/04/GettyImages-2250553090-e1775585049966.jpg?w=1000&amp;h=563&amp;crop=1<br>据Variety报道，这则体育娱乐新闻围绕“LISTEN: Andra Day on Why She Supports No Kid Hungry’s Campaign to End Childho。<br><br>### 副推2 | ‘Charlie’s Angels’ Reunite After 50 Years to Reflect on Show’s Highs (Giving “Women Permission to be Independent”) and Lows (Including Missed Opportunities for ‘Kramer vs. Kramer’ and Bond)<br>- 来源: The Hollywood Reporter<br>- 发布时间: 2026-04-07T18:23:13+00:00<br>- 原文链接: https://www.hollywoodreporter.com/tv/tv-news/charlies-angels-reunite-50-year-anniversary-1236557165/<br>- 图片: https://www.hollywoodreporter.com/wp-content/uploads/2026/04/GettyImages-2270147990.jpg?crop=0px%2C318px%2C4937px%2C2763px&amp;resize=1440%2C810<br>据The Hollywood Reporter报道，这则体育娱乐新闻围绕“‘Charlie’s Angels’ Reunite After 50 Years to Reflect on Show’s。<br><br>### 其他 7 条<br>- Howard Stern’s Former Executive Assistant Is Looking to Void Her NDA, Citing Hostile Work Environment | The Hollywood Reporter | 2026-04-07T18:09:48+00:00 | https://www.hollywoodreporter.com/business/business-news/howard-stern-lawsuit-assistant-hostile-work-environment-1236557734/ | 据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Howard Stern。<br>- Dalia Mubarak: A Voice Unbound by Expectations | Billboard | 2026-04-07T18:09:12+00:00 | https://www.billboard.com/music/music-news/dalia-mubarak-billboard-arabia-cover-1236216908/ | 据Billboard报道，这则体育娱乐新闻围绕“Dalia Mubarak: A Voice Un。<br>- Dave Franco, O’Shea Jackson Jr.’s ‘The Sh**heads’ Gets New Title and Summer Release Date | The Hollywood Reporter | 2026-04-07T18:01:55+00:00 | https://www.hollywoodreporter.com/movies/movie-news/idiots-dave-franco-oshea-jackson-jr-title-release-sxsw-1236557689/ | 据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Dave Franco。<br>- 50 Cent Documentary Series Set at Hulu | Variety | 2026-04-07T18:01:41+00:00 | https://variety.com/2026/tv/news/50-cent-docuseries-hulu-1236710584/ | 据Variety报道，这则体育娱乐新闻围绕“50 Cent Documentary Series。<br>- ‘Summer House’ Spinoff to Air Directly After Season 10 Finale Amid Amanda Batula, West Wilson Scandal | The Hollywood Reporter | 2026-04-07T18:00:00+00:00 | https://www.hollywoodreporter.com/tv/tv-news/summer-house-spinoff-may-premiere-in-the-city-1236554996/ | 据The Hollywood Reporter报道，这则体育娱乐新闻围绕“‘Summer Hous。<br>- ‘Summer House’ Stars Amanda Batula and West Wilson Hug in ‘In the City’ Spinoff Trailer; Bravo Sets Premiere Date and Full Cast | Variety | 2026-04-07T18:00:00+00:00 | https://variety.com/2026/tv/news/in-the-city-bravo-premiere-date-amanda-west-hug-first-trailer-1236710537/ | 据Variety报道，这则体育娱乐新闻围绕“‘Summer House’ Stars Amanda。<br>- ‘The Boys’ Season 5 Finds Its Teenage Kix Team With Maitreyi Ramakrishnan, Emma Elle Paterson and Dylan Colton | Variety | 2026-04-07T18:00:00+00:00 | https://variety.com/2026/tv/news/the-boys-teenage-kix-casts-maitreyi-ramakrishnan-1236710548/ | 据Variety报道，这则体育娱乐新闻围绕“‘The Boys’ Season 5 Finds I。<br><br>## 其他<br>### 主推 | Experience the Rollout of SLS Hardware for Artemis III<br>- 来源: NASA<br>- 发布时间: 2026-04-07T17:52:09+00:00<br>- 原文链接: https://www.nasa.gov/general/experience-the-rollout-of-sls-hardware-for-artemis-iii/<br>- 图片: https://images-assets.nasa.gov/image/MAF_20240712_CS2_Bldg110_Rev-epb_01/MAF_20240712_CS2_Bldg110_Rev-epb_01~large.jpg, https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png, https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint<br>据NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for Artemis III”展开，更多细节与背景请查看原文链接。<br><br>### 副推1 | NASA to Host Media Call with Artemis II Crew on Way Home from Moon<br>- 来源: NASA<br>- 发布时间: 2026-04-07T16:38:04+00:00<br>- 原文链接: https://www.nasa.gov/news-release/nasa-to-host-media-call-with-artemis-ii-crew-on-way-home-from-moon/<br>- 图片: https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-cnew-conference-advisory-april-7.jpg<br>据NASA报道，这则其他新闻围绕“NASA to Host Media Call with Artemis II Crew on Way Home from Moon”展开，更多细节与背景请查看原文。<br><br>### 副推2 | Has Artemis II shown we can land on the Moon again?<br>- 来源: BBC News<br>- 发布时间: 2026-04-07T15:23:05+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cj60nkd8nrko?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/ea03/live/ffec2580-3298-11f1-934f-036468834728.jpg<br>据BBC News报道，这则其他新闻围绕“Has Artemis II shown we can land on the Moon again?”展开，更多细节与背景请查看原文链接。<br><br>### 其他 7 条<br>- Earthset and a solar eclipse: Nasa releases first images from Moon fly-by | BBC News | 2026-04-07T14:53:18+00:00 | https://www.bbc.com/news/articles/cyv183v02j3o?at_medium=RSS&amp;at_campaign=rss | 据BBC News报道，这则其他新闻围绕“Earthset and a solar eclipse。<br>- Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife | NYT &gt; Science | 2026-04-07T18:26:11+00:00 | https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html | 据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。<br>- NASA’s Artemis II Astronauts Spread ‘Moon Joy’ to the Public | NYT &gt; Science | 2026-04-07T18:21:42+00:00 | https://www.nytimes.com/2026/04/07/science/nasa-artemis-ii-astronauts-moon-joy.html | 据NYT &gt; Science报道，这则其他新闻围绕“NASA’s Artemis II Astro。<br>- See First Photos From NASA’s Artemis II Moon Mission Capturing a Setting Earth and Eclipse | NYT &gt; Science | 2026-04-07T18:21:18+00:00 | https://www.nytimes.com/2026/04/07/science/nasa-artemis-moon-flyby-photos.html | 据NYT &gt; Science报道，这则其他新闻围绕“See First Photos From N。<br>- Finasteride for Male Baldness is Rewriting the Rules of Male Beauty | NYT &gt; Health | 2026-04-07T16:45:40+00:00 | https://www.nytimes.com/2026/04/07/magazine/male-hair-loss-treatment-finasteride.html | 据NYT &gt; Health报道，这则其他新闻围绕“Finasteride for Male Bal。<br>- How the Internet Became the ‘Cookbook’ of the Drug Trade | NYT &gt; Health | 2026-04-07T16:32:44+00:00 | https://www.nytimes.com/2026/03/31/science/drugs-psychoactive-nitazenes.html | 据NYT &gt; Health报道，这则其他新闻围绕“How the Internet Became。<br>- E.P.A. Targets Microplastics and Drugs in Drinking Water | NYT &gt; Health | 2026-04-07T16:03:29+00:00 | https://www.nytimes.com/2026/04/02/climate/microplastics-maha-epa.html | 据NYT &gt; Health报道，这则其他新闻围绕“E.P.A. Targets Microplas。<br></div><h3>draft_json</h3><pre>{
+  &quot;政治经济&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4728,
+      &quot;title&quot;: &quot;Wireless Festival cancelled after Kanye West blocked from coming to UK&quot;,
+      &quot;source_media&quot;: &quot;BBC News&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T18:28:58+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.bbc.com/news/articles/c4gxk3kxjr0o?at_medium=RSS&amp;at_campaign=rss&quot;,
+      &quot;images&quot;: [
+        &quot;https://ichef.bbci.co.uk/news/1024/branded_news/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg&quot;,
+        &quot;https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png&quot;,
+        &quot;https://ichef.bbci.co.uk/news/480/cpsprodpb/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg.webp&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;West was due to headline the festival in July but drew criticism over past antisemitic comments.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据BBC News报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kanye West blocked from coming to UK”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4733,
+        &quot;title&quot;: &quot;JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:11:38+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cyv16lq2rp1o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/5723/live/da544df0-3295-11f1-934f-036468834728.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;US Vice-President JD Vance intervenes in the campaign to give Orbán a ringing endorsement in Budapest.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则政治经济新闻围绕“JD Vance backs Orbán&#x27;s re-election bid in Budapest visit and hits out at EU”。&quot;
+      },
+      {
+        &quot;id&quot;: 4736,
+        &quot;title&quot;: &quot;US journalist Shelly Kittleson to be released after kidnap in Iraq, militia says&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:50:17+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/crm1xjp08k3o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/598f/live/1cbbe940-329c-11f1-8cba-9df81803c83c.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Kataib Hezbollah says the release comes on condition that she leave Iraq immediately.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则政治经济新闻围绕“US journalist Shelly Kittleson to be released after kidnap in Iraq, militia。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4732,
+        &quot;title&quot;: &quot;UK blocks rapper Kanye West from entry over anti-Semitism and Nazi support&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:13:05+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/7/uk-blocks-rapper-kanye-west-from-entry-over-anti-semitism-and-nazi-support?traffic_source=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;British PM Keir Starmer said it was concerning that London&#x27;s Wireless Festival had booked West in the first place.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Al Jazeera – Breaking News, World News and Video。&quot;
+      },
+      {
+        &quot;id&quot;: 4726,
+        &quot;title&quot;: &quot;Iran War Live Updates: Trump Calls to Wipe Out a ‘Whole Civilization’ as Iranians Reject Threats&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:31:30+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The United States and Israel stepped up their attacks on Iran ahead of President Trump’s 8 p.m. Eastern deadline to make a deal to reopen the Strait of Hormuz. Iran is said to withdraw from negotiations.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran War Live Upda。&quot;
+      },
+      {
+        &quot;id&quot;: 4727,
+        &quot;title&quot;: &quot;Shelly Kittleson, American Journalist Abducted in Iraq, Is Freed&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:30:42+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/shelly-kittleson-journalist-iraq.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The journalist, Shelly Kittleson, was abducted by a militia allied with Iran and held for a week. Iraqi officials say she was freed in exchange for the release of militia members.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Shelly Kittleson。&quot;
+      },
+      {
+        &quot;id&quot;: 4729,
+        &quot;title&quot;: &quot;Here’s the latest.&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:28:09+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news/heres-the-latest&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Here’s the latest。&quot;
+      },
+      {
+        &quot;id&quot;: 4730,
+        &quot;title&quot;: &quot;Iran Calls Off Indirect Talks With U.S. After Trump Threatens to Destroy ‘A Whole Civilization’&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:13:52+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/middleeast/iran-trump-negotiations-talks-threat.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;As the United States’ 8 p.m. deadline to open the Strait of Hormuz approaches, Iran vowed to retaliate if its power plants were attacked.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“Iran Calls Off Ind。&quot;
+      },
+      {
+        &quot;id&quot;: 4731,
+        &quot;title&quot;: &quot;The U.S. Has Been Accused of War Crimes in Iran. How Is Illegal Conduct Defined?&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:13:12+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/us/politics/war-crimes-civilians.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;It is illegal for any military to target civilians, as President Trump has suggested he would in threats against Iran. But the U.S. has sought significant leeway in defining a civilian target.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; World News报道，这则政治经济新闻围绕“The U.S. Has Been。&quot;
+      },
+      {
+        &quot;id&quot;: 4734,
+        &quot;title&quot;: &quot;Gulf Backers Invest $24 Billion in Paramount’s Deal for Warner Bros.&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Business&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:07:12+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/business/gulf-invest-paramount-warner-bros.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Despite speculation that the Iran war could scuttle commitments from Saudi Arabia and other Middle Eastern countries, their investments have been secured.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Business报道，这则政治经济新闻围绕“Gulf Backers Invest。&quot;
+      }
+    ]
+  },
+  &quot;科技&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4763,
+      &quot;title&quot;: &quot;Samsung’s Galaxy S26 Ultra is $200 off for the first time&quot;,
+      &quot;source_media&quot;: &quot;The Verge&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T18:16:52+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.theverge.com/gadgets/908196/samsung-galaxy-s26-ultra-privacy-display-deal-sale-unlocked&quot;,
+      &quot;images&quot;: [
+        &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2026/03/268399_Samsung_Galaxy_S26_Ultra_review_AJohnson_0005.jpg?quality=90&amp;strip=all&amp;crop=0%2C10.723165084465%2C100%2C78.55366983107&amp;w=1200&quot;,
+        &quot;https://www.google-analytics.com/g/collect?v=2&amp;tid=G-C3QZPB4GVE&amp;cid=555&amp;en=noscript_page_view&quot;,
+        &quot;https://platform.theverge.com/wp-content/uploads/sites/2/chorus/author_profile_images/195800/CAMERON_FAULKNER.0.jpg?quality=90&amp;strip=all&amp;crop=0%2C0%2C100%2C100&amp;w=2400&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;My colleague Allison Johnson loved the Privacy Display in her review of the Samsung Galaxy S26 Ultra. The display feature, which blocks onlookers from getting a peep at what’s on the screen when viewed from the side, is worth getting the S26 Ultra for if you are serious about privacy during your commute or elsewhere. […]&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra is $200 off for the first time”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4764,
+        &quot;title&quot;: &quot;Intel signs on to Elon Musk’s Terafab chips project&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:10:01+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/intel-signs-on-to-elon-musks-terafab-chips-project/&quot;,
+        &quot;images&quot;: [
+          &quot;https://techcrunch.com/wp-content/uploads/2026/04/HFTb6BbbcAANe5y-e1775584097859.jpeg?w=597&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The partnership brings semiconductor experience to Musk&#x27;s latest high-tech project.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Intel signs on to Elon Musk’s Terafab chips project”展开，更多细节与背景请查看原文链接。&quot;
+      },
+      {
+        &quot;id&quot;: 4765,
+        &quot;title&quot;: &quot;Anthropic debuts preview of powerful new AI model Mythos in new cybersecurity initiative&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/&quot;,
+        &quot;images&quot;: [
+          &quot;https://techcrunch.com/wp-content/uploads/2026/01/GettyImages-2256664479.jpg?resize=1200,800&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The new model will be used by a small number of high-profile companies to engage in defensive cybersecurity work.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Anthropic debuts preview of powerful new AI model Mythos in new cybersecurit。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4766,
+        &quot;title&quot;: &quot;A new Anthropic model found security problems ‘in every major operating system and web browser’&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/ai-artificial-intelligence/908114/anthropic-project-glasswing-cybersecurity&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Anthropic is debuting a new AI model as part of a cybersecurity partnership with Nvidia, Google, Amazon Web Services, Apple, Microsoft, and other companies. Project Glasswing, as it&#x27;s called, is billed as a way for large companies, and potentially even the government, to flag vulnerabilities in their systems with virtually no human intervention. Anthropic is […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“A new Anthropic model found。&quot;
+      },
+      {
+        &quot;id&quot;: 4767,
+        &quot;title&quot;: &quot;Apple’s foldable iPhone is on track to launch in September, report says&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:47:43+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/apples-foldable-iphone-is-on-track-to-launch-in-september-report-says/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The news follows a report from Nikkei Asia on Tuesday that raised concerns the company’s foldable iPhone could be delayed due to challenges during the phone’s engineering test phase.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Apple’s foldable iPhone is。&quot;
+      },
+      {
+        &quot;id&quot;: 4768,
+        &quot;title&quot;: &quot;The rugged Bose Soundlink Flex is 25 percent off right now&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:02:25+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/gadgets/907744/bose-soundlink-flex-2nd-gen-google-nest-doorbell-deal-sale&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;We saw a host of excellent Bose discounts during Amazon’s so-called Big Spring Sale last month; however, none of them were quite as steep as the current price drop we’re seeing on the latest Bose Soundlink Flex. Right now, the portable speaker is on sale at Amazon, Walmart, and Best Buy for $119 ($40 off), […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“The rugged Bose Soundlink F。&quot;
+      },
+      {
+        &quot;id&quot;: 4769,
+        &quot;title&quot;: &quot;Russian government hackers broke into thousands of home routers to steal passwords&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:01:41+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/russian-government-hackers-broke-into-thousands-of-home-routers-to-steal-passwords/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Fancy Bear, also known as APT28, has taken over thousands of residential home routers to steal passwords and authentication tokens in a wide-ranging espionage operation.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Russian government hackers。&quot;
+      },
+      {
+        &quot;id&quot;: 4770,
+        &quot;title&quot;: &quot;Chrome is finally getting vertical tabs&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/chrome-is-finally-getting-vertical-tabs/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Google Chrome&#x27;s latest update brings vertical tabs and a cleaner Reading Mode to help manage cluttered browsing.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据TechCrunch报道，这则科技新闻围绕“Chrome is finally getting。&quot;
+      },
+      {
+        &quot;id&quot;: 4771,
+        &quot;title&quot;: &quot;Vertical browser tabs are better and you should use them&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/tech/907998/google-chrome-vertical-tabs&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Google&#x27;s Chrome browser is getting a couple of new features, both of them extremely welcome and wildly overdue. The first is a reading mode, which does what it already does in most other browsers: strip out a lot of website cruft to make pages easier to read. Reading mode is good, you should use it, […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Verge报道，这则科技新闻围绕“Vertical browser tabs are b。&quot;
+      },
+      {
+        &quot;id&quot;: 4772,
+        &quot;title&quot;: &quot;Get more done with new vertical tabs and immersive reading mode in Chrome&quot;,
+        &quot;source_media&quot;: &quot;The Keyword&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T17:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://blog.google/products-and-platforms/products/chrome/new-chrome-productivity-features/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Image of browser window using vertical tabs and immersive reading mode&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Keyword报道，这则科技新闻围绕“Get more done with new ve。&quot;
+      }
+    ]
+  },
+  &quot;体育娱乐&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4739,
+      &quot;title&quot;: &quot;Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive)&quot;,
+      &quot;source_media&quot;: &quot;The Hollywood Reporter&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T18:30:00+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.hollywoodreporter.com/movies/movie-news/noah-hawley-horror-terrified-warner-bros-1236557483/&quot;,
+      &quot;images&quot;: [
+        &quot;https://www.hollywoodreporter.com/wp-content/uploads/2026/04/Noah-Headshot_PC_-Carolyn-Fong.jpg?crop=0px%2C1172px%2C3719px%2C2084px&amp;resize=1440%2C810&quot;,
+        &quot;https://sb.scorecardresearch.com/p?c1=2&amp;c2=6035310&amp;c4=&amp;cv=3.9&amp;cj=1&quot;,
+        &quot;https://www.hollywoodreporter.com/wp-content/uploads/2026/04/Noah-Headshot_PC_-Carolyn-Fong.jpg?crop=0px%2C1172px%2C3719px%2C2084px&amp;resize=2000%2C1126&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Hawley is developing the movie with original writer-director Demián Rugna.&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Noah Hawley to Direct Horror Remake ‘Terrified’ for Warner Bros. (Exclusive)”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4740,
+        &quot;title&quot;: &quot;LISTEN: Andra Day on Why She Supports No Kid Hungry’s Campaign to End Childhood Hunger: ‘It’s of the Utmost Importance’&quot;,
+        &quot;source_media&quot;: &quot;Variety&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:24:58+00:00&quot;,
+        &quot;link&quot;: &quot;https://variety.com/2026/biz/news/andra-day-no-kid-hungry-fundraiser-percy-jackson-1236710650/&quot;,
+        &quot;images&quot;: [
+          &quot;https://variety.com/wp-content/uploads/2026/04/GettyImages-2250553090-e1775585049966.jpg?w=1000&amp;h=563&amp;crop=1&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;On today’s episode of “Daily Variety” podcast, actor and singer Andra Day joins us to talk about her involvement in the Night Out for No Kid Hungry fundraiser set for April 11 at Rolling Greens in downtown Los Angeles. It promises to serve up one-of-a-kind collaborations from top culinary stars including Shirley Chung, Ludo Lefebvre, […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Variety报道，这则体育娱乐新闻围绕“LISTEN: Andra Day on Why She Supports No Kid Hungry’s Campaign to End Childho。&quot;
+      },
+      {
+        &quot;id&quot;: 4741,
+        &quot;title&quot;: &quot;‘Charlie’s Angels’ Reunite After 50 Years to Reflect on Show’s Highs (Giving “Women Permission to be Independent”) and Lows (Including Missed Opportunities for ‘Kramer vs. Kramer’ and Bond)&quot;,
+        &quot;source_media&quot;: &quot;The Hollywood Reporter&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:23:13+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.hollywoodreporter.com/tv/tv-news/charlies-angels-reunite-50-year-anniversary-1236557165/&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.hollywoodreporter.com/wp-content/uploads/2026/04/GettyImages-2270147990.jpg?crop=0px%2C318px%2C4937px%2C2763px&amp;resize=1440%2C810&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Kate Jackson, Jaclyn Smith and Cheryl Ladd took part in a PaleyFest LA event in celebration of their groundbreaking series, which debuted in 1976.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Hollywood Reporter报道，这则体育娱乐新闻围绕“‘Charlie’s Angels’ Reunite After 50 Years to Reflect on Show’s。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4742,
+        &quot;title&quot;: &quot;Howard Stern’s Former Executive Assistant Is Looking to Void Her NDA, Citing Hostile Work Environment&quot;,
+        &quot;source_media&quot;: &quot;The Hollywood Reporter&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:09:48+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.hollywoodreporter.com/business/business-news/howard-stern-lawsuit-assistant-hostile-work-environment-1236557734/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Leslie Kuh, who&#x27;s lived with Stern and his wife in their Southampton since 2024, targets an animal rescue organization operated by the couple.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Howard Stern。&quot;
+      },
+      {
+        &quot;id&quot;: 4743,
+        &quot;title&quot;: &quot;Dalia Mubarak: A Voice Unbound by Expectations&quot;,
+        &quot;source_media&quot;: &quot;Billboard&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:09:12+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.billboard.com/music/music-news/dalia-mubarak-billboard-arabia-cover-1236216908/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;On Billboard Arabia’s March cover, Dalia opens up about motherhood, heartbreak, her upcoming album and her next chapter on The Voice Kids.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Billboard报道，这则体育娱乐新闻围绕“Dalia Mubarak: A Voice Un。&quot;
+      },
+      {
+        &quot;id&quot;: 4744,
+        &quot;title&quot;: &quot;Dave Franco, O’Shea Jackson Jr.’s ‘The Sh**heads’ Gets New Title and Summer Release Date&quot;,
+        &quot;source_media&quot;: &quot;The Hollywood Reporter&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:01:55+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.hollywoodreporter.com/movies/movie-news/idiots-dave-franco-oshea-jackson-jr-title-release-sxsw-1236557689/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Mason Thames, Peter Dinklage and Kiernan Shipka also star in Macon Blair&#x27;s comedy that premiered at Sundance.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Hollywood Reporter报道，这则体育娱乐新闻围绕“Dave Franco。&quot;
+      },
+      {
+        &quot;id&quot;: 4745,
+        &quot;title&quot;: &quot;50 Cent Documentary Series Set at Hulu&quot;,
+        &quot;source_media&quot;: &quot;Variety&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:01:41+00:00&quot;,
+        &quot;link&quot;: &quot;https://variety.com/2026/tv/news/50-cent-docuseries-hulu-1236710584/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;After producing Netflix’s Diddy series “Sean Combs: The Reckoning,” 50 Cent is stepping in front of the camera for his own documentary project. The three-part docuseries will trace his evolution from Curtis Jackson, a dreamer from the streets of Queens, to the internationally known music and business titan 50 Cent, the Grammy-winning recording artist behind […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Variety报道，这则体育娱乐新闻围绕“50 Cent Documentary Series。&quot;
+      },
+      {
+        &quot;id&quot;: 4746,
+        &quot;title&quot;: &quot;‘Summer House’ Spinoff to Air Directly After Season 10 Finale Amid Amanda Batula, West Wilson Scandal&quot;,
+        &quot;source_media&quot;: &quot;The Hollywood Reporter&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.hollywoodreporter.com/tv/tv-news/summer-house-spinoff-may-premiere-in-the-city-1236554996/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;&#x27;In The City&#x27; will premiere on May 19 during quite a turbulent time for the show&#x27;s cast who are in the midst of navigating a controversy centered around Batula and Wilson&#x27;s new relationship.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据The Hollywood Reporter报道，这则体育娱乐新闻围绕“‘Summer Hous。&quot;
+      },
+      {
+        &quot;id&quot;: 4747,
+        &quot;title&quot;: &quot;‘Summer House’ Stars Amanda Batula and West Wilson Hug in ‘In the City’ Spinoff Trailer; Bravo Sets Premiere Date and Full Cast&quot;,
+        &quot;source_media&quot;: &quot;Variety&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://variety.com/2026/tv/news/in-the-city-bravo-premiere-date-amanda-west-hug-first-trailer-1236710537/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;After the internet was set aflame last week when “Summer House” stars Amanda Batula and West Wilson confirmed they’re dating (or something), Bravo has announced that the show’s highly anticipated spinoff “In the City” — starring Batula, Kyle Cooke and Lindsay Hubbard — will premiere on May 19. The show’s debut will be a two-hour crossover […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Variety报道，这则体育娱乐新闻围绕“‘Summer House’ Stars Amanda。&quot;
+      },
+      {
+        &quot;id&quot;: 4748,
+        &quot;title&quot;: &quot;‘The Boys’ Season 5 Finds Its Teenage Kix Team With Maitreyi Ramakrishnan, Emma Elle Paterson and Dylan Colton&quot;,
+        &quot;source_media&quot;: &quot;Variety&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:00:00+00:00&quot;,
+        &quot;link&quot;: &quot;https://variety.com/2026/tv/news/the-boys-teenage-kix-casts-maitreyi-ramakrishnan-1236710548/&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;There’s another superhero team joining “The Boys” universe. The fifth and final season of the Prime Video series has cast Maitreyi Ramakrishnan, Emma Elle Paterson and Dylan Colton as the members of its youth superhero team Teenage Kix. Ely Henry has also joined the cast as a new supe named The Worm. Season 5 kicks […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据Variety报道，这则体育娱乐新闻围绕“‘The Boys’ Season 5 Finds I。&quot;
+      }
+    ]
+  },
+  &quot;其他&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 4754,
+      &quot;title&quot;: &quot;Experience the Rollout of SLS Hardware for Artemis III&quot;,
+      &quot;source_media&quot;: &quot;NASA&quot;,
+      &quot;published_at&quot;: &quot;2026-04-07T17:52:09+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.nasa.gov/general/experience-the-rollout-of-sls-hardware-for-artemis-iii/&quot;,
+      &quot;images&quot;: [
+        &quot;https://images-assets.nasa.gov/image/MAF_20240712_CS2_Bldg110_Rev-epb_01/MAF_20240712_CS2_Bldg110_Rev-epb_01~large.jpg&quot;,
+        &quot;https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png&quot;,
+        &quot;https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint&quot;
+      ],
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Digital creators and social media users are invited to register to attend the rollout of the third SLS (Space Launch System) core stage as it is prepped to head from NASA’s Michoud Assembly Facility to NASA’s Kennedy Space Center. Are you passionate about social media and communications? Do you love to create content for an […]&quot;
+      },
+      &quot;summary_zh&quot;: &quot;据NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for Artemis III”展开，更多细节与背景请查看原文链接。&quot;
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 4756,
+        &quot;title&quot;: &quot;NASA to Host Media Call with Artemis II Crew on Way Home from Moon&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:38:04+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/news-release/nasa-to-host-media-call-with-artemis-ii-crew-on-way-home-from-moon/&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-cnew-conference-advisory-april-7.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Media will have an opportunity at 9:45 p.m. EDT on Wednesday, April 8, to speak with NASA’s Artemis II crew members as they continue their journey toward Earth during their historic mission around the Moon. The 20-minute virtual news conference will take place with NASA astronauts Reid Wiseman, Victor Glover, and Christina Koch, and CSA […]&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NASA报道，这则其他新闻围绕“NASA to Host Media Call with Artemis II Crew on Way Home from Moon”展开，更多细节与背景请查看原文。&quot;
+      },
+      {
+        &quot;id&quot;: 4760,
+        &quot;title&quot;: &quot;Has Artemis II shown we can land on the Moon again?&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T15:23:05+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cj60nkd8nrko?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/ea03/live/ffec2580-3298-11f1-934f-036468834728.jpg&quot;
+        ],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Artemis II mission has been near flawless to date, but has the test flight shown Nasa is ready to send humans to the lunar surface?&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“Has Artemis II shown we can land on the Moon again?”展开，更多细节与背景请查看原文链接。&quot;
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 4761,
+        &quot;title&quot;: &quot;Earthset and a solar eclipse: Nasa releases first images from Moon fly-by&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T14:53:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cyv183v02j3o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The first two images show an &#x27;Earthrise&#x27; and the solar eclipse the astronauts viewed.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据BBC News报道，这则其他新闻围绕“Earthset and a solar eclipse。&quot;
+      },
+      {
+        &quot;id&quot;: 4751,
+        &quot;title&quot;: &quot;Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:26:11+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The crew shared an emotional moment with mission control and the family of Reid Wiseman, whose wife, Carroll, died in 2020, on the ground in Houston.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“Artemis II Astronauts N。&quot;
+      },
+      {
+        &quot;id&quot;: 4752,
+        &quot;title&quot;: &quot;NASA’s Artemis II Astronauts Spread ‘Moon Joy’ to the Public&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:21:42+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/science/nasa-artemis-ii-astronauts-moon-joy.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;While science can seem colorless and plain, NASA’s lunar crew members have brought expressiveness and emotion about their journey to mission control and the public.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“NASA’s Artemis II Astro。&quot;
+      },
+      {
+        &quot;id&quot;: 4753,
+        &quot;title&quot;: &quot;See First Photos From NASA’s Artemis II Moon Mission Capturing a Setting Earth and Eclipse&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:21:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/science/nasa-artemis-moon-flyby-photos.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The White House and NASA released imagery captured by the cameras of the four astronauts of the Artemis II mission.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Science报道，这则其他新闻围绕“See First Photos From N。&quot;
+      },
+      {
+        &quot;id&quot;: 4755,
+        &quot;title&quot;: &quot;Finasteride for Male Baldness is Rewriting the Rules of Male Beauty&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:45:40+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/magazine/male-hair-loss-treatment-finasteride.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A pill to cure baldness is changing the way men age — and how they see themselves.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“Finasteride for Male Bal。&quot;
+      },
+      {
+        &quot;id&quot;: 4757,
+        &quot;title&quot;: &quot;How the Internet Became the ‘Cookbook’ of the Drug Trade&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:32:44+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/03/31/science/drugs-psychoactive-nitazenes.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A baffling overdose death took investigators to the frontier of ultra-potent synthetic drugs. The clues were hauntingly familiar.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“How the Internet Became。&quot;
+      },
+      {
+        &quot;id&quot;: 4758,
+        &quot;title&quot;: &quot;E.P.A. Targets Microplastics and Drugs in Drinking Water&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Health&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T16:03:29+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/02/climate/microplastics-maha-epa.html&quot;,
+        &quot;images&quot;: [],
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The move drew praise from leaders of the Make America Healthy Again movement who had recently criticized the agency’s handling of toxic chemicals.&quot;
+        },
+        &quot;summary_zh&quot;: &quot;据NYT &gt; Health报道，这则其他新闻围绕“E.P.A. Targets Microplas。&quot;
+      }
+    ]
+  }
+}</pre></section></body>
+</html>

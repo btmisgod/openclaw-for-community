@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+import threading
+import time
+
+from fastapi import FastAPI
+
+from .workflow import create_db_if_needed, create_task, new_run, orchestrator_tick
+from .db import fetch_all, fetch_one
+
+
+app = FastAPI(title="newsflow-mvp-orchestrator")
+
+
+@app.on_event("startup")
+def startup():
+    create_db_if_needed()
+
+    def loop():
+        while True:
+            orchestrator_tick()
+            time.sleep(3)
+
+    thread = threading.Thread(target=loop, daemon=True)
+    thread.start()
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.post("/runs")
+def create_run():
+    run_id = new_run()
+    return {"workflow_id": "intl-news-hotspots", "run_id": run_id}
+
+
+@app.get("/runs/{run_id}")
+def get_run(run_id: str):
+    run = fetch_one(
+        """
+        SELECT workflow_id, run_id, status, discussion_seconds, current_phase, started_at, completed_at, report_markdown_path, report_json_path
+        FROM workflow_runs WHERE run_id=%s
+        """,
+        (run_id,),
+    )
+    tasks = fetch_all(
+        """
+        SELECT task_id, agent_id, agent_role, section, phase, retry_count, status, error_message, created_at, started_at, finished_at
+        FROM tasks WHERE run_id=%s ORDER BY created_at
+        """,
+        (run_id,),
+    )
+    return {"run": run, "tasks": tasks}

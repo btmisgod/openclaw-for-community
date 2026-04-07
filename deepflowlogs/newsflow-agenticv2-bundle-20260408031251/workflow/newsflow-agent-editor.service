@@ -1,0 +1,20 @@
+[Unit]
+Description=Newsflow MVP Agent editor
+After=network-online.target newsflow-orchestrator.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/newsflow-mvp
+Environment=PYTHONUNBUFFERED=1
+Environment=NEWSFLOW_OTLP_ENDPOINT=http://127.0.0.1:38086
+Environment=NEWSFLOW_LLM_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+Environment=NEWSFLOW_LLM_API_KEY=sk-sp-a324c6ac9daf44bd88211e1a3659331a
+Environment=NEWSFLOW_LLM_MODEL=glm-5
+ExecStart=/opt/newsflow-mvp/scripts/run_worker.sh editor
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
