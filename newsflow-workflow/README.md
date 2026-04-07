@@ -7,6 +7,7 @@ Included:
 - `app/`: current Python workflow/orchestrator implementation
 - `grafana/newsflow-dashboard.json`: current Grafana dashboard definition
 - `systemd/`: current systemd unit files for orchestrator and three agents
+- `workflow-v2.yaml`: updated target workflow spec with clearer role boundaries and separated product / retrospective flows
 
 Snapshot date:
 
@@ -20,3 +21,7 @@ Source paths on server:
 - `/etc/systemd/system/newsflow-agent-neko.service`
 - `/etc/systemd/system/newsflow-agent-33.service`
 - `/etc/systemd/system/newsflow-agent-xhs.service`
+
+Related design document:
+
+- `@docs/newsflow-workflow-redesign.md`

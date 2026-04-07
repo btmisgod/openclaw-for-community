@@ -1,0 +1,256 @@
+version: 2
+scope: newsflow-workflow
+principles:
+  preserve_machine_readable_fields: true
+  define_output_boundaries_not_writing_templates: true
+  split_product_flow_and_retrospective_flow: true
+  keep_human_prose_flexible: true
+
+roles:
+  manager:
+    owns:
+      - cycle_start
+      - standards_and_priority
+      - conflict_resolution
+      - retrospective_moderation
+      - retrospective_plan
+      - retrospective_report
+      - agent_optimization_instructions
+      - publish_gate
+    not_owns:
+      - draft_authoring
+      - proofread_execution
+      - product_test_authoring
+      - benchmark_authoring
+  editor:
+    owns:
+      - draft_integration
+      - hierarchy_decision
+      - draft_revision
+      - final_output
+    not_owns:
+      - material_collection
+      - material_review
+      - product_evaluation
+      - retrospective_moderation
+  worker_33:
+    owns:
+      - section_collection
+      - political_economy
+      - technology
+      - retrospective_participation
+  worker_xhs:
+    owns:
+      - section_collection
+      - sports_entertainment
+      - other
+      - retrospective_participation
+  tester:
+    owns:
+      - material_review
+      - draft_proofread
+      - product_usability_report
+      - benchmark_report
+      - cross_cycle_comparison_report
+
+product_flow:
+  - phase: cycle.start
+    actor: manager
+    goal: start a new cycle with current standards and effective optimization context
+    required_coverage:
+      - cycle goal
+      - section assignment
+      - delivery standard
+      - priority
+      - previous optimization context
+    preserve_existing_machine_contract: true
+
+  - phase: material.collect
+    actor:
+      - worker_33
+      - worker_xhs
+    goal: build section-scoped candidate material pools
+    required_coverage:
+      - title
+      - source
+      - published_time
+      - original_link
+      - image_candidates
+      - short_relevance_note
+    constraints:
+      - do_not_assign_main_secondary_brief_here
+      - editor_decides_final_hierarchy
+    preserve_existing_machine_contract: true
+
+  - phase: material.review
+    actor: tester
+    goal: quality-check submitted materials before editorial integration
+    required_coverage:
+      - timeliness
+      - relevance
+      - authenticity
+      - text_image_consistency
+      - brief_source_consistency
+      - material_usability
+      - correct_section_ownership
+    gate:
+      - rejected_material_goes_back_to_worker
+      - only_approved_materials_enter_editor_stage
+    preserve_existing_machine_contract: true
+
+  - phase: draft.compose
+    actor: editor
+    goal: turn approved materials into draft_v1
+    required_coverage:
+      - per_section_1_main_story
+      - per_section_2_secondary_stories
+      - per_section_7_briefs
+      - source_metadata_retained
+      - published_time_retained
+      - original_link_retained
+    preserve_existing_machine_contract: true
+
+  - phase: draft.proofread
+    actor: tester
+    goal: verify draft correctness rather than product experience
+    required_coverage:
+      - consistency_with_approved_materials
+      - title_source_link_time_correctness
+      - image_display_correctness
+      - section_placement_correctness
+      - main_secondary_brief_placement_correctness
+      - missing_wrong_mapping_duplicate_checks
+    outputs_should_cover:
+      - concrete_issues
+      - affected_objects
+      - blocker_or_non_blocker
+      - recheck_requirement
+    constraints:
+      - do_not_turn_this_phase_into_product_test
+    preserve_existing_machine_contract: true
+
+  - phase: draft.revise.loop
+    actor: editor
+    goal: revise draft until blockers are cleared
+    loop:
+      - tester_raise_issue
+      - editor_revise
+      - tester_recheck
+      - continue_until_blocker_zero
+    gate:
+      - all_blockers_closed
+      - recheck_passed
+    preserve_existing_machine_contract: true
+
+  - phase: report.publish
+    actor:
+      editor: final_artifact_handoff
+      manager: publish_gate_approval
+    goal: publish final report only after proofread blockers are closed
+    gate:
+      - all_blockers_closed
+      - recheck_passed
+      - structure_complete
+      - required_metadata_complete
+    preserve_existing_machine_contract: true
+
+retrospective_prep:
+  - phase: product.test
+    actor: tester
+    goal: evaluate final product from a unified reader and product-experience perspective
+    required_coverage:
+      - most_visible_product_problems
+      - reading_continuity_impact
+      - highest_priority_fix_points
+      - why_they_matter_to_readers
+    constraints:
+      - do_not_mix_in_producer_excuse_text
+      - do_not_force_fixed_visible_headings
+    preserve_existing_machine_contract: true
+
+  - phase: product.benchmark
+    actor: tester
+    goal: compare final product with a few relevant external products
+    required_coverage:
+      - selected_comparison_targets
+      - why_targets_were_selected
+      - most_important_gaps
+      - practical_takeaways
+    constraints:
+      - not_a_large_exhaustive_report
+    preserve_existing_machine_contract: true
+
+  - phase: product.cross_cycle_compare
+    actor: tester
+    goal: compare this cycle against the previous cycle and previous retrospective
+    required_coverage:
+      - improved_issues
+      - unimproved_issues
+      - regressed_areas
+      - unimplemented_previous_optimization_suggestions
+    preserve_existing_machine_contract: true
+
+  - phase: retrospective.plan
+    actor: manager
+    goal: build an evidence-backed retrospective plan
+    inputs:
+      - product_usability_report
+      - benchmark_report
+      - cross_cycle_comparison_report
+      - task_history
+      - proofread_and_publish_evidence
+      - actual_agent_behavior_evidence
+    required_coverage:
+      - at_least_5_product_problems
+      - at_least_2_agent_behavior_problems
+      - every_problem_tied_to_concrete_object_or_behavior
+      - every_problem_has_priority
+    constraints:
+      - manager_may_infer
+      - manager_must_not_invent_unsupported_issues
+    preserve_existing_machine_contract: true
+
+retrospective_flow:
+  - phase: retrospective.discussion
+    actor: manager
+    participants:
+      - editor
+      - worker_33
+      - worker_xhs
+      - tester
+    goal: discuss one evidence-backed issue at a time until time ends
+    required_coverage:
+      - concrete_product_issues
+      - concrete_process_issues
+      - concrete_agent_behavior_issues
+      - disagreement
+      - ownership
+      - next_actions
+    constraints:
+      - not_round_robin_reporting
+      - not_checklist_recitation
+      - do_not_start_summary_before_time_ends
+    preserve_existing_machine_contract: true
+
+  - phase: retrospective.summary
+    actor: manager
+    goal: produce formal retrospective report from plan, discussion, reports, and execution evidence
+    required_coverage:
+      - core_product_problems
+      - core_execution_problems
+      - root_causes
+      - accepted_improvements
+      - rejected_suggestions_and_reasons
+      - next_cycle_action_items
+      - per_agent_responsibilities
+    preserve_existing_machine_contract: true
+
+  - phase: agent.optimization
+    actor: manager
+    goal: generate agent-specific optimization instructions for the next cycle
+    required_coverage:
+      - per_agent_targeted_actions
+      - next_cycle_rule_or_context_updates
+    gate:
+      - instructions_written_back_into_next_cycle_context
+    preserve_existing_machine_contract: true
