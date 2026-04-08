@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>manager retrospective plan</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>manager retrospective plan</h1><div class='body'># manager retrospective plan<br><br>## Product Problems<br>- [P1] 摘要截断导致信息残缺：首屏第一条新闻摘要停在 &#x27;canc&#x27;，第二条停在 &#x27;turn 2D apps into 3&#x27;，这种非自然的断句让用户感觉系统崩溃或未加载完成，严重破坏阅读节奏。<br>- [P1] 图片资源未可视化：&#x27;images=3&#x27; 仅作为文本标签存在，首屏缺乏视觉锚点，导致版面枯燥，无法体现新闻配图的价值，看起来像后台日志。<br>- [P1] 分类与内容匹配度低：&#x27;Earthset&#x27; 归类为&#x27;其他&#x27;且仅有一句极短摘要，在首屏显得信息量不足，破坏了整体板块的收束感，显得像系统抓取失败的碎片。<br>- [P1] 参考《Wireless Festival cancelled after Kanye West blocked from coming to UK - BBC》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。<br>- [P1] 参考《Wireless festival cancelled after Kanye West banned from entering UK - The Guardian》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。<br><br>## Agent Behavior Problems<br>- [P1] worker-33: 审核通过。<br>- [P1] worker-33: 审核通过。</div><h3>product_problems</h3><ul><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;object&#x27;: &#x27;final_report&#x27;, &#x27;problem&#x27;: &quot;摘要截断导致信息残缺：首屏第一条新闻摘要停在 &#x27;canc&#x27;，第二条停在 &#x27;turn 2D apps into 3&#x27;，这种非自然的断句让用户感觉系统崩溃或未加载完成，严重破坏阅读节奏。&quot;}</li><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;object&#x27;: &#x27;final_report&#x27;, &#x27;problem&#x27;: &quot;图片资源未可视化：&#x27;images=3&#x27; 仅作为文本标签存在，首屏缺乏视觉锚点，导致版面枯燥，无法体现新闻配图的价值，看起来像后台日志。&quot;}</li><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;object&#x27;: &#x27;final_report&#x27;, &#x27;problem&#x27;: &quot;分类与内容匹配度低：&#x27;Earthset&#x27; 归类为&#x27;其他&#x27;且仅有一句极短摘要，在首屏显得信息量不足，破坏了整体板块的收束感，显得像系统抓取失败的碎片。&quot;}</li><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;object&#x27;: &#x27;benchmark_gap&#x27;, &#x27;problem&#x27;: &#x27;参考《Wireless Festival cancelled after Kanye West blocked from coming to UK - BBC》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。&#x27;}</li><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;object&#x27;: &#x27;benchmark_gap&#x27;, &#x27;problem&#x27;: &#x27;参考《Wireless festival cancelled after Kanye West banned from entering UK - The Guardian》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。&#x27;}</li></ul><h3>behavior_problems</h3><ul><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;agent&#x27;: &#x27;worker-33&#x27;, &#x27;problem&#x27;: &#x27;审核通过。&#x27;}</li><li>{&#x27;priority&#x27;: &#x27;P1&#x27;, &#x27;agent&#x27;: &#x27;worker-33&#x27;, &#x27;problem&#x27;: &#x27;审核通过。&#x27;}</li></ul><h3>topics</h3><ul><li>{&#x27;title&#x27;: &#x27;产品问题&#x27;, &#x27;body&#x27;: &quot;摘要截断导致信息残缺：首屏第一条新闻摘要停在 &#x27;canc&#x27;，第二条停在 &#x27;turn 2D apps into 3&#x27;，这种非自然的断句让用户感觉系统崩溃或未加载完成，严重破坏阅读节奏。&quot;, &#x27;owner&#x27;: &#x27;tester&#x27;, &#x27;counterpart&#x27;: &#x27;editor&#x27;}</li><li>{&#x27;title&#x27;: &#x27;产品问题&#x27;, &#x27;body&#x27;: &quot;图片资源未可视化：&#x27;images=3&#x27; 仅作为文本标签存在，首屏缺乏视觉锚点，导致版面枯燥，无法体现新闻配图的价值，看起来像后台日志。&quot;, &#x27;owner&#x27;: &#x27;tester&#x27;, &#x27;counterpart&#x27;: &#x27;editor&#x27;}</li><li>{&#x27;title&#x27;: &#x27;产品问题&#x27;, &#x27;body&#x27;: &quot;分类与内容匹配度低：&#x27;Earthset&#x27; 归类为&#x27;其他&#x27;且仅有一句极短摘要，在首屏显得信息量不足，破坏了整体板块的收束感，显得像系统抓取失败的碎片。&quot;, &#x27;owner&#x27;: &#x27;tester&#x27;, &#x27;counterpart&#x27;: &#x27;editor&#x27;}</li><li>{&#x27;title&#x27;: &#x27;执行问题&#x27;, &#x27;body&#x27;: &#x27;审核通过。&#x27;, &#x27;owner&#x27;: &#x27;neko&#x27;, &#x27;counterpart&#x27;: &#x27;editor,33,xhs,tester&#x27;}</li><li>{&#x27;title&#x27;: &#x27;执行问题&#x27;, &#x27;body&#x27;: &#x27;审核通过。&#x27;, &#x27;owner&#x27;: &#x27;neko&#x27;, &#x27;counterpart&#x27;: &#x27;editor,33,xhs,tester&#x27;}</li></ul></section></body>
+</html>

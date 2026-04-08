@@ -1,0 +1,289 @@
+from __future__ import annotations
+
+import json
+from contextlib import contextmanager
+from typing import Any, Iterable
+
+import psycopg
+
+from .config import load_settings
+
+
+SETTINGS = load_settings()
+
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS workflow_runs (
+  workflow_id TEXT NOT NULL,
+  run_id TEXT PRIMARY KEY,
+  project_id TEXT,
+  cycle_no INTEGER,
+  status TEXT NOT NULL,
+  discussion_seconds INTEGER NOT NULL,
+  forced_reject_done BOOLEAN NOT NULL DEFAULT FALSE,
+  current_phase TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  report_markdown_path TEXT,
+  report_json_path TEXT,
+  notes JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+ALTER TABLE workflow_runs ADD COLUMN IF NOT EXISTS project_id TEXT;
+ALTER TABLE workflow_runs ADD COLUMN IF NOT EXISTS cycle_no INTEGER;
+CREATE TABLE IF NOT EXISTS tasks (
+  task_id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  project_id TEXT,
+  cycle_no INTEGER,
+  parent_task_id TEXT,
+  agent_id TEXT NOT NULL,
+  agent_role TEXT NOT NULL,
+  section TEXT NOT NULL,
+  phase TEXT NOT NULL,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  result JSONB NOT NULL DEFAULT '{}'::jsonb,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ
+);
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS cycle_no INTEGER;
+CREATE INDEX IF NOT EXISTS idx_tasks_run_phase ON tasks(run_id, phase, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_project_cycle ON tasks(project_id, cycle_no, phase, status);
+
+CREATE TABLE IF NOT EXISTS materials (
+  id BIGSERIAL PRIMARY KEY,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+  section TEXT NOT NULL,
+  source_agent TEXT NOT NULL,
+  title TEXT NOT NULL,
+  source_media TEXT NOT NULL,
+  published_at TIMESTAMPTZ NOT NULL,
+  link TEXT NOT NULL,
+  images JSONB NOT NULL DEFAULT '[]'::jsonb,
+  summary_zh TEXT,
+  brief_zh TEXT,
+  is_primary_candidate BOOLEAN NOT NULL DEFAULT FALSE,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_materials_run_section ON materials(run_id, section);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id BIGSERIAL PRIMARY KEY,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  section TEXT NOT NULL,
+  review_task_id TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+  reviewer_agent TEXT NOT NULL,
+  approved BOOLEAN NOT NULL,
+  reason TEXT NOT NULL,
+  selected_material_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS discussions (
+  id BIGSERIAL PRIMARY KEY,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL,
+  comment_text TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS outputs (
+  run_id TEXT PRIMARY KEY REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  project_id TEXT,
+  cycle_no INTEGER,
+  draft_markdown TEXT,
+  revision_plan TEXT,
+  final_markdown TEXT,
+  final_json JSONB,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS project_id TEXT;
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS cycle_no INTEGER;
+
+CREATE TABLE IF NOT EXISTS projects (
+  project_id TEXT PRIMARY KEY,
+  workflow_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  current_cycle_no INTEGER NOT NULL DEFAULT 0,
+  max_cycles INTEGER NOT NULL DEFAULT 10,
+  max_consecutive_failures INTEGER NOT NULL DEFAULT 2,
+  consecutive_failures INTEGER NOT NULL DEFAULT 0,
+  discussion_seconds INTEGER NOT NULL DEFAULT 45,
+  retrospective_seconds INTEGER NOT NULL DEFAULT 600,
+  next_cycle_delay_seconds INTEGER NOT NULL DEFAULT 300,
+  latest_run_id TEXT,
+  next_cycle_at TIMESTAMPTZ,
+  paused_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  notes JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE TABLE IF NOT EXISTS project_cycles (
+  project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+  cycle_no INTEGER NOT NULL,
+  run_id TEXT REFERENCES workflow_runs(run_id) ON DELETE SET NULL,
+  status TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  retrospective_started_at TIMESTAMPTZ,
+  retrospective_completed_at TIMESTAMPTZ,
+  next_cycle_at TIMESTAMPTZ,
+  retrospective_summary TEXT,
+  optimization_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (project_id, cycle_no)
+);
+
+CREATE TABLE IF NOT EXISTS retrospectives (
+  id BIGSERIAL PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+  cycle_no INTEGER NOT NULL,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  task_id TEXT REFERENCES tasks(task_id) ON DELETE SET NULL,
+  agent_id TEXT NOT NULL,
+  message_id TEXT,
+  reply_to_message_id TEXT,
+  from_agent TEXT,
+  to_agent TEXT,
+  target_type TEXT,
+  topic TEXT,
+  intent TEXT,
+  round_no INTEGER NOT NULL DEFAULT 1,
+  body TEXT,
+  comment_text TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS message_id TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS reply_to_message_id TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS from_agent TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS to_agent TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS target_type TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS topic TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS intent TEXT;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS round_no INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE retrospectives ADD COLUMN IF NOT EXISTS body TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_retrospectives_message_id ON retrospectives(message_id);
+
+CREATE TABLE IF NOT EXISTS agent_optimizations (
+  id BIGSERIAL PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+  cycle_no INTEGER NOT NULL,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL,
+  summary_text TEXT NOT NULL,
+  optimization_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS project_agent_memory (
+  project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL,
+  current_memory JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (project_id, agent_id)
+);
+
+CREATE TABLE IF NOT EXISTS product_reports (
+  id BIGSERIAL PRIMARY KEY,
+  project_id TEXT REFERENCES projects(project_id) ON DELETE CASCADE,
+  cycle_no INTEGER,
+  run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+  task_id TEXT REFERENCES tasks(task_id) ON DELETE SET NULL,
+  agent_id TEXT,
+  report_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary_text TEXT NOT NULL,
+  report_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_reports_run_type ON product_reports(run_id, report_type, agent_id);
+
+CREATE TABLE IF NOT EXISTS optimization_logs (
+  id BIGSERIAL PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+  cycle_no INTEGER NOT NULL,
+  run_id TEXT REFERENCES workflow_runs(run_id) ON DELETE SET NULL,
+  agent_id TEXT,
+  source_type TEXT NOT NULL,
+  source TEXT NOT NULL,
+  author TEXT NOT NULL,
+  category TEXT NOT NULL,
+  effective_from_cycle INTEGER NOT NULL,
+  expires_after_cycle INTEGER,
+  body TEXT NOT NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_optimization_logs_project_cycle
+ON optimization_logs(project_id, effective_from_cycle, agent_id, source_type);
+
+CREATE INDEX IF NOT EXISTS idx_cycles_project_status ON project_cycles(project_id, status, cycle_no);
+CREATE INDEX IF NOT EXISTS idx_retrospectives_run_cycle ON retrospectives(run_id, cycle_no, created_at);
+CREATE INDEX IF NOT EXISTS idx_agent_optimizations_project_cycle ON agent_optimizations(project_id, cycle_no, agent_id);
+"""
+
+
+@contextmanager
+def get_conn(autocommit: bool = False):
+    conn = psycopg.connect(SETTINGS.postgres_dsn, autocommit=autocommit)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def init_schema() -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(SCHEMA_SQL)
+        conn.commit()
+
+
+def fetch_one(query: str, params: Iterable[Any] | None = None):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or [])
+            return cur.fetchone()
+
+
+def fetch_all(query: str, params: Iterable[Any] | None = None):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or [])
+            return cur.fetchall()
+
+
+def execute(query: str, params: Iterable[Any] | None = None):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or [])
+        conn.commit()
+
+
+def execute_returning(query: str, params: Iterable[Any] | None = None):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or [])
+            row = cur.fetchone()
+        conn.commit()
+        return row
+
+
+def jdump(data: Any) -> str:
+    return json.dumps(data, ensure_ascii=False)

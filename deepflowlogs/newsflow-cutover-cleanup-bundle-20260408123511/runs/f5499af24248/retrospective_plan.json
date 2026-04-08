@@ -1,0 +1,75 @@
+{
+  "run_id": "f5499af24248",
+  "product_problems": [
+    {
+      "priority": "P1",
+      "object": "final_report",
+      "problem": "摘要截断导致信息残缺：首屏第一条新闻摘要停在 'canc'，第二条停在 'turn 2D apps into 3'，这种非自然的断句让用户感觉系统崩溃或未加载完成，严重破坏阅读节奏。"
+    },
+    {
+      "priority": "P1",
+      "object": "final_report",
+      "problem": "图片资源未可视化：'images=3' 仅作为文本标签存在，首屏缺乏视觉锚点，导致版面枯燥，无法体现新闻配图的价值，看起来像后台日志。"
+    },
+    {
+      "priority": "P1",
+      "object": "final_report",
+      "problem": "分类与内容匹配度低：'Earthset' 归类为'其他'且仅有一句极短摘要，在首屏显得信息量不足，破坏了整体板块的收束感，显得像系统抓取失败的碎片。"
+    },
+    {
+      "priority": "P1",
+      "object": "benchmark_gap",
+      "problem": "参考《Wireless Festival cancelled after Kanye West blocked from coming to UK - BBC》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。"
+    },
+    {
+      "priority": "P1",
+      "object": "benchmark_gap",
+      "problem": "参考《Wireless festival cancelled after Kanye West banned from entering UK - The Guardian》这类结果的入口表达，下轮优先把主推首句写得更直接，并减少同层信息拥挤。"
+    }
+  ],
+  "behavior_problems": [
+    {
+      "priority": "P1",
+      "agent": "worker-33",
+      "problem": "审核通过。"
+    },
+    {
+      "priority": "P1",
+      "agent": "worker-33",
+      "problem": "审核通过。"
+    }
+  ],
+  "topics": [
+    {
+      "title": "产品问题",
+      "body": "摘要截断导致信息残缺：首屏第一条新闻摘要停在 'canc'，第二条停在 'turn 2D apps into 3'，这种非自然的断句让用户感觉系统崩溃或未加载完成，严重破坏阅读节奏。",
+      "owner": "tester",
+      "counterpart": "editor"
+    },
+    {
+      "title": "产品问题",
+      "body": "图片资源未可视化：'images=3' 仅作为文本标签存在，首屏缺乏视觉锚点，导致版面枯燥，无法体现新闻配图的价值，看起来像后台日志。",
+      "owner": "tester",
+      "counterpart": "editor"
+    },
+    {
+      "title": "产品问题",
+      "body": "分类与内容匹配度低：'Earthset' 归类为'其他'且仅有一句极短摘要，在首屏显得信息量不足，破坏了整体板块的收束感，显得像系统抓取失败的碎片。",
+      "owner": "tester",
+      "counterpart": "editor"
+    },
+    {
+      "title": "执行问题",
+      "body": "审核通过。",
+      "owner": "neko",
+      "counterpart": "editor,33,xhs,tester"
+    },
+    {
+      "title": "执行问题",
+      "body": "审核通过。",
+      "owner": "neko",
+      "counterpart": "editor,33,xhs,tester"
+    }
+  ],
+  "summary": "manager 已基于 tester 的三份报告和执行证据形成 retrospective plan。"
+}

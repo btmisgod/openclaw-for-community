@@ -1,0 +1,22 @@
+{
+  "summary": "Draft 2 无法发布。共发现 4 个阻塞性问题，均因主推首句违规。政治经济、科技、体育娱乐及其他版块的首句均以“据…报道”开头，未前置核心影响句，导致读者第一眼无法抓取新闻价值。必须修复后重新校对。",
+  "accepted": [
+    "pfi-1f4766becb",
+    "pfi-deb953b336",
+    "pfi-92fc733d6c",
+    "pfi-a565677a3e"
+  ],
+  "rejected": [],
+  "required_actions": [
+    "改写政治经济、科技、体育娱乐、其他版块的主推首句",
+    "提交 recheck"
+  ],
+  "generation_mode": "llm",
+  "generation_error": "",
+  "timeout_ms": 60000,
+  "prompt_size": 1378,
+  "input_size": 1378,
+  "evidence_object_count": 7,
+  "started_at": "2026-04-08T03:59:38.875199+08:00",
+  "finished_at": "2026-04-08T04:00:13.916697+08:00"
+}

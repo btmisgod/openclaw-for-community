@@ -1,0 +1,538 @@
+{
+  "其他": {
+    "main": {
+      "id": 5376,
+      "link": "https://www.nasa.gov/image-article/earthset/",
+      "title": "Earthset",
+      "images": [
+        "https://www.nasa.gov/wp-content/uploads/2026/04/art002e009288orig-1.jpg",
+        "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png",
+        "https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&h=1440&fit=clip&crop=faces%2Cfocalpoint"
+      ],
+      "metadata": {
+        "summary_en": "The Artemis II crew captured this view of Earth setting on April 6, 2026, as they flew around the Moon. As the astronauts flew over the Moon’s far side, the crew photographed and described terrain features including impact craters, ancient lava flows, and surface cracks and ridges formed as the Moon slowly evolved over time. […]"
+      },
+      "summary_zh": "NASA 发布了令人惊叹的“地落”影像。据 NASA 报道，这则其他新闻围绕“Earthset”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-07T18:54:50+00:00",
+      "source_media": "NASA"
+    },
+    "briefs": [
+      {
+        "id": 5386,
+        "link": "https://www.bbc.com/news/articles/cj60nkd8nrko?at_medium=RSS&at_campaign=rss",
+        "title": "Has Artemis II shown we can land on the Moon again?",
+        "images": [],
+        "metadata": {
+          "summary_en": "The Artemis II mission has been near flawless to date, but has the test flight shown Nasa is ready to send humans to the lunar surface?"
+        },
+        "summary_zh": "据BBC News报道，这则其他新闻围绕“Has Artemis II shown we can。",
+        "published_at": "2026-04-07T15:23:05+00:00",
+        "source_media": "BBC News"
+      },
+      {
+        "id": 5387,
+        "link": "https://www.bbc.com/news/articles/cyv183v02j3o?at_medium=RSS&at_campaign=rss",
+        "title": "Earthset and a solar eclipse: Nasa releases first images from Moon fly-by",
+        "images": [],
+        "metadata": {
+          "summary_en": "The first two images show an 'Earthrise' and the solar eclipse the astronauts viewed."
+        },
+        "summary_zh": "据BBC News报道，这则其他新闻围绕“Earthset and a solar eclipse。",
+        "published_at": "2026-04-07T14:53:18+00:00",
+        "source_media": "BBC News"
+      },
+      {
+        "id": 5377,
+        "link": "https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html",
+        "title": "Artemis II Astronauts Name Moon Crater After Carroll, Reid Wiseman’s Late Wife",
+        "images": [],
+        "metadata": {
+          "summary_en": "The crew shared an emotional moment with mission control and the family of Reid Wiseman, whose wife, Carroll, died in 2020, on the ground in Houston."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“Artemis II Astronauts N。",
+        "published_at": "2026-04-07T18:26:11+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 5378,
+        "link": "https://www.nytimes.com/2026/04/07/science/nasa-artemis-ii-astronauts-moon-joy.html",
+        "title": "NASA’s Artemis II Astronauts Spread ‘Moon Joy’ to the Public",
+        "images": [],
+        "metadata": {
+          "summary_en": "While science can seem colorless and plain, NASA’s lunar crew members have brought expressiveness and emotion about their journey to mission control and the public."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“NASA’s Artemis II Astro。",
+        "published_at": "2026-04-07T18:21:42+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 5379,
+        "link": "https://www.nytimes.com/2026/04/07/science/nasa-artemis-moon-flyby-photos.html",
+        "title": "See First Photos From NASA’s Artemis II Moon Mission Capturing a Setting Earth and Eclipse",
+        "images": [],
+        "metadata": {
+          "summary_en": "The White House and NASA released imagery captured by the cameras of the four astronauts of the Artemis II mission."
+        },
+        "summary_zh": "据NYT > Science报道，这则其他新闻围绕“See First Photos From N。",
+        "published_at": "2026-04-07T18:21:18+00:00",
+        "source_media": "NYT > Science"
+      },
+      {
+        "id": 5381,
+        "link": "https://www.nytimes.com/2026/04/07/magazine/male-hair-loss-treatment-finasteride.html",
+        "title": "Finasteride for Male Baldness is Rewriting the Rules of Male Beauty",
+        "images": [],
+        "metadata": {
+          "summary_en": "A pill to cure baldness is changing the way men age — and how they see themselves."
+        },
+        "summary_zh": "据NYT > Health报道，这则其他新闻围绕“Finasteride for Male Bal。",
+        "published_at": "2026-04-07T16:45:40+00:00",
+        "source_media": "NYT > Health"
+      },
+      {
+        "id": 5383,
+        "link": "https://www.nytimes.com/2026/03/31/science/drugs-psychoactive-nitazenes.html",
+        "title": "How the Internet Became the ‘Cookbook’ of the Drug Trade",
+        "images": [],
+        "metadata": {
+          "summary_en": "A baffling overdose death took investigators to the frontier of ultra-potent synthetic drugs. The clues were hauntingly familiar."
+        },
+        "summary_zh": "据NYT > Health报道，这则其他新闻围绕“How the Internet Became。",
+        "published_at": "2026-04-07T16:32:44+00:00",
+        "source_media": "NYT > Health"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 5380,
+        "link": "https://www.nasa.gov/general/experience-the-rollout-of-sls-hardware-for-artemis-iii/",
+        "title": "Experience the Rollout of SLS Hardware for Artemis III",
+        "images": [
+          "https://images-assets.nasa.gov/image/MAF_20240712_CS2_Bldg110_Rev-epb_01/MAF_20240712_CS2_Bldg110_Rev-epb_01~large.jpg"
+        ],
+        "metadata": {
+          "summary_en": "Digital creators and social media users are invited to register to attend the rollout of the third SLS (Space Launch System) core stage as it is prepped to head from NASA’s Michoud Assembly Facility to NASA’s Kennedy Space Center. Are you passionate about social media and communications? Do you love to create content for an […]"
+        },
+        "summary_zh": "据NASA报道，这则其他新闻围绕“Experience the Rollout of SLS Hardware for Artemis III”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-07T17:52:09+00:00",
+        "source_media": "NASA"
+      },
+      {
+        "id": 5382,
+        "link": "https://www.nasa.gov/news-release/nasa-to-host-media-call-with-artemis-ii-crew-on-way-home-from-moon/",
+        "title": "NASA to Host Media Call with Artemis II Crew on Way Home from Moon",
+        "images": [
+          "https://www.nasa.gov/wp-content/uploads/2026/04/artemis-ii-cnew-conference-advisory-april-7.jpg"
+        ],
+        "metadata": {
+          "summary_en": "Media will have an opportunity at 9:45 p.m. EDT on Wednesday, April 8, to speak with NASA’s Artemis II crew members as they continue their journey toward Earth during their historic mission around the Moon. The 20-minute virtual news conference will take place with NASA astronauts Reid Wiseman, Victor Glover, and Christina Koch, and CSA […]"
+        },
+        "summary_zh": "据NASA报道，这则其他新闻围绕“NASA to Host Media Call with Artemis II Crew on Way Home from Moon”展开，更多细节与背景请查看原文。",
+        "published_at": "2026-04-07T16:38:04+00:00",
+        "source_media": "NASA"
+      }
+    ]
+  },
+  "科技": {
+    "main": {
+      "id": 5351,
+      "link": "https://www.theverge.com/tech/908268/android-xr-samsung-galaxy-auto-spatialization-2d-3d",
+      "title": "You can now turn 2D apps into 3D while using the Galaxy XR headset",
+      "images": [
+        "https://platform.theverge.com/wp-content/uploads/sites/2/2025/10/Moohan_1.jpg?quality=90&strip=all&crop=0%2C10.79064510921%2C100%2C78.418709781581&w=1200",
+        "https://www.google-analytics.com/g/collect?v=2&tid=G-C3QZPB4GVE&cid=555&en=noscript_page_view",
+        "https://platform.theverge.com/wp-content/uploads/sites/2/2025/01/JAY_BLURPLE.jpg?quality=90&strip=all&crop=0%2C0%2C100%2C100&w=2400"
+      ],
+      "metadata": {
+        "summary_en": "Android XR is getting a new feature that turns 2D apps, websites, images, and videos into \"3D experiences.\" The feature, which Google calls \"auto-spatialization,\" was initially announced last year, and it's launching on Tuesday as an experimental feature for Samsung Galaxy XR headsets. Here's a video from Google that gives you an idea about how […]"
+      },
+      "summary_zh": "Galaxy XR 头显用户现已支持将 2D 应用转化为 3D 体验。据 The Verge 报道，这则科技新闻围绕“You can now turn 2D apps into 3D while using the Galaxy XR headset”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-07T19:07:12+00:00",
+      "source_media": "The Verge"
+    },
+    "briefs": [
+      {
+        "id": 5354,
+        "link": "https://www.theverge.com/gadgets/908196/samsung-galaxy-s26-ultra-privacy-display-deal-sale-unlocked",
+        "title": "Samsung’s Galaxy S26 Ultra is $200 off for the first time",
+        "images": [],
+        "metadata": {
+          "summary_en": "My colleague Allison Johnson loved the Privacy Display in her review of the Samsung Galaxy S26 Ultra. The display feature, which blocks onlookers from getting a peep at what’s on the screen when viewed from the side, is worth getting the S26 Ultra for if you are serious about privacy during your commute or elsewhere. […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“Samsung’s Galaxy S26 Ultra。",
+        "published_at": "2026-04-07T18:16:52+00:00",
+        "source_media": "The Verge"
+      },
+      {
+        "id": 5355,
+        "link": "https://techcrunch.com/2026/04/07/intel-signs-on-to-elon-musks-terafab-chips-project/",
+        "title": "Intel signs on to Elon Musk’s Terafab chips project",
+        "images": [],
+        "metadata": {
+          "summary_en": "Intel will join SpaceX and Tesla in an effort to build a new U.S. semiconductor factory in Texas, although the scope of its contributions are unclear."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Intel signs on to Elon Mus。",
+        "published_at": "2026-04-07T18:10:01+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 5356,
+        "link": "https://arstechnica.com/tech-policy/2026/04/scotus-overturns-5th-circuit-ruling-that-told-isp-to-kick-pirates-off-internet/",
+        "title": "SCOTUS overturns 5th Circuit ruling that told ISP to kick pirates off Internet",
+        "images": [],
+        "metadata": {
+          "summary_en": "Supreme Court's precedent-setting Cox ruling helps Grande beat music piracy claims."
+        },
+        "summary_zh": "据Ars Technica - All content报道，这则科技新闻围绕“SCOTUS ove。",
+        "published_at": "2026-04-07T18:00:20+00:00",
+        "source_media": "Ars Technica - All content"
+      },
+      {
+        "id": 5357,
+        "link": "https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/",
+        "title": "Anthropic debuts preview of powerful new AI model Mythos in new cybersecurity initiative",
+        "images": [],
+        "metadata": {
+          "summary_en": "The new model will be used by a small number of high-profile companies to engage in defensive cybersecurity work."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Anthropic debuts preview o。",
+        "published_at": "2026-04-07T18:00:00+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 5358,
+        "link": "https://www.theverge.com/ai-artificial-intelligence/908114/anthropic-project-glasswing-cybersecurity",
+        "title": "A new Anthropic model found security problems ‘in every major operating system and web browser’",
+        "images": [],
+        "metadata": {
+          "summary_en": "Anthropic is debuting a new AI model as part of a cybersecurity partnership with Nvidia, Google, Amazon Web Services, Apple, Microsoft, and other companies. Project Glasswing, as it's called, is billed as a way for large companies, and potentially even the government, to flag vulnerabilities in their systems with virtually no human intervention. Anthropic is […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“A new Anthropic model found。",
+        "published_at": "2026-04-07T18:00:00+00:00",
+        "source_media": "The Verge"
+      },
+      {
+        "id": 5359,
+        "link": "https://techcrunch.com/2026/04/07/apples-foldable-iphone-is-on-track-to-launch-in-september-report-says/",
+        "title": "Apple’s foldable iPhone is on track to launch in September, report says",
+        "images": [],
+        "metadata": {
+          "summary_en": "The news follows a report from Nikkei Asia on Tuesday that raised concerns the company’s foldable iPhone could be delayed due to challenges during the phone’s engineering test phase."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Apple’s foldable iPhone is。",
+        "published_at": "2026-04-07T17:47:43+00:00",
+        "source_media": "TechCrunch"
+      },
+      {
+        "id": 5360,
+        "link": "https://www.theverge.com/gadgets/907744/bose-soundlink-flex-2nd-gen-google-nest-doorbell-deal-sale",
+        "title": "The rugged Bose Soundlink Flex is 25 percent off right now",
+        "images": [],
+        "metadata": {
+          "summary_en": "We saw a host of excellent Bose discounts during Amazon’s so-called Big Spring Sale last month; however, none of them were quite as steep as the current price drop we’re seeing on the latest Bose Soundlink Flex. Right now, the portable speaker is on sale at Amazon, Walmart, and Best Buy for $119 ($40 off), […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“The rugged Bose Soundlink F。",
+        "published_at": "2026-04-07T17:02:25+00:00",
+        "source_media": "The Verge"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 5352,
+        "link": "https://www.theverge.com/tech/908251/dockcase-selfix-selfie-phone-case-hands-on",
+        "title": "I wish this selfie phone case was better for selfies",
+        "images": [
+          "https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/dsc03128_processed.jpg?quality=90&strip=all&crop=0%2C10.723165084465%2C100%2C78.55366983107&w=1200"
+        ],
+        "metadata": {
+          "summary_en": "The Selfix phone case is a classic example of a great idea in theory that falls apart in practice. It's a case for the iPhone 17 Pro with a circular screen on the back. It mirrors the middle of your main phone screen, making it easier to frame up selfies using your phone's higher-quality rear […]"
+        },
+        "summary_zh": "据The Verge报道，这则科技新闻围绕“I wish this selfie phone case was better for selfies”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-07T19:05:00+00:00",
+        "source_media": "The Verge"
+      },
+      {
+        "id": 5353,
+        "link": "https://techcrunch.com/2026/04/07/firmus-the-southgate-ai-datacenter-builder-backed-by-nvidia-hits-5-5b-valuation/",
+        "title": "Firmus, the ‘Southgate’ AI data center builder backed by Nvidia, hits $5.5B valuation",
+        "images": [
+          "https://techcrunch.com/wp-content/uploads/2024/07/GettyImages-1955086330.jpg?resize=1200,675"
+        ],
+        "metadata": {
+          "summary_en": "Nvidia-backed Asia AI data center provider Firmus has now raised $1.35 billion in six months."
+        },
+        "summary_zh": "据TechCrunch报道，这则科技新闻围绕“Firmus, the ‘Southgate’ AI data center builder backed by Nvidia, hits $5.5B。",
+        "published_at": "2026-04-07T18:46:55+00:00",
+        "source_media": "TechCrunch"
+      }
+    ]
+  },
+  "体育娱乐": {
+    "main": {
+      "id": 5365,
+      "link": "https://www.espn.com/mens-college-basketball/story/_/id/48422336/sources-unc-michael-malone-highest-paid-coaches",
+      "title": "Sources: UNC's Malone top five in coaches' salary",
+      "images": [
+        "https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2023%2F0606%2Fr1183349_1024x576_16%2D9.jpg",
+        "https://a1.espncdn.com/combiner/i?img=%2Fredesign%2Fassets%2Fimg%2Ficons%2FESPN%2Dicon%2Dbasketball.png&w=40&h=40&scale=crop&cquality=40&location=origin",
+        "https://a.espncdn.com/combiner/i?img=/i/content-reactions/check.png&h=80&w=80"
+      ],
+      "metadata": {
+        "summary_en": "North Carolina is making new head coach Michael Malone the second-highest-paid coach in college basketball, sources confirmed to ESPN."
+      },
+      "summary_zh": "UNC 的 Malone 已跻身教练薪资榜前五名。据 www.espn.com - TOP 报道，这则体育娱乐新闻围绕“Sources: UNC's Malone top five in coaches' salary”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-07T20:38:28+00:00",
+      "source_media": "www.espn.com - TOP"
+    },
+    "briefs": [
+      {
+        "id": 5368,
+        "link": "https://www.espn.com/nfl/story/_/id/48422457/lawrence-absent-giants-workouts-harbaugh-optimistic",
+        "title": "Lawrence not with Giants; Harbaugh optimistic",
+        "images": [],
+        "metadata": {
+          "summary_en": "Giants coach John Harbaugh expressed optimism during a video call with reporters on Tuesday that defensive lineman Dexter Lawrence II will remain with the team next season."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Lawrence not wit。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5369,
+        "link": "https://www.espn.com/golf/story/_/id/48422258/mcilroy-much-more-relaxed-ahead-masters-25-victory",
+        "title": "Rory 'much more relaxed' at Masters after '25 win",
+        "images": [],
+        "metadata": {
+          "summary_en": "Golf star Rory McIlroy says he's \"much more relaxed\" ahead of this week's Masters after winning his first green jacket at last year's tournament at Augusta National."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Rory 'much more。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5370,
+        "link": "https://www.espn.com/mens-college-basketball/story/_/id/48420580/duke-favored-win-27-men-hoop-title-michigan-florida-follow",
+        "title": "Duke faves, Michigan next in '27 hoops title odds",
+        "images": [],
+        "metadata": {
+          "summary_en": "Duke is favored to win the 2027 men's basketball national championship, according to bookmakers, with newly crowned '26 champion Michigan second in next year's title odds."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Duke faves, Mich。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5373,
+        "link": "https://www.espn.com/mens-college-basketball/story/_/id/48273891/mens-march-madness-2026-pain-index-tournament-loss-hurt",
+        "title": "🏀 Men's Pain Index: Ranking every tourney loss",
+        "images": [],
+        "metadata": {
+          "summary_en": "Some losses are understandable in the NCAA tournament. Others will haunt us forever (see: Duke). We rank them all."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“🏀 Men's Pain Ind。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5374,
+        "link": "https://www.espn.com/nba/story/_/id/48412620/inside-fractured-relationship-giannis-antetokounmpo-milwaukee-bucks",
+        "title": "Inside the Bucks' lost season, and the looming 'nasty breakup' with Giannis Antetokounmpo",
+        "images": [],
+        "metadata": {
+          "summary_en": "A difficult season exacerbated a 13-year relationship that was already on the rocks, leading to more questions than answers in Milwaukee."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Inside the Bucks。",
+        "published_at": "2026-04-07T20:22:52+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5375,
+        "link": "https://www.espn.com/golf/story/_/id/48412522/top-storylines-scottie-scheffler-bryson-dechambeau-masters-2026",
+        "title": "Top storylines: Scottie Scheffler, Bryson DeChambeau and sleeper contenders",
+        "images": [],
+        "metadata": {
+          "summary_en": "Is Scottie Scheffler still the favorite? Can Bryson DeChambeau break through? How hard could the course play? We break down what to watch at the 2026 Masters."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Top storylines:。",
+        "published_at": "2026-04-07T20:06:39+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5364,
+        "link": "https://www.espn.com/soccer/story/_/id/48413142/uefa-champions-league-live-updates-real-madrid-bayern-munich-sporting-cp-arsenal",
+        "title": "Champions League live updates: Real Madrid-Bayern Munich, Sporting CP-Arsenal",
+        "images": [],
+        "metadata": {
+          "summary_en": "Enjoy all the updates from Tuesday's UEFA Champions League matches, which includes Real Madrid-Bayern Munich and Sporting CP-Arsenal."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Champions League。",
+        "published_at": "2026-04-07T20:51:12+00:00",
+        "source_media": "www.espn.com - TOP"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 5366,
+        "link": "https://www.espn.com/womens-college-basketball/story/_/id/48421840/staley-says-spoke-auriemma-wants-turn-page",
+        "title": "Staley talks to Geno, wants focus on growing game",
+        "images": [
+          "https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0404%2Fr1638287_1296x729_16%2D9.jpg"
+        ],
+        "metadata": {
+          "summary_en": "South Carolina coach Dawn Staley said Tuesday that she has spoken to UConn's Geno Auriemma and suggested for \"everyone to turn the page\" after their midcourt argument at the Final Four fueled a firestorm of controversy."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Staley talks to Geno, wants focus on growing game”展开，更多细节与背景请查看原文链。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      },
+      {
+        "id": 5367,
+        "link": "https://www.espn.com/nfl/story/_/id/48421461/sources-fernando-mendoza-not-planning-attend-nfl-draft",
+        "title": "Sources: Mendoza not planning to attend draft",
+        "images": [
+          "https://a4.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0227%2Fr1620824_1296x729_16%2D9.jpg"
+        ],
+        "metadata": {
+          "summary_en": "Fernando Mendoza has informed the NFL that he is not planning to attend the draft, sources told ESPN."
+        },
+        "summary_zh": "据www.espn.com - TOP报道，这则体育娱乐新闻围绕“Sources: Mendoza not planning to attend draft”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-07T20:38:28+00:00",
+        "source_media": "www.espn.com - TOP"
+      }
+    ]
+  },
+  "政治经济": {
+    "main": {
+      "id": 5342,
+      "link": "https://www.bbc.com/news/articles/c4gxk3kxjr0o?at_medium=RSS&at_campaign=rss",
+      "title": "Wireless Festival cancelled after Kanye West blocked from coming to UK",
+      "images": [
+        "https://ichef.bbci.co.uk/news/1024/branded_news/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg",
+        "https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png",
+        "https://ichef.bbci.co.uk/news/480/cpsprodpb/45da/live/271e4090-32a6-11f1-b4da-a3b95db80b81.jpg.webp"
+      ],
+      "metadata": {
+        "summary_en": "West was due to headline the festival in July but drew criticism over past antisemitic comments."
+      },
+      "summary_zh": "Wireless Festival 因 Kanye West 被阻入境英国而被迫取消。据 BBC News 报道，这则政治经济新闻围绕“Wireless Festival cancelled after Kanye West blocked from coming to UK”展开，更多细节与背景请查看原文链接。",
+      "published_at": "2026-04-07T19:40:05+00:00",
+      "source_media": "BBC News"
+    },
+    "briefs": [
+      {
+        "id": 5348,
+        "link": "https://www.bbc.com/news/articles/c20qv0w1j1do?at_medium=RSS&at_campaign=rss",
+        "title": "Oil price fluctuates ahead of Trump's Iran deal deadline",
+        "images": [],
+        "metadata": {
+          "summary_en": "The US president has threatened to take out Iran \"in one night\" if it does not agree to open the Strait of Hormuz."
+        },
+        "summary_zh": "据BBC News报道，这则政治经济新闻围绕“Oil price fluctuates ahead。",
+        "published_at": "2026-04-07T19:27:54+00:00",
+        "source_media": "BBC News"
+      },
+      {
+        "id": 5349,
+        "link": "https://www.aljazeera.com/video/newsfeed/2026/4/7/video-historic-building-in-ukraine-up-in-flames-after-russia-drone-attack?traffic_source=rss",
+        "title": "Video: Historic building in Ukraine up in flames after Russia drone attack",
+        "images": [],
+        "metadata": {
+          "summary_en": "A two-storey historical building in eastern Ukraine engulfed in flames after a Russian drone hit its infrastructure."
+        },
+        "summary_zh": "据Al Jazeera – Breaking News, World News and Video。",
+        "published_at": "2026-04-07T19:14:12+00:00",
+        "source_media": "Al Jazeera – Breaking News, World News and Video from Al Jazeera"
+      },
+      {
+        "id": 5350,
+        "link": "https://www.aljazeera.com/news/2026/4/7/french-nationals-return-home-following-iran-prison-release?traffic_source=rss",
+        "title": "French nationals return home following Iran prison release",
+        "images": [],
+        "metadata": {
+          "summary_en": "Cecile Kohler and Jacques Paris were freed in November after more than three years at Evin prison."
+        },
+        "summary_zh": "据Al Jazeera – Breaking News, World News and Video。",
+        "published_at": "2026-04-07T19:07:11+00:00",
+        "source_media": "Al Jazeera – Breaking News, World News and Video from Al Jazeera"
+      },
+      {
+        "id": 5338,
+        "link": "https://www.nytimes.com/2026/04/05/business/country-club-plaza-kansas-city-rescue-plan.html",
+        "title": "New Owner of Shopping Plaza in Kansas City Pitches a $1.5 Billion Rescue Plan",
+        "images": [],
+        "metadata": {
+          "summary_en": "The Country Club Plaza’s sale and turnaround plans come at a consequential economic time for Kansas City, Mo., which will soon lose the Chiefs football team."
+        },
+        "summary_zh": "据NYT > Business报道，这则政治经济新闻围绕“New Owner of Shoppin。",
+        "published_at": "2026-04-07T19:51:44+00:00",
+        "source_media": "NYT > Business"
+      },
+      {
+        "id": 5339,
+        "link": "https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news",
+        "title": "Iran War Live Updates: Trump Calls to Wipe Out a ‘Whole Civilization’ as Iranians Reject Threats",
+        "images": [],
+        "metadata": {
+          "summary_en": "The United States and Israel stepped up their attacks on Iran ahead of President Trump’s 8 p.m. Eastern deadline to make a deal to reopen the Strait of Hormuz. There were conflicting accounts over whether any talks were in progress."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Iran War Live Upda。",
+        "published_at": "2026-04-07T19:47:39+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 5340,
+        "link": "https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news/heres-the-latest",
+        "title": "Here’s the latest.",
+        "images": [],
+        "metadata": {
+          "summary_en": ""
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Here’s the latest。",
+        "published_at": "2026-04-07T19:47:37+00:00",
+        "source_media": "NYT > World News"
+      },
+      {
+        "id": 5341,
+        "link": "https://www.nytimes.com/2026/04/07/world/europe/kanye-west-ye-keir-starmer-uk-wireless.html",
+        "title": "Kanye West ‘Should Never Have Been Invited,’ Starmer Says After Barring Rapper From UK",
+        "images": [],
+        "metadata": {
+          "summary_en": "Prime Minister Keir Starmer’s government blocked the artist formerly known as Kanye West from entering Britain for the three-day Wireless Festival in July."
+        },
+        "summary_zh": "据NYT > World News报道，这则政治经济新闻围绕“Kanye West ‘Should。",
+        "published_at": "2026-04-07T19:43:24+00:00",
+        "source_media": "NYT > World News"
+      }
+    ],
+    "secondary": [
+      {
+        "id": 5343,
+        "link": "https://www.bbc.com/news/videos/c4g5j33p6vno?at_medium=RSS&at_campaign=rss",
+        "title": "Iranians form human chains at bridges and power plants",
+        "images": [
+          "https://ichef.bbci.co.uk/news/1024/branded_news/2213/live/e8f47e90-32b6-11f1-934f-036468834728.jpg"
+        ],
+        "metadata": {
+          "summary_en": "Tehran had urged people to gather outside potential US and Israeli targets after Donald Trump threatened to attack civilian infrastructure."
+        },
+        "summary_zh": "据BBC News报道，这则政治经济新闻围绕“Iranians form human chains at bridges and power plants”展开，更多细节与背景请查看原文链接。",
+        "published_at": "2026-04-07T19:36:03+00:00",
+        "source_media": "BBC News"
+      },
+      {
+        "id": 5347,
+        "link": "https://www.aljazeera.com/video/the-stream/2026/4/7/how-ai-is-being-used-to-target-palestinians?traffic_source=rss",
+        "title": "How AI is being used to target Palestinians",
+        "images": [
+          "https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775469855.jpg?resize=1920%2C1080&quality=80"
+        ],
+        "metadata": {
+          "summary_en": "We examine how emerging military tech is used in war zones and how Palestinians try to use tech to their advantage."
+        },
+        "summary_zh": "据Al Jazeera – Breaking News, World News and Video from Al Jazeera报道，这则政治经济新闻围绕“How AI is being used。",
+        "published_at": "2026-04-07T19:30:00+00:00",
+        "source_media": "Al Jazeera – Breaking News, World News and Video from Al Jazeera"
+      }
+    ]
+  }
+}
