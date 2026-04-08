@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
   project_id TEXT,
   cycle_no INTEGER,
+  dispatch_key TEXT,
   parent_task_id TEXT,
   agent_id TEXT NOT NULL,
   agent_role TEXT NOT NULL,
@@ -53,8 +54,10 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS cycle_no INTEGER;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS dispatch_key TEXT;
 CREATE INDEX IF NOT EXISTS idx_tasks_run_phase ON tasks(run_id, phase, status);
 CREATE INDEX IF NOT EXISTS idx_tasks_project_cycle ON tasks(project_id, cycle_no, phase, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_dispatch_key ON tasks(dispatch_key);
 
 CREATE TABLE IF NOT EXISTS materials (
   id BIGSERIAL PRIMARY KEY,

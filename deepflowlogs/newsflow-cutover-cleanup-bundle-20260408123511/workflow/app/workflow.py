@@ -10,6 +10,7 @@ from pathlib import Path
 
 from deep_translator import GoogleTranslator
 
+from . import content_layer
 from .config import ROOT, load_settings
 from .db import execute, execute_returning, fetch_all, fetch_one, get_conn, init_schema, jdump
 from .llm import chat_json, chat_text
@@ -63,6 +64,7 @@ LLM_NODE_CONFIG = {
     "material.collect.enrichment": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
     "material.review": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1100},
     "draft.compose.translation": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
+    "draft.render": {"timeout_ms": 150000, "max_attempts": 2, "backoff_ms": 4000, "critical": True, "max_completion_tokens": 1400},
     "draft.proofread": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1200},
     "proofread.decision.explanation": {"timeout_ms": 60000, "max_attempts": 2, "backoff_ms": 5000, "critical": False, "max_completion_tokens": 260},
     "draft.revise": {"timeout_ms": 150000, "max_attempts": 2, "backoff_ms": 12000, "critical": True, "max_completion_tokens": 450},
@@ -76,6 +78,7 @@ LLM_NODE_CONFIG = {
     "retrospective.discussion": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 2500, "critical": False, "max_completion_tokens": 700},
     "retrospective.summary": {"timeout_ms": 140000, "max_attempts": 2, "backoff_ms": 12000, "critical": True, "max_completion_tokens": 520},
     "discussion.comment": {"timeout_ms": 90000, "max_attempts": 2, "backoff_ms": 2500, "critical": False, "max_completion_tokens": 500},
+    "draft.review.comment": {"timeout_ms": 90000, "max_attempts": 2, "backoff_ms": 2500, "critical": False, "max_completion_tokens": 550},
     "discussion.summary": {"timeout_ms": 100000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 850},
     "agent.self_optimize": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1000},
 }
@@ -626,11 +629,12 @@ def _stage_chat_json(
     *,
     timeout_ms: int | None = None,
     max_completion_tokens: int | None = None,
+    max_attempts: int | None = None,
 ) -> dict:
     config = LLM_NODE_CONFIG.get(node_type, {})
     effective_timeout_ms = int(timeout_ms or config.get("timeout_ms") or 90000)
     effective_tokens = int(max_completion_tokens or config.get("max_completion_tokens") or 700)
-    effective_attempts = max(1, int(config.get("max_attempts") or 1))
+    effective_attempts = max(1, int(max_attempts or config.get("max_attempts") or 1))
     effective_backoff_ms = max(0, int(config.get("backoff_ms") or 0))
     started = now_local()
     last_error = ""
@@ -677,6 +681,20 @@ def _stage_chat_json(
         "started_at": started.isoformat(),
         "finished_at": finished.isoformat(),
     }
+
+
+def _run_content_request(request: dict) -> dict:
+    result = _stage_chat_json(
+        request["node_type"],
+        request["prompt_system"],
+        request["prompt_user"],
+        request["fallback_payload"],
+        timeout_ms=request.get("timeout_ms"),
+        max_completion_tokens=request.get("max_completion_tokens"),
+        max_attempts=request.get("max_attempts"),
+    )
+    result["evidence_object_count"] = request.get("evidence_object_count")
+    return result
 
 
 def _best_effort_translate(text: str | None, *, limit: int = 220) -> str:
@@ -1076,6 +1094,39 @@ def _truncate(text: str | None, limit: int = 80) -> str:
     return value[: limit - 1] + "…"
 
 
+def _compact_prompt_object(
+    item: dict | None,
+    *,
+    title_limit: int = 120,
+    summary_limit: int = 120,
+    note_limit: int = 80,
+) -> dict:
+    if not item:
+        return {}
+    metadata = item.get("metadata") or {}
+    summary = (
+        item.get("summary_zh")
+        or item.get("brief_zh")
+        or metadata.get("summary_en")
+        or ""
+    )
+    compact = {
+        "id": item.get("id") or item.get("material_id"),
+        "title": _truncate(item.get("title"), title_limit),
+        "source_media": _truncate(item.get("source_media"), 64),
+        "published_at": item.get("published_at", ""),
+        "summary_zh": _truncate(summary, summary_limit),
+        "brief_zh": _truncate(item.get("brief_zh"), min(90, summary_limit)),
+        "image_count": len(item.get("images") or []) if "images" in item else int(item.get("image_count") or 0),
+        "relevance_note": _truncate(item.get("relevance_note") or metadata.get("relevance_note"), note_limit),
+    }
+    return {
+        key: value
+        for key, value in compact.items()
+        if value not in (None, "", [])
+    }
+
+
 def _first_nonempty(parts: list[str], fallback: str) -> str:
     for part in parts:
         value = (part or "").strip()
@@ -1100,14 +1151,7 @@ def _review_signal(section: str, approved: bool, reason: str | None) -> str:
     value = (reason or "").strip().strip("。")
     if value and value not in {"审核通过", "审核通过。"}:
         return f"{section}：{value}"
-    defaults = {
-        "政治经济": "政治经济板块的热点阈值和影响句还不够靠前",
-        "科技": "科技板块容易把同源事件堆在一起，影响主副推区分",
-        "体育娱乐": "体育娱乐板块的话题边界和主推权重还不够稳",
-        "其他": "其他板块的题材边界和图片稳定性需要更早收紧",
-    }
-    suffix = defaults.get(section, "该板块仍有前置检查不足")
-    return f"{section}：{suffix if approved else value or suffix}"
+    return ""
 
 
 def _product_report_by_type(run_id: str, report_type: str) -> dict:
@@ -1122,78 +1166,48 @@ def _main_titles(run_id: str) -> dict[str, str]:
     return titles
 
 
-def _pick_retro_controversies(run_id: str) -> list[dict]:
-    retro_plan = _product_report_by_type(run_id, "retrospective_plan")
-    if retro_plan:
-        plan_topics = (retro_plan.get("report_json", {}) or {}).get("topics", [])
-        normalized = []
-        for item in plan_topics:
-            normalized.append(
-                {
-                    "topic": item.get("title") or "问题",
-                    "owner": item.get("owner") or "neko",
-                    "counterpart": item.get("counterpart") or "editor,33,xhs,tester",
-                    "body": item.get("body") or item.get("problem") or "需要讨论的具体问题",
-                }
-            )
-        if normalized:
-            return normalized[:3]
-    titles = _main_titles(run_id)
-    reviews = fetch_all(
-        """
-        SELECT section, approved, reason
-        FROM reviews
-        WHERE run_id=%s
-        ORDER BY created_at
-        """,
-        (run_id,),
+def _retro_topic_participants(item: dict) -> list[str]:
+    agents = [str(item.get("owner") or "").strip()]
+    agents.extend(
+        agent
+        for agent in (
+            item.get("counterpart")
+            if isinstance(item.get("counterpart"), list)
+            else _parse_agents(item.get("counterpart") or item.get("next_agents") or item.get("to_agent") or "")
+        )
+        if agent
     )
-    evaluation = _product_report_by_type(run_id, "product_evaluation_report")
-    benchmark = _product_report_by_type(run_id, "benchmark_report")
-    issues: list[dict] = []
-    for section, approved, reason in reviews:
-        if approved:
-            continue
-        owner = "33" if section in {"政治经济", "科技"} else "xhs"
-        counterpart = "xhs" if owner == "33" else "33"
-        issues.append(
-            {
-                "topic": "执行判断前置",
-                "owner": owner,
-                "counterpart": counterpart,
-                "body": f"{section} 板块在《{titles.get(section) or section}》这条主线上，{(reason or '').strip() or '关键判断仍然拖到 review 才暴露'}",
-            }
-        )
-    for issue in (evaluation.get("report_json", {}) or {}).get("top_product_issues", [])[:2]:
-        owner = "33" if any(term in issue for term in ["政治经济", "科技", "同源", "信息密度"]) else "xhs"
-        issues.append(
-            {
-                "topic": "成品阅读体验",
-                "owner": owner,
-                "counterpart": "neko",
-                "body": issue,
-            }
-        )
-    if benchmark:
-        gap = benchmark["report_json"].get("most_visible_gap", "")
-        if gap:
-            issues.append(
-                {
-                    "topic": "外部对标差距",
-                    "owner": "neko",
-                    "counterpart": "33,xhs",
-                    "body": gap,
-                }
-            )
-    dedup = []
-    seen = set()
-    for item in issues:
-        key = (item["topic"], item["owner"], item["body"])
-        if key in seen:
-            continue
-        seen.add(key)
-        dedup.append(item)
-    return dedup[:2]
+    participants = [agent for agent in agents if agent in RETRO_PARTICIPANTS]
+    return list(dict.fromkeys(participants)) or RETRO_PARTICIPANTS[:]
+
+
+def _retrospective_plan_topics(run_id: str) -> list[dict]:
+    retro_plan = _product_report_by_type(run_id, "retrospective_plan")
+    topics = _normalize_retro_plan_topics((retro_plan.get("report_json", {}) or {}).get("topics"))[:5]
+    if not topics:
+        raise RuntimeError("retrospective.plan 未提供可讨论的 topics，禁止进入 retrospective.discussion")
+    return topics
+
+
+def _retro_topic_seed(item: dict) -> dict:
+    title = str(item.get("title") or item.get("topic") or "问题").strip() or "问题"
+    body = str(item.get("body") or item.get("problem") or title).strip()
+    next_agents = _retro_topic_participants(item)
+    return {
+        "title": title,
+        "topic": title,
+        "body": body,
+        "owner": str(item.get("owner") or "neko").strip() or "neko",
+        "counterpart": str(item.get("counterpart") or ",".join(next_agents)).strip() or ",".join(next_agents),
+        "next_agents": next_agents,
+        "to_agent": ",".join(next_agents),
+        "intent": "moderate",
+        "target_type": "team",
+    }
+
+
+def _pick_retro_controversies(run_id: str) -> list[dict]:
+    raise RuntimeError("legacy local retrospective controversy generator is disabled; use retrospective.plan topics via content_layer")
 
 
 def _retro_thread_rows(run_id: str) -> list[dict]:
@@ -1223,6 +1237,25 @@ def _retro_thread_rows(run_id: str) -> list[dict]:
             "created_at": row[10],
         }
         for row in rows
+    ]
+
+
+def _retro_thread_for_prompt(run_id: str, *, limit: int = 8, body_limit: int = 160) -> list[dict]:
+    rows = _retro_thread_rows(run_id)
+    excerpt = rows[-limit:] if limit > 0 else rows
+    return [
+        {
+            "topic_id": msg.get("topic_id"),
+            "message_id": msg.get("message_id"),
+            "reply_to_message_id": msg.get("reply_to_message_id"),
+            "from_agent": msg.get("from_agent"),
+            "to_agent": msg.get("to_agent"),
+            "topic": msg.get("topic"),
+            "intent": msg.get("intent"),
+            "round_no": msg.get("round_no"),
+            "body": _truncate(msg.get("body"), body_limit),
+        }
+        for msg in excerpt
     ]
 
 
@@ -1269,77 +1302,232 @@ def _run_context_summary(run_id: str) -> str:
 
 
 def _local_retro_opening(run_id: str) -> dict:
-    controversies = _pick_retro_controversies(run_id)
-    next_agents: list[str] = []
-    for item in controversies:
-        if item["owner"] in {"33", "xhs", "editor", "tester"}:
-            next_agents.append(item["owner"])
-        counterparts = [agent.strip() for agent in str(item["counterpart"]).split(",") if agent.strip() in {"33", "xhs", "editor", "tester"}]
-        next_agents.extend(counterparts)
-    if not next_agents:
-        next_agents = RETRO_PARTICIPANTS[:]
-    next_agents = list(dict.fromkeys(next_agents))
-    return {
-        "topic": controversies[0]["topic"] if controversies else "问题",
-        "intent": "moderate",
-        "target_type": "team",
-        "to_agent": ",".join(next_agents),
-        "body": "",
-        "next_agents": next_agents,
-        "controversies": controversies,
-        "first_topic": controversies[0] if controversies else {},
-        "next_topic": controversies[1] if len(controversies) > 1 else {},
-    }
+    raise RuntimeError("legacy local retrospective opening is disabled; use retrospective.discussion opening via content_layer")
 
 
 def _local_retro_comment(agent_id: str, payload: dict, relevant_context: dict) -> dict:
+    raise RuntimeError("legacy local retrospective comment generator is disabled; use retrospective.discussion comment via content_layer")
+
+
+def _retro_route_defaults(payload: dict, topic_row: dict | None) -> dict:
+    current_topic = str(payload.get("topic") or (topic_row or {}).get("title") or "复盘讨论").strip() or "复盘讨论"
+    to_agent = str(payload.get("to_agent") or "neko").strip() or "neko"
+    next_agents = [
+        agent
+        for agent in (
+            payload.get("next_agents")
+            if isinstance(payload.get("next_agents"), list)
+            else _parse_agents(payload.get("next_agents") or to_agent)
+        )
+        if agent in RETRO_PARTICIPANTS
+    ]
     return {
-        "topic": payload.get("topic") or "复盘讨论",
-        "intent": "question" if agent_id == "neko" else "comment",
-        "target_type": payload.get("target_type") or "team",
-        "to_agent": payload.get("to_agent") or "neko",
+        "topic": current_topic,
+        "intent": str(payload.get("intent") or "comment").strip() or "comment",
+        "target_type": str(payload.get("target_type") or "team").strip() or "team",
+        "to_agent": to_agent,
         "body": "",
-        "next_agents": payload.get("next_agents") or [],
-        "mode": payload.get("mode") or "open",
-        "discussion_context": relevant_context,
+        "next_agents": next_agents,
+        "mode": str(payload.get("mode") or "").strip(),
     }
 
 
-def _local_retro_summary(run_id: str, thread: list[dict]) -> dict:
-    lines = ["复盘线程证据："]
-    for msg in thread[:8]:
-        lines.append(f"- round {msg['round_no']} {msg['from_agent']} -> {msg['to_agent']}: {_truncate(msg['body'], 140)}")
-    if len(lines) == 1:
-        lines.append("- 暂无复盘消息。")
-    return {"summary": "\n".join(lines)}
-
-
-def _local_self_optimize(agent_id: str, cycle_no: int, summary: str, previous: dict, relevant: list[dict], blueprint: dict) -> dict:
-    fallback = {
-        "summary": blueprint.get("summary", previous.get("summary") or f"{agent_id} 下一轮继续优化。"),
-        "exposed_issues": [msg["body"] for msg in relevant[:3]] or ["本轮仍需继续结合复盘证据收紧执行。"],
-        "next_cycle_strategy": list(blueprint.get("execution_strategy", [])),
-        "next_cycle_quality_checks": list(blueprint.get("quality_checks", [])),
-        "role_improvement_plan": previous.get("role_improvement_plan") or "下一轮继续把本轮复盘中的问题前置成可执行检查。",
+def _agent_role_scope(agent_id: str) -> dict:
+    scope_map = {
+        "neko": {
+            "role": "manager",
+            "owned_sections": ["全局"],
+            "owned_stages": [
+                "cycle.start",
+                "material.review.decision",
+                "publish.decision",
+                "pre-retro.review",
+                "retrospective.plan",
+                "retrospective.summary",
+                "agent.optimization",
+            ],
+        },
+        "editor": {
+            "role": "editor",
+            "owned_sections": ["全局"],
+            "owned_stages": ["draft.compose", "draft.revise", "report.publish"],
+        },
+        "tester": {
+            "role": "tester",
+            "owned_sections": ["全局"],
+            "owned_stages": [
+                "material.review",
+                "draft.proofread",
+                "draft.recheck",
+                "product.test",
+                "product.benchmark",
+                "product.cross_cycle_compare",
+            ],
+        },
+        "33": {
+            "role": "worker-33",
+            "owned_sections": ["政治经济", "科技"],
+            "owned_stages": ["material.collect"],
+        },
+        "xhs": {
+            "role": "worker-xhs",
+            "owned_sections": ["体育娱乐", "其他"],
+            "owned_stages": ["material.collect"],
+        },
     }
-    return _stage_chat_json(
-        "agent.self_optimize",
-        f"你是 {agent_id}，现在根据真实复盘线程和本轮成品证据写自我优化记录。"
-        "不要模板化，不要直接照抄 blueprint。"
-        "输出 JSON：summary,exposed_issues,next_cycle_strategy,next_cycle_quality_checks,role_improvement_plan。",
-        json.dumps(
-            {
-                "agent_id": agent_id,
-                "cycle_no": cycle_no,
-                "retrospective_summary": summary,
-                "relevant_thread": relevant,
-                "previous_memory": previous,
-                "blueprint_seed": blueprint,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    return scope_map.get(
+        agent_id,
+        {
+            "role": agent_id,
+            "owned_sections": ["全局"],
+            "owned_stages": [],
+        },
     )
+
+
+def _agent_memory_seed(agent_id: str, cycle_no: int, summary: str, previous: dict, optimization_log: dict) -> dict:
+    seed = {
+        "agent_id": agent_id,
+        "version_cycle": cycle_no,
+        "updated_at": now_iso(),
+        "retrospective_memory": summary,
+        "role_scope": _agent_role_scope(agent_id),
+    }
+    for key in ("source_whitelist", "source_blacklist", "review_standards"):
+        if previous.get(key):
+            seed[key] = previous.get(key)
+    active_rules = []
+    for item in (optimization_log.get("compiled_rules") or [])[:6]:
+        active_rules.append(
+            {
+                "rule_type": item.get("rule_type"),
+                "target_section": item.get("target_section"),
+                "rule_payload": item.get("rule_payload") or {},
+                "rationale": _truncate(item.get("rationale"), 140),
+            }
+        )
+    if active_rules:
+        seed["active_rules"] = active_rules
+    return seed
+
+
+def _self_optimize_evidence(
+    run_id: str,
+    agent_id: str,
+    summary: str,
+    previous: dict,
+    relevant: list[dict],
+    memory_seed: dict,
+    optimization_log: dict,
+) -> dict:
+    sections = AGENT_SECTIONS.get(agent_id) or ["政治经济", "科技", "体育娱乐", "其他"]
+    final_json = (_load_output_bundle(run_id).get("final_json") or {})
+    final_sections = {}
+    for section in sections:
+        payload = final_json.get(section) or {}
+        main = payload.get("main") or {}
+        secondary = payload.get("secondary") or []
+        briefs = payload.get("briefs") or []
+        final_sections[section] = {
+            "main": {
+                "title": _truncate(main.get("title"), 120),
+                "summary_zh": _truncate(main.get("summary_zh"), 180),
+                "image_count": len(main.get("images") or []),
+            },
+            "secondary": [
+                {
+                    "title": _truncate(item.get("title"), 100),
+                    "summary_zh": _truncate(item.get("summary_zh"), 120),
+                }
+                for item in secondary[:1]
+            ],
+            "briefs": [
+                {
+                    "title": _truncate(item.get("title"), 90),
+                    "summary_zh": _truncate(item.get("summary_zh"), 90),
+                }
+                for item in briefs[:2]
+            ],
+        }
+    product_reports = []
+    for report in _product_report_rows(run_id):
+        report_json = report.get("report_json") or {}
+        compact = {
+            "report_type": report.get("report_type"),
+            "summary_text": _truncate(report.get("summary_text"), 180),
+        }
+        if report.get("report_type") == "product_test":
+            compact["most_obvious_problems"] = _clean_string_list(report_json.get("most_obvious_problems"), limit=3)
+            compact["priority_improvements"] = _clean_string_list(report_json.get("priority_improvements"), limit=3)
+        elif report.get("report_type") == "benchmark_report":
+            compact["most_visible_gap"] = _truncate(report_json.get("most_visible_gap"), 180)
+            compact["next_cycle_actions"] = _clean_string_list(report_json.get("next_cycle_actions"), limit=3)
+        elif report.get("report_type") == "product_evaluation_report":
+            compact["top_product_issues"] = _clean_string_list(report_json.get("top_product_issues"), limit=3)
+            compact["next_cycle_recommendations"] = _clean_string_list(report_json.get("next_cycle_recommendations"), limit=3)
+        elif report.get("report_type") == "cross_cycle_compare_report":
+            compact["improved_issues"] = _clean_string_list(report_json.get("improved_issues"), limit=3)
+            compact["unimproved_issues"] = _clean_string_list(report_json.get("unimproved_issues"), limit=3)
+            compact["regressed_areas"] = _clean_string_list(report_json.get("regressed_areas"), limit=3)
+            compact["unimplemented_previous_optimization_suggestions"] = _clean_string_list(
+                report_json.get("unimplemented_previous_optimization_suggestions"),
+                limit=3,
+            )
+        product_reports.append(compact)
+    return {
+        "agent_id": agent_id,
+        "retrospective_summary": _truncate(summary, 320),
+        "relevant_retrospective_messages": [
+            {
+                "from_agent": msg.get("from_agent"),
+                "to_agent": msg.get("to_agent"),
+                "topic": msg.get("topic"),
+                "intent": msg.get("intent"),
+                "body": _truncate(msg.get("body"), 180),
+            }
+            for msg in relevant[-6:]
+        ],
+        "product_reports": product_reports,
+        "final_sections": final_sections,
+        "previous_memory": {
+            "summary": _truncate(previous.get("summary"), 180),
+            "exposed_issues": _clean_string_list(previous.get("exposed_issues"), limit=3),
+            "next_cycle_strategy": _clean_string_list(previous.get("next_cycle_strategy") or previous.get("execution_strategy"), limit=4),
+            "next_cycle_quality_checks": _clean_string_list(
+                previous.get("next_cycle_quality_checks") or previous.get("quality_checks"),
+                limit=4,
+            ),
+            "role_improvement_plan": _truncate(previous.get("role_improvement_plan"), 180),
+        },
+        "role_scope": memory_seed.get("role_scope") or {},
+        "active_optimization_rules": [
+            {
+                "rule_type": item.get("rule_type"),
+                "target_section": item.get("target_section"),
+                "rationale": _truncate(item.get("rationale"), 120),
+                "rule_payload": item.get("rule_payload") or {},
+            }
+            for item in (optimization_log.get("compiled_rules") or [])[:6]
+        ],
+        "recent_guidance": [
+            {
+                "source_type": item.get("source_type"),
+                "category": item.get("category"),
+                "body": _truncate(item.get("body"), 140),
+            }
+            for item in (optimization_log.get("combined") or [])[:4]
+            if item.get("body")
+        ],
+        "current_memory_state": {
+            "source_whitelist": memory_seed.get("source_whitelist", []),
+            "source_blacklist": memory_seed.get("source_blacklist", []),
+            "review_standards": memory_seed.get("review_standards", []),
+        },
+    }
+
+
+def _local_self_optimize(run_id: str, agent_id: str, cycle_no: int, summary: str, previous: dict, relevant: list[dict], blueprint: dict) -> dict:
+    raise RuntimeError("legacy local self_optimize path is disabled; use self_optimize_agent with run-bound evidence")
 
 
 def _thread_excerpt(run_id: str) -> str:
@@ -1696,6 +1884,55 @@ def complete_agent_ack(task_id: str, ack_id: str, ack: dict):
     )
 
 
+def _dispatch_dedupe_key(
+    run_id: str,
+    *,
+    parent_task_id: str | None,
+    agent_id: str,
+    section: str,
+    phase: str,
+    retry_count: int,
+    payload: dict,
+) -> str | None:
+    key_parts = [run_id, phase, agent_id, section, str(retry_count)]
+    if phase == "material.review.decision":
+        key_parts.append(parent_task_id or "root")
+        return "|".join(key_parts)
+    if phase in {"retrospective.discussion", "discussion.comment"}:
+        key_parts.extend(
+            [
+                str(payload.get("topic_id") or "root"),
+                str(payload.get("reply_to_message_id") or "root"),
+                str(payload.get("mode") or ""),
+                str(payload.get("round_no") or 0),
+            ]
+        )
+        return "|".join(key_parts)
+    if phase in {
+        "cycle.start",
+        "material.collect",
+        "material.submit",
+        "material.review",
+        "draft.compose",
+        "draft.proofread",
+        "draft.revise",
+        "draft.recheck",
+        "proofread.decision.explanation",
+        "publish.decision",
+        "report.publish",
+        "product.test",
+        "product.benchmark",
+        "product.cross_cycle_compare",
+        "pre-retro.review",
+        "retrospective.plan",
+        "retrospective.summary",
+        "agent.optimization",
+        "agent.self_optimize",
+    }:
+        return "|".join(key_parts)
+    return None
+
+
 def create_task(
     run_id: str,
     parent_task_id: str | None,
@@ -1708,18 +1945,25 @@ def create_task(
     project_id: str | None = None,
     cycle_no: int | None = None,
     initial_status: str = "pending",
+    dispatch_key: str | None = None,
 ) -> str:
     task_id = uuid.uuid4().hex[:16]
-    execute(
+    row = execute_returning(
         """
-        INSERT INTO tasks(task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, status, payload)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+        INSERT INTO tasks(
+            task_id, run_id, project_id, cycle_no, dispatch_key, parent_task_id, agent_id, agent_role,
+            section, phase, retry_count, status, payload
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+        ON CONFLICT (dispatch_key) DO NOTHING
+        RETURNING task_id
         """,
         (
             task_id,
             run_id,
             project_id,
             cycle_no,
+            dispatch_key,
             parent_task_id,
             agent_id,
             agent_role,
@@ -1730,6 +1974,12 @@ def create_task(
             jdump(payload),
         ),
     )
+    if row:
+        return row[0]
+    if dispatch_key:
+        existing = fetch_one("SELECT task_id FROM tasks WHERE dispatch_key=%s", (dispatch_key,))
+        if existing:
+            return existing[0]
     return task_id
 
 
@@ -1834,6 +2084,15 @@ def dispatch_task(
             }
             enriched_payload["manager_watchpoints"] = (plan_row.get("plan_json") or {}).get("manager_watchpoints", [])
         initial_status = "awaiting_ack" if _task_requires_ack(phase, agent_id) else "pending"
+        dispatch_key = _dispatch_dedupe_key(
+            run_id,
+            parent_task_id=parent_task_id,
+            agent_id=agent_id,
+            section=section,
+            phase=phase,
+            retry_count=retry_count,
+            payload=enriched_payload,
+        )
         return create_task(
             run_id,
             parent_task_id,
@@ -1846,6 +2105,7 @@ def dispatch_task(
             project_id,
             cycle_no,
             initial_status=initial_status,
+            dispatch_key=dispatch_key,
         )
 
 
@@ -1911,28 +2171,58 @@ def new_run(
 
 
 def claim_task(agent_id: str):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
-                FROM tasks
-                WHERE agent_id=%s AND status='pending'
-                ORDER BY created_at
-                LIMIT 1
-                FOR UPDATE SKIP LOCKED
-                """,
-                (agent_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                conn.commit()
-                return None
-            cur.execute(
-                "UPDATE tasks SET status='running', started_at=NOW() WHERE task_id=%s",
-                (row[0],),
-            )
-        conn.commit()
+    while True:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
+                    FROM tasks
+                    WHERE agent_id=%s AND status='pending'
+                    ORDER BY created_at
+                    LIMIT 1
+                    FOR UPDATE SKIP LOCKED
+                    """,
+                    (agent_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    conn.commit()
+                    return None
+                obsolete_message = None
+                phase = row[8]
+                retry_count = int(row[9] or 0)
+                if phase in {"draft.proofread", "draft.recheck"}:
+                    gate_phase, gate_retry, _ = _proofread_gate_settled(row[1])
+                    peer_completed = fetch_one(
+                        """
+                        SELECT COUNT(*)
+                        FROM tasks
+                        WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed' AND task_id<>%s
+                        """,
+                        (row[1], phase, retry_count, row[0]),
+                    )[0]
+                    if phase != gate_phase or retry_count != gate_retry:
+                        obsolete_message = f"obsolete {phase} task outside active proofread gate ({gate_phase} round {gate_retry})"
+                    elif int(peer_completed or 0) > 0:
+                        obsolete_message = f"obsolete duplicate {phase} task after peer completion in round {retry_count}"
+                if obsolete_message:
+                    cur.execute(
+                        """
+                        UPDATE tasks
+                        SET status='completed', finished_at=NOW(), error_message=NULL, result=%s::jsonb
+                        WHERE task_id=%s
+                        """,
+                        (jdump({"status": "obsolete", "message_body": obsolete_message}), row[0]),
+                    )
+                    conn.commit()
+                    continue
+                cur.execute(
+                    "UPDATE tasks SET status='running', started_at=NOW() WHERE task_id=%s",
+                    (row[0],),
+                )
+            conn.commit()
+        break
     keys = [
         "task_id",
         "run_id",
@@ -1999,45 +2289,26 @@ def _enrich_collected_materials(
         }
         for idx, item in enumerate(items)
     ]
-    fallback = {
-        "items": [
-            {
-                "source_index": idx,
-                "title_zh": item.get("title", ""),
-                "summary_zh": _best_effort_translate(item.get("summary_en") or item.get("title"), limit=220),
-                "brief_zh": _best_effort_translate(item.get("summary_en") or item.get("title"), limit=70),
-                "relevance_note": _best_effort_translate(item.get("summary_en") or item.get("title"), limit=120),
-                "is_primary_candidate": idx < primary_cutoff,
-                "candidate_rank": idx + 1,
-            }
-            for idx, item in enumerate(items)
-        ]
-    }
-    evidence = {
-        "section": section,
-        "target_count": target_count,
-        "quality_requirements": quality_requirements or {},
-        "manager_watchpoints": manager_watchpoints or [],
-        "memory_summary": memory_summary,
-        "optimization_hints": [entry.get("body", "") for entry in ((optimization_log or {}).get("combined") or [])[:3]],
-    }
+    optimization_hints = [entry.get("body", "") for entry in ((optimization_log or {}).get("combined") or [])[:3]]
     generated = {}
     generation_meta = {}
     for offset in range(0, len(prompt_items), batch_size):
         batch_items = prompt_items[offset : offset + batch_size]
-        batch_fallback = {
-            "items": [item for item in fallback["items"] if item["source_index"] in {entry["source_index"] for entry in batch_items}]
-        }
-        result = _stage_chat_json(
-            "material.collect.enrichment",
-            "你是新闻项目里负责当前板块的 worker。你拿到的是原始 RSS 候选，不要套摘要模板。"
-            "请基于当前板块目标，把每条候选改写成真正可交接的中文候选素材说明。"
-            "输出 JSON：items。items 每项字段必须包含 source_index,title_zh,summary_zh,brief_zh,relevance_note,is_primary_candidate,candidate_rank。"
-            "summary_zh 要基于当前对象写 1-2 句中文，说明发生了什么和为什么值得放进这个板块。"
-            "禁止使用“据XX报道，这则XX新闻围绕XX展开”这一类统一套壳。",
-            json.dumps({**evidence, "items": batch_items}, ensure_ascii=False),
-            batch_fallback,
+        request = content_layer.material_collect_request(
+            section=section,
+            target_count=target_count,
+            quality_requirements=quality_requirements or {},
+            manager_watchpoints=manager_watchpoints or [],
+            memory_summary=memory_summary,
+            optimization_hints=optimization_hints,
+            items=batch_items,
         )
+        result = _run_content_request(request)
+        if result.get("generation_mode") != "llm":
+            raise RuntimeError(
+                "material.collect.enrichment requires llm-generated candidate content; "
+                f"error={result.get('generation_error') or ''}"
+            )
         for item in result.get("items") or []:
             try:
                 source_index = int(item.get("source_index"))
@@ -2052,18 +2323,21 @@ def _enrich_collected_materials(
     for idx, item in enumerate(items):
         extra = generated.get(idx, {})
         meta = generation_meta.get(idx, {})
-        summary_zh = (extra.get("summary_zh") or "").strip() or _best_effort_translate(item.get("summary_en") or item.get("title"), limit=220)
-        brief_zh = (extra.get("brief_zh") or "").strip() or summary_zh[:68].rstrip("，。；;,. ") + ("。" if summary_zh else "")
-        relevance_note = (extra.get("relevance_note") or "").strip() or summary_zh
+        title_zh = str(extra.get("title_zh") or "").strip()
+        summary_zh = str(extra.get("summary_zh") or "").strip()
+        brief_zh = str(extra.get("brief_zh") or "").strip()
+        relevance_note = str(extra.get("relevance_note") or "").strip()
+        if not all([title_zh, summary_zh, brief_zh, relevance_note]):
+            raise RuntimeError(f"material.collect.enrichment missing llm content for section={section} source_index={idx}")
         enriched.append(
             item
             | {
-                "title": (extra.get("title_zh") or item.get("title") or "").strip() or item.get("title", ""),
+                "title": title_zh,
                 "summary_zh": summary_zh,
                 "brief_zh": brief_zh,
                 "relevance_note": relevance_note,
-                "is_primary_candidate": bool(extra.get("is_primary_candidate")) if extra else idx < primary_cutoff,
-                "candidate_rank": idx + 1,
+                "is_primary_candidate": bool(extra.get("is_primary_candidate")),
+                "candidate_rank": int(extra.get("candidate_rank") or idx + 1),
                 "generation_mode": meta.get("generation_mode", "fallback"),
                 "generation_error": meta.get("generation_error", ""),
             }
@@ -2194,74 +2468,60 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
             "title": material["title"],
             "source_media": material["source_media"],
             "published_at": material["published_at"],
-            "link": material["link"],
             "image_count": len(material.get("images") or []),
             "summary_zh": material.get("summary_zh", ""),
             "brief_zh": material.get("brief_zh", ""),
             "relevance_note": (material.get("metadata") or {}).get("relevance_note", ""),
-            "summary_en": (material.get("metadata") or {}).get("summary_en", "")[:240],
-            "is_primary_candidate": bool(material.get("is_primary_candidate")),
         }
         for material in materials
     ]
-    fallback = {
-        "review_summary": f"{section} 审核基于当前候选对象完成；若 LLM 不可用，仅保留字段完整性检查结果。",
-        "gate_reason": f"{section} 仍需人工复核当前候选池，尤其是时效性、图文一致性和是否真能支撑整板块。",
-        "selected_material_ids": [item["material_id"] for item in prompt_materials[: req["min_approved"]]],
-        "items": [
-            {
-                "material_id": item["material_id"],
-                "verdict": "approved"
-                if item["title"] and item["source_media"] and item["link"] and item["published_at"]
-                else "rejected",
-                "reason": item["relevance_note"] or item["summary_zh"] or "保留原始候选说明供人工复核。",
-                "recommended_slot": "main" if idx == 0 else "secondary" if idx in {1, 2} else "brief",
-                "selection_priority": idx + 1,
-            }
-            for idx, item in enumerate(prompt_materials)
-        ],
-    }
-    review_result = _stage_chat_json(
-        "material.review",
-        "你是新闻 workflow 的 tester。你要审核一个板块的全量候选素材，不要退化成计数检查，也不要用统一短句敷衍。"
-        "请逐条判断这条素材是否应该进入编辑阶段，并写出基于当前对象的具体理由。"
-        "输出 JSON：review_summary,gate_reason,selected_material_ids,items。items 每项字段必须包含 material_id,verdict,reason,recommended_slot,selection_priority。"
-        "verdict 只能是 approved 或 rejected。reason 必须说明这条素材为什么可用、不可用，或者最该警惕的风险。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "section": section,
-                "requirements": req,
-                "materials": prompt_materials,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
-    )
     review_map = {}
     selected_rank = {}
-    for item in review_result.get("items") or []:
-        try:
-            material_id = int(item.get("material_id"))
-        except Exception:
-            continue
-        review_map[material_id] = item
-        try:
-            selected_rank[material_id] = int(item.get("selection_priority") or 999)
-        except Exception:
-            selected_rank[material_id] = 999
+    batch_summaries = []
+    batch_size = 1
+    for batch_start in range(0, len(prompt_materials), batch_size):
+        batch_index = batch_start // batch_size
+        batch_materials = prompt_materials[batch_start : batch_start + batch_size]
+        batch_request = content_layer.material_review_batch_request(
+            run_id=run_id,
+            section=section,
+            requirements=req,
+            batch_index=batch_index + 1,
+            batch_count=max(1, (len(prompt_materials) + batch_size - 1) // batch_size),
+            materials=batch_materials,
+        )
+        batch_result = _run_content_request(batch_request)
+        batch_summary = _require_llm_visible_text(
+            batch_result,
+            field="batch_summary",
+            node_type="material.review",
+        )
+        batch_summaries.append(
+            {
+                "batch_index": batch_index + 1,
+                "material_ids": [item["material_id"] for item in batch_materials],
+                "batch_summary": batch_summary,
+            }
+        )
+        for item in batch_result.get("items") or []:
+            try:
+                material_id = int(item.get("material_id"))
+            except Exception:
+                continue
+            review_map[material_id] = item
+            try:
+                selected_rank[material_id] = int(item.get("selection_priority") or 999)
+            except Exception:
+                selected_rank[material_id] = 999
     review_items = []
     approved_pool = []
     returned_issues = []
     for material in materials:
         item = review_map.get(material["id"], {})
         verdict = "approved" if str(item.get("verdict") or "").lower() == "approved" else "rejected"
-        reason = (
-            item.get("reason")
-            or material.get("summary_zh")
-            or (material.get("metadata") or {}).get("relevance_note")
-            or "缺少逐条审核说明，默认退回人工复核。"
-        )
+        reason = str(item.get("reason") or "").strip()
+        if not reason:
+            raise RuntimeError(f"material.review missing llm item reason for section={section} material_id={material['id']}")
         review_items.append(
             {
                 "material_id": material["id"],
@@ -2293,21 +2553,9 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
             material.get("published_at", ""),
         )
     )
-    selected_ids = []
-    for raw_id in review_result.get("selected_material_ids") or []:
-        try:
-            material_id = int(raw_id)
-        except Exception:
-            continue
-        if any(item["id"] == material_id for item in approved_pool):
-            selected_ids.append(material_id)
-    selected_ids = list(dict.fromkeys(selected_ids))
-    if len(selected_ids) < req["min_approved"]:
-        for material in approved_pool:
-            if material["id"] not in selected_ids:
-                selected_ids.append(material["id"])
-            if len(selected_ids) >= req["min_approved"]:
-                break
+    selected_ids = [material["id"] for material in approved_pool[: req["min_approved"]]]
+    if len(selected_ids) < len(approved_pool):
+        selected_ids = list(dict.fromkeys(selected_ids))
     selected = [material for material in approved_pool if material["id"] in selected_ids][: max(req["min_approved"], len(selected_ids))]
     with_images = [m for m in selected if len(m.get("images") or []) >= 1]
     if len(with_images) < req["min_with_images"]:
@@ -2319,28 +2567,71 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
             with_images.append(material)
             if len(with_images) >= req["min_with_images"]:
                 break
-    thresholds_met = len(selected) >= req["min_approved"] and len(with_images) >= req["min_with_images"]
-    llm_gate_reason = (review_result.get("gate_reason") or review_result.get("review_summary") or "").strip()
-    approved = thresholds_met and "redo" not in llm_gate_reason.lower()
-    if len(selected) < req["min_approved"]:
-        returned_issues.append(
+    rollup_request = content_layer.material_review_rollup_request(
+        run_id=run_id,
+        section=section,
+        requirements=req,
+        batch_summaries=batch_summaries,
+        review_items=[
             {
-                "material_id": None,
-                "title": section,
-                "reason": f"approved_material_pool 只有 {len(selected)} 条，未达到 {req['min_approved']} 条门槛。",
+                "material_id": item["material_id"],
+                "title": item["title"],
+                "source_media": item["source_media"],
+                "image_count": item["image_count"],
+                "verdict": item["verdict"],
+                "reason": item["reason"][:220],
+                "recommended_slot": item.get("recommended_slot") or "",
+                "selection_priority": item.get("selection_priority") or 999,
+            }
+            for item in review_items
+        ],
+        approved_count=len(approved_pool),
+        rejected_count=max(0, len(review_items) - len(approved_pool)),
+        selected_material_ids=selected_ids,
+    )
+    review_result = _run_content_request(rollup_request)
+    review_summary = _require_llm_visible_text(review_result, field="review_summary", node_type="material.review")
+    llm_gate_reason = _require_llm_visible_text(
+        review_result,
+        field="gate_reason",
+        node_type="material.review",
+        aliases=("review_summary",),
+    )
+    gate_decision = _require_llm_choice(
+        review_result,
+        field="gate_decision",
+        node_type="material.review",
+        allowed=("proceed", "redo"),
+    )
+    thresholds_met = len(selected) >= req["min_approved"] and len(with_images) >= req["min_with_images"]
+    approved = thresholds_met and gate_decision == "proceed"
+    gate_deficits = []
+    if len(selected) < req["min_approved"]:
+        gate_deficits.append(
+            {
+                "type": "approved_count_shortage",
+                "expected": int(req["min_approved"]),
+                "actual": int(len(selected)),
             }
         )
     if len(with_images) < req["min_with_images"]:
+        gate_deficits.append(
+            {
+                "type": "image_count_shortage",
+                "expected": int(req["min_with_images"]),
+                "actual": int(len(with_images)),
+            }
+        )
+    if not approved and llm_gate_reason:
         returned_issues.append(
             {
                 "material_id": None,
                 "title": section,
-                "reason": f"可用带图素材只有 {len(with_images)} 条，未达到 {req['min_with_images']} 条门槛。",
+                "reason": llm_gate_reason,
+                "source": "llm_gate_reason",
             }
         )
-    if not approved and llm_gate_reason:
-        returned_issues.append({"material_id": None, "title": section, "reason": llm_gate_reason})
-    reason = (review_result.get("review_summary") or llm_gate_reason or f"{section} material review 已完成。").strip()
+    reason = review_summary.strip()
     selected_ids = [m["id"] for m in selected]
     execute(
         """
@@ -2371,6 +2662,8 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
         "required_candidates": req["candidate_target"],
         "required_approved": req["min_approved"],
         "required_with_images": req["min_with_images"],
+        "gate_decision": gate_decision,
+        "review_gate_deficits": gate_deficits,
         "generation_mode": review_result.get("generation_mode", ""),
         "generation_error": review_result.get("generation_error", ""),
     }
@@ -2381,48 +2674,46 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
     prompt_items = []
     for idx, item in enumerate(items):
         slot = "main" if idx == 0 else "secondary" if idx in {1, 2} else "brief"
+        compact = _compact_prompt_object(item, title_limit=96, summary_limit=120, note_limit=70)
         prompt_items.append(
             {
                 "source_index": idx,
                 "slot": slot,
-                "title": item.get("title", ""),
-                "source_media": item.get("source_media", ""),
-                "published_at": item.get("published_at", ""),
-                "link": item.get("link", ""),
-                "image_count": len(item.get("images") or []),
-                "candidate_summary": item.get("summary_zh") or (item.get("metadata") or {}).get("summary_en", ""),
-                "candidate_brief": item.get("brief_zh") or "",
+                "title": compact.get("title", ""),
+                "source_media": compact.get("source_media", ""),
+                "published_at": compact.get("published_at", ""),
+                "image_count": compact.get("image_count", 0),
+                "candidate_summary": compact.get("summary_zh", ""),
+                "candidate_brief": compact.get("brief_zh", ""),
             }
         )
-    fallback = {
-        "items": [
-            {
-                "source_index": idx,
-                "title_zh": item.get("title", ""),
-                "summary_zh": item.get("summary_zh") or _best_effort_translate((item.get("metadata") or {}).get("summary_en") or item.get("title"), limit=220),
-            }
-            for idx, item in enumerate(items)
-        ]
-    }
-    result = _stage_chat_json(
-        "draft.compose.translation",
-        "你是负责整稿的 editor。现在不是重排流程，而是基于已经通过审核的素材，为不同槽位生成真正可发布的中文标题和摘要。"
-        "输出 JSON：items。items 每项字段必须包含 source_index,title_zh,summary_zh。"
-        "main 的 summary_zh 用 1-2 句，直接说重点；secondary 更紧；brief 更短。"
-        "如果当前启用了 impact-first 规则，就把影响或结果放在前面，但不要套固定开头。"
-        "禁止使用统一套壳，例如“据XX报道，这则XX新闻围绕XX展开”。",
-        json.dumps(
-            {"section": section, "guidance": guidance or {}, "brief_limit": brief_limit, "items": prompt_items},
-            ensure_ascii=False,
-        ),
-        fallback,
+    request = content_layer.compose_translation_request(
+        section=section,
+        guidance=guidance or {},
+        brief_limit=brief_limit,
+        items=prompt_items,
     )
+    result = _run_content_request(request)
+    if result.get("generation_mode") != "llm":
+        raise RuntimeError(
+            "draft.compose.translation requires llm-generated titles and summaries; "
+            f"error={result.get('generation_error') or ''}"
+        )
     translated = {}
     for item in result.get("items") or []:
         try:
-            translated[int(item.get("source_index"))] = item
+            source_index = int(item.get("source_index"))
         except Exception:
             continue
+        title_zh = str(item.get("title_zh") or "").strip()
+        summary_zh = str(item.get("summary_zh") or "").strip()
+        if not title_zh or not summary_zh:
+            raise RuntimeError(f"draft.compose.translation missing llm content for section={section} source_index={source_index}")
+        translated[source_index] = {
+            "source_index": source_index,
+            "title_zh": title_zh,
+            "summary_zh": summary_zh,
+        }
     return translated
 
 
@@ -2435,21 +2726,98 @@ def generate_section_content(section: str, items: list[dict], *, guidance: dict 
 
     def enrich(item: dict, idx: int, max_len: int, image_limit: int) -> dict:
         translated_item = translated.get(idx, {})
-        title_zh = translated_item.get("title_zh") or item["title"]
-        summary_zh = (
-            translated_item.get("summary_zh")
-            or item.get("summary_zh")
-            or item["metadata"].get("summary_en", "")
-            or item["title"]
-        ).replace("\n", " ").strip()
-        if len(summary_zh) > max_len:
-            summary_zh = summary_zh[: max_len - 1].rstrip("，。；;,. ") + "。"
+        title_zh = str(translated_item.get("title_zh") or "").strip()
+        summary_zh = str(translated_item.get("summary_zh") or "").replace("\n", " ").strip()
+        if not title_zh or not summary_zh:
+            raise RuntimeError(f"draft.compose.translation missing active output for section={section} source_index={idx}")
         return item | {"title": title_zh, "summary_zh": summary_zh, "images": item.get("images", [])[:image_limit]}
 
     return {
         "main": enrich(main, 0, 200, 3),
         "secondary": [enrich(item, idx + 1, 100, 1) for idx, item in enumerate(secondaries)],
         "briefs": [enrich(item, idx + 3, 50, 0) for idx, item in enumerate(briefs)],
+    }
+
+
+def _publication_item_for_prompt(item: dict, *, image_limit: int) -> dict:
+    if not item:
+        return {}
+    return {
+        "title": str(item.get("title") or "").strip(),
+        "summary_zh": str(item.get("summary_zh") or "").strip(),
+        "source_media": str(item.get("source_media") or "").strip(),
+        "published_at": str(item.get("published_at") or "").strip(),
+        "link": str(item.get("link") or "").strip(),
+        "image_count": len(item.get("images") or []),
+        "images": [str(img).strip() for img in (item.get("images") or [])[:image_limit] if str(img).strip()],
+    }
+
+
+def _publication_sections_for_prompt(sections_payload: dict) -> list[dict]:
+    blocks = []
+    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+        data = sections_payload.get(section) or {}
+        blocks.append(
+            {
+                "section": section,
+                "main": _publication_item_for_prompt(data.get("main") or {}, image_limit=3),
+                "secondary": [
+                    _publication_item_for_prompt(item, image_limit=1)
+                    for item in (data.get("secondary") or [])[:2]
+                ],
+                "briefs": [
+                    _publication_item_for_prompt(item, image_limit=0)
+                    for item in (data.get("briefs") or [])[:7]
+                ],
+            }
+        )
+    return blocks
+
+
+def _render_draft_markdown_via_llm(
+    run_id: str,
+    *,
+    stage_name: str,
+    draft_version_no: int | None,
+    sections_payload: dict,
+    writer_guidance: dict | None = None,
+    revision_context: list[dict] | None = None,
+) -> dict:
+    request = content_layer.draft_render_request(
+        run_id=run_id,
+        stage_name=stage_name,
+        draft_version_no=draft_version_no,
+        writer_guidance=writer_guidance or {},
+        revision_context=revision_context or [],
+        sections=_publication_sections_for_prompt(sections_payload),
+    )
+    result = _run_content_request(request)
+    summary = _require_llm_visible_text(result, field="summary", node_type="draft.render")
+    report_markdown = _reject_template_shell(
+        _require_llm_visible_text(result, field="report_markdown", node_type="draft.render"),
+        node_type="draft.render",
+        markers=[
+            "workflow_id:",
+            "project_id:",
+            "cycle_no:",
+            "run_id:",
+            "时区:",
+            "### 主推",
+            "### 副推",
+            "### 其他 7 条",
+        ],
+    )
+    return {
+        "summary": summary,
+        "report_markdown": report_markdown,
+        "generation_mode": result.get("generation_mode", ""),
+        "generation_error": result.get("generation_error", ""),
+        "timeout_ms": result.get("timeout_ms"),
+        "prompt_size": result.get("prompt_size"),
+        "input_size": result.get("input_size"),
+        "evidence_object_count": result.get("evidence_object_count"),
+        "started_at": result.get("started_at"),
+        "finished_at": result.get("finished_at"),
     }
 
 
@@ -2461,45 +2829,7 @@ def _report_markdown_from_sections(
     cycle_no: int | None,
     heading: str = "# 近24小时国际新闻热点",
 ) -> str:
-    md_lines = [
-        heading,
-        "",
-        f"- workflow_id: {WORKFLOW_ID}",
-        f"- project_id: {project_id or 'standalone'}",
-        f"- cycle_no: {cycle_no or 0}",
-        f"- run_id: {run_id}",
-        f"- 时区: {SETTINGS.timezone}",
-        "",
-    ]
-    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
-        data = sections_payload.get(section) or {}
-        main = data.get("main") or {}
-        secondary = data.get("secondary") or []
-        briefs = data.get("briefs") or []
-        md_lines.append(f"## {section}")
-        if main:
-            md_lines.append(f"### 主推 | {main.get('title', '')}")
-            md_lines.append(f"- 来源: {main.get('source_media', '')}")
-            md_lines.append(f"- 发布时间: {main.get('published_at', '')}")
-            md_lines.append(f"- 原文链接: {main.get('link', '')}")
-            md_lines.append(f"- 图片: {', '.join(main.get('images', [])[:3])}")
-            md_lines.append(main.get("summary_zh", ""))
-            md_lines.append("")
-        for idx, sec in enumerate(secondary, 1):
-            md_lines.append(f"### 副推{idx} | {sec.get('title', '')}")
-            md_lines.append(f"- 来源: {sec.get('source_media', '')}")
-            md_lines.append(f"- 发布时间: {sec.get('published_at', '')}")
-            md_lines.append(f"- 原文链接: {sec.get('link', '')}")
-            md_lines.append(f"- 图片: {', '.join(sec.get('images', [])[:1])}")
-            md_lines.append(sec.get("summary_zh", ""))
-            md_lines.append("")
-        md_lines.append("### 其他 7 条")
-        for brief in briefs:
-            md_lines.append(
-                f"- {brief.get('title', '')} | {brief.get('source_media', '')} | {brief.get('published_at', '')} | {brief.get('link', '')} | {brief.get('summary_zh', '')}"
-            )
-        md_lines.append("")
-    return "\n".join(md_lines)
+    raise RuntimeError("legacy local draft/final markdown shell is disabled; use _render_draft_markdown_via_llm")
 
 
 def _next_draft_version_no(run_id: str) -> int:
@@ -2528,6 +2858,301 @@ def _latest_draft_version(run_id: str) -> dict:
         "report_json": _load_json(row[4]),
         "created_at": row[5],
     }
+
+
+def _draft_sections_for_prompt(run_id: str, sections: list[str] | None = None) -> dict:
+    latest = _latest_draft_version(run_id)
+    draft_payload = latest.get("report_json") or (_load_output_bundle(run_id).get("final_json") or {})
+    target_sections = sections or ["政治经济", "科技", "体育娱乐", "其他"]
+    return {
+        section: {
+            "main": _compact_prompt_object(((draft_payload.get(section) or {}).get("main") or {}), summary_limit=110),
+            "secondary": [
+                _compact_prompt_object(item, summary_limit=90)
+                for item in (((draft_payload.get(section) or {}).get("secondary") or [])[:2])
+            ],
+            "briefs": [
+                _compact_prompt_object(item, summary_limit=70)
+                for item in (((draft_payload.get(section) or {}).get("briefs") or [])[:2])
+            ],
+        }
+        for section in target_sections
+    }
+
+
+def _approved_materials_for_prompt(run_id: str, sections: list[str]) -> dict:
+    approved = {}
+    for section in sections:
+        review = fetch_one(
+            """
+            SELECT selected_material_ids::text
+            FROM reviews
+            WHERE run_id=%s AND section=%s AND approved=TRUE
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (run_id, section),
+        )
+        selected_ids = set(json.loads(review[0])) if review and review[0] else set()
+        rows = [item for item in get_materials(run_id, section) if not selected_ids or item["id"] in selected_ids][:4]
+        approved[section] = [_compact_prompt_object(item, summary_limit=100) for item in rows]
+    return approved
+
+
+def _proofread_item_ref(slot: str, index: int | None = None) -> str:
+    if slot == "main":
+        return "main"
+    if slot == "secondary":
+        return f"secondary_{index or 1}"
+    if slot == "brief":
+        return f"brief_{index or 1}"
+    return "section"
+
+
+def _compact_material_for_proofread(item: dict) -> dict:
+    compact = _compact_prompt_object(item, title_limit=88, summary_limit=88, note_limit=56)
+    compact["material_id"] = compact.pop("id", item.get("id"))
+    return compact
+
+
+def _compact_draft_section_for_proofread(section: str, draft_section: dict, approved_materials: list[dict]) -> dict:
+    draft_items = []
+    main = (draft_section or {}).get("main") or {}
+    if main:
+        draft_items.append(
+            {
+                "item_ref": "main",
+                **_compact_material_for_proofread(main),
+            }
+        )
+    for idx, item in enumerate(((draft_section or {}).get("secondary") or [])[:2], 1):
+        draft_items.append(
+            {
+                "item_ref": _proofread_item_ref("secondary", idx),
+                **_compact_material_for_proofread(item),
+            }
+        )
+    for idx, item in enumerate(((draft_section or {}).get("briefs") or [])[:7], 1):
+        draft_items.append(
+            {
+                "item_ref": _proofread_item_ref("brief", idx),
+                **_compact_material_for_proofread(item),
+            }
+        )
+    return {
+        "section": section,
+        "structure": {
+            "main_count": 1 if main else 0,
+            "secondary_count": len(((draft_section or {}).get("secondary") or [])[:2]),
+            "brief_count": len(((draft_section or {}).get("briefs") or [])[:7]),
+        },
+        "draft_items": draft_items,
+        "approved_materials": approved_materials[:10],
+    }
+
+
+def _proofread_outline_item(item: dict) -> dict:
+    return {
+        key: value
+        for key, value in {
+            "item_ref": item.get("item_ref"),
+            "material_id": item.get("material_id"),
+            "title": _truncate(item.get("title"), 88),
+            "source_media": _truncate(item.get("source_media"), 44),
+            "published_at": item.get("published_at", ""),
+            "image_count": int(item.get("image_count") or 0),
+        }.items()
+        if value not in (None, "", [])
+    }
+
+
+def _require_llm_visible_text(
+    result: dict,
+    *,
+    field: str,
+    node_type: str,
+    aliases: tuple[str, ...] = (),
+) -> str:
+    mode = str(result.get("generation_mode") or "")
+    for key in (field, *aliases):
+        text = str(result.get(key) or "").strip()
+        if not text:
+            continue
+        if key != field and not result.get(field):
+            result[field] = text
+        if mode == "llm":
+            return text
+        break
+    if mode != "llm":
+        raise RuntimeError(
+            f"{node_type} requires llm-generated visible content; "
+            f"mode={mode or 'missing'}; error={result.get('generation_error') or ''}"
+        )
+    raise RuntimeError(
+        f"{node_type} requires llm-generated visible content; "
+        f"mode={mode or 'missing'}; error={result.get('generation_error') or ''}"
+    )
+
+
+def _reject_template_shell(text: str, *, node_type: str, markers: list[str]) -> str:
+    visible = str(text or "").strip()
+    lowered = visible.lower()
+    for marker in markers:
+        token = str(marker or "").strip()
+        if token and token.lower() in lowered:
+            raise RuntimeError(f"{node_type} produced templated visible content marker={token}")
+    return visible
+
+
+def _clean_string_list(values, *, limit: int | None = None) -> list[str]:
+    cleaned = [str(item).strip() for item in (values or []) if str(item).strip()]
+    if limit is not None:
+        return cleaned[:limit]
+    return cleaned
+
+
+def _require_llm_string_list(
+    result: dict,
+    *,
+    field: str,
+    node_type: str,
+    min_items: int = 1,
+    limit: int | None = None,
+) -> list[str]:
+    items = _clean_string_list(result.get(field), limit=limit)
+    mode = str(result.get("generation_mode") or "")
+    if mode != "llm" or len(items) < min_items:
+        raise RuntimeError(
+            f"{node_type} requires llm-generated {field}; "
+            f"mode={mode or 'missing'}; count={len(items)}; error={result.get('generation_error') or ''}"
+    )
+    return items
+
+
+def _require_llm_choice(
+    result: dict,
+    *,
+    field: str,
+    node_type: str,
+    allowed: tuple[str, ...],
+) -> str:
+    mode = str(result.get("generation_mode") or "")
+    value = str(result.get(field) or "").strip().lower()
+    if mode != "llm" or value not in allowed:
+        raise RuntimeError(
+            f"{node_type} requires llm-generated {field}; "
+            f"mode={mode or 'missing'}; value={value or 'missing'}; error={result.get('generation_error') or ''}"
+        )
+    return value
+
+
+def _require_llm_bool(
+    result: dict,
+    *,
+    field: str,
+    node_type: str,
+) -> bool:
+    mode = str(result.get("generation_mode") or "")
+    raw = result.get(field)
+    if mode != "llm":
+        raise RuntimeError(
+            f"{node_type} requires llm-generated {field}; "
+            f"mode={mode or 'missing'}; error={result.get('generation_error') or ''}"
+        )
+    if isinstance(raw, bool):
+        return raw
+    value = str(raw or "").strip().lower()
+    if value in {"true", "yes", "1"}:
+        return True
+    if value in {"false", "no", "0"}:
+        return False
+    raise RuntimeError(
+        f"{node_type} requires llm-generated boolean {field}; "
+        f"mode={mode or 'missing'}; value={value or 'missing'}; error={result.get('generation_error') or ''}"
+    )
+
+
+def _normalize_retro_plan_product_problems(items) -> list[dict]:
+    normalized = []
+    for item in items or []:
+        if isinstance(item, dict):
+            problem = str(item.get("problem") or item.get("title") or item.get("summary") or "").strip()
+            if not problem:
+                continue
+            normalized.append(
+                {
+                    "priority": str(item.get("priority") or "P1").strip() or "P1",
+                    "object": str(item.get("object") or item.get("item_ref") or "final_report").strip() or "final_report",
+                    "problem": problem,
+                }
+            )
+            continue
+        text = str(item or "").strip()
+        if text:
+            normalized.append({"priority": "P1", "object": "final_report", "problem": text})
+    return normalized
+
+
+def _normalize_retro_plan_behavior_problems(items) -> list[dict]:
+    normalized = []
+    for item in items or []:
+        if isinstance(item, dict):
+            problem = str(item.get("problem") or item.get("title") or item.get("summary") or "").strip()
+            if not problem:
+                continue
+            agent = str(item.get("agent") or item.get("owner") or item.get("to_agent") or "team").strip() or "team"
+            normalized.append(
+                {
+                    "priority": str(item.get("priority") or "P1").strip() or "P1",
+                    "agent": agent,
+                    "problem": problem,
+                }
+            )
+            continue
+        text = str(item or "").strip()
+        if text:
+            normalized.append({"priority": "P1", "agent": "team", "problem": text})
+    return normalized
+
+
+def _normalize_retro_plan_topics(items) -> list[dict]:
+    normalized = []
+    for item in items or []:
+        if isinstance(item, dict):
+            title = str(item.get("title") or item.get("topic") or item.get("problem") or item.get("summary") or "").strip()
+            body = str(item.get("body") or item.get("problem") or item.get("details") or title).strip()
+            if not body:
+                continue
+            owner = str(item.get("owner") or item.get("to_agent") or "neko").strip() or "neko"
+            counterpart_agents = [
+                agent
+                for agent in (
+                    item.get("counterpart")
+                    if isinstance(item.get("counterpart"), list)
+                    else _parse_agents(item.get("counterpart") or item.get("next_agents") or "")
+                )
+                if agent in {"33", "xhs", "editor", "tester"}
+            ]
+            normalized.append(
+                {
+                    "title": title or _truncate(body, 36),
+                    "body": body,
+                    "owner": owner,
+                    "counterpart": ",".join(counterpart_agents) or "33,xhs,editor,tester",
+                }
+            )
+            continue
+        text = str(item or "").strip()
+        if text:
+            normalized.append(
+                {
+                    "title": _truncate(text, 36),
+                    "body": text,
+                    "owner": "neko",
+                    "counterpart": "33,xhs,editor,tester",
+                }
+            )
+    return normalized
 
 
 def _record_draft_version(
@@ -2612,6 +3237,51 @@ def _proofread_round(run_id: str) -> int:
     return int(row[0] or 0)
 
 
+def _current_proofread_gate(run_id: str) -> tuple[str, int]:
+    round_no = _proofread_round(run_id)
+    recheck_exists = fetch_one(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE run_id=%s AND phase='draft.recheck' AND retry_count=%s
+        """,
+        (run_id, round_no),
+    )[0]
+    return ("draft.recheck" if int(recheck_exists or 0) > 0 else "draft.proofread", round_no)
+
+
+def _phase_round_status_counts(run_id: str, phase: str, retry_count: int) -> dict[str, int]:
+    rows = fetch_all(
+        """
+        SELECT status, COUNT(*)
+        FROM tasks
+        WHERE run_id=%s AND phase=%s AND retry_count=%s
+        GROUP BY status
+        """,
+        (run_id, phase, retry_count),
+    )
+    return {row[0]: int(row[1]) for row in rows}
+
+
+def _proofread_gate_settled(run_id: str) -> tuple[str, int, bool]:
+    phase, round_no = _current_proofread_gate(run_id)
+    counts = _phase_round_status_counts(run_id, phase, round_no)
+    unsettled = sum(counts.get(status, 0) for status in {"pending", "awaiting_ack", "running", "waiting", "failed"})
+    settled = int(counts.get("completed", 0)) > 0 and unsettled == 0
+    return phase, round_no, settled
+
+
+def _mark_task_completed_obsolete(task_id: str, message: str) -> None:
+    execute(
+        """
+        UPDATE tasks
+        SET status='completed', finished_at=NOW(), error_message=NULL, result=%s::jsonb
+        WHERE task_id=%s
+        """,
+        (jdump({"status": "obsolete", "message_body": message}), task_id),
+    )
+
+
 def _open_retro_topic(
     run_id: str,
     *,
@@ -2637,7 +3307,13 @@ def _current_open_retro_topic(run_id: str) -> dict:
         """
         SELECT topic_id, title, status, evidence_refs::text, opened_by, opened_at
         FROM retro_topics
-        WHERE run_id=%s AND status IN ('open', 'debating')
+        WHERE run_id=%s
+          AND status IN ('open', 'debating')
+          AND EXISTS (
+                SELECT 1
+                FROM retrospectives
+                WHERE retrospectives.topic_id=retro_topics.topic_id
+            )
         ORDER BY opened_at DESC
         LIMIT 1
         """,
@@ -2682,14 +3358,6 @@ def _prepare_retro_decision_job(
     owner_agent: str = "neko",
 ) -> dict:
     evidence = [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread[:6]]
-    fallback = {
-        "summary": (
-            f"{title}：确认的核心问题是 "
-            f"{_truncate(_first_nonempty([msg['body'] for msg in thread if msg['from_agent'] != 'neko'], '该话题需要把前置规则继续收紧。'), 110)}。"
-            f"本话题的收敛要求是 "
-            f"{_truncate(_first_nonempty([msg['body'] for msg in reversed(thread) if msg['from_agent'] == 'neko'], '由 neko 收敛为下一轮规则变更。'), 110)}。"
-        )
-    }
     project_id, cycle_no = get_run_project_context(run_id)
     return {
         "node_type": "retro_decision",
@@ -2709,7 +3377,7 @@ def _prepare_retro_decision_job(
                 "请输出 JSON：summary。要求明确这个话题确认了什么问题、决定了什么改法、下一轮谁先承担。summary 用自然中文写 2-3 句。",
             ]
         ),
-        "fallback_payload": fallback,
+        "fallback_payload": {"summary": ""},
         "evidence_object_count": len(thread),
         "evidence": evidence,
     }
@@ -2725,7 +3393,7 @@ def _apply_retro_decision_result(
     owner_agent: str = "neko",
 ) -> dict:
     decision_id = f"rtd-{uuid.uuid4().hex[:10]}"
-    summary = decision["summary"]
+    summary = _require_llm_visible_text(decision, field="summary", node_type="retro_decision")
     execute(
         """
         INSERT INTO retro_decisions(decision_id, run_id, topic_id, summary, owner_agent, decision_json)
@@ -2752,18 +3420,18 @@ def _record_retro_decision(
     owner_agent: str = "neko",
 ) -> dict:
     prepared = _prepare_retro_decision_job(run_id, topic_id=topic_id, title=title, thread=thread, owner_agent=owner_agent)
-    decision = _stage_chat_json("retro_decision", prepared["prompt_system"], prepared["prompt_user"], prepared["fallback_payload"])
-    decision["evidence_object_count"] = prepared["evidence_object_count"]
+    decision = _run_content_request(prepared)
     return _apply_retro_decision_result(run_id, topic_id=topic_id, title=title, thread=thread, decision=decision, owner_agent=owner_agent)
 
 
 def _next_retro_topic_candidate(run_id: str) -> dict:
     opened_titles = {row[0] for row in fetch_all("SELECT title FROM retro_topics WHERE run_id=%s", (run_id,))}
-    for item in _pick_retro_controversies(run_id):
-        title = item.get("topic") or "问题"
+    for item in _retrospective_plan_topics(run_id):
+        candidate = _retro_topic_seed(item)
+        title = candidate.get("title") or candidate.get("topic") or "问题"
         if title in opened_titles:
             continue
-        return item | {"title": title}
+        return candidate | {"title": title}
     return {}
 
 
@@ -2787,14 +3455,15 @@ def compose_draft(run_id: str) -> dict:
         materials = [m for m in get_materials(run_id, section) if m["id"] in selected][:10]
         assembled[section] = generate_section_content(section, materials, guidance=writer_guidance)
     assembled = _apply_writer_guidance(assembled, neko_optimization)
-
-    draft_markdown = _report_markdown_from_sections(
-        assembled,
-        run_id=run_id,
-        project_id=project_id,
-        cycle_no=cycle_no,
-        heading="# 近24小时国际新闻热点（初稿）",
+    next_version_no = _next_draft_version_no(run_id)
+    draft_render = _render_draft_markdown_via_llm(
+        run_id,
+        stage_name="draft.compose",
+        draft_version_no=next_version_no,
+        sections_payload=assembled,
+        writer_guidance=writer_guidance,
     )
+    draft_markdown = draft_render["report_markdown"]
     run_dir = RUN_OUTPUT_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     draft_md_path = run_dir / "draft_report.md"
@@ -2850,49 +3519,41 @@ def compose_draft(run_id: str) -> dict:
         "markdown_path": str(draft_md_path),
         "json_path": str(draft_json_path),
         "html_path": str(draft_html_path),
-        "message_body": f"初稿 v{draft_version['version_no']} 已生成，进入 proofread blocker 校稿阶段。",
+        "generation_mode": draft_render["generation_mode"],
+        "generation_error": draft_render.get("generation_error", ""),
+        "message_body": draft_render["summary"],
     }
 
 
 def create_discussion_comment(run_id: str, task_id: str, agent_id: str) -> str:
-    memory = get_project_memory(get_run_project_context(run_id)[0], agent_id)
-    final_json = (_load_output_bundle(run_id).get("final_json") or {})
-    prompt_sections = {
-        section: {
-            "main": ((final_json.get(section) or {}).get("main") or {}),
-            "secondary": ((final_json.get(section) or {}).get("secondary") or [])[:2],
-            "briefs": ((final_json.get(section) or {}).get("briefs") or [])[:3],
-        }
-        for section in ["政治经济", "科技", "体育娱乐", "其他"]
+    project_id, _ = get_run_project_context(run_id)
+    memory = get_project_memory(project_id, agent_id) if project_id else {}
+    sections = AGENT_SECTIONS.get(agent_id) or ["政治经济", "科技", "体育娱乐", "其他"]
+    prompt_sections = _draft_sections_for_prompt(run_id, sections)
+    approved_materials = {
+        section: items[:1]
+        for section, items in _approved_materials_for_prompt(run_id, sections).items()
     }
-    fallback = {
-        "comment_text": _unique_join(
-            [
-                f"我先看 {section}：{((payload.get('main') or {}).get('summary_zh') or '')[:70]}"
-                for section, payload in prompt_sections.items()
-                if (payload.get("main") or {}).get("summary_zh")
-            ]
-            + ([f"上一轮优化提醒：{_memory_summary(memory)}"] if memory else [])
-        )
-        or "我先根据当前成稿和素材对象继续往下看，后续需要再收紧主推判断、板块层级和读者第一眼抓重点的能力。"
-    }
-    result = _stage_chat_json(
-        "discussion.comment",
-        f"你是 {agent_id}。现在要基于当前 draft / final artifact 给出一条真实讨论意见。"
-        "不要模板化，不要替别人预设观点，不要写流程回执。"
-        "输出 JSON：comment_text。comment_text 必须基于当前对象，指出真正想改的点。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "agent_id": agent_id,
-                "memory_summary": _memory_summary(memory) if memory else "",
-                "artifact": prompt_sections,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    draft_reviews = fetch_all(
+        "SELECT agent_id, section_scope, review_text FROM draft_reviews WHERE run_id=%s ORDER BY created_at",
+        (run_id,),
     )
-    comment = (result.get("comment_text") or fallback["comment_text"]).strip()
+    latest = _latest_draft_version(run_id)
+    request = content_layer.discussion_comment_request(
+        run_id=run_id,
+        agent_id=agent_id,
+        draft_version_no=latest.get("version_no", 0),
+        section_scope=sections,
+        memory_summary=_memory_summary(memory) if memory else "",
+        draft_sections=prompt_sections,
+        approved_materials=approved_materials,
+        existing_draft_reviews=[
+            {"agent_id": row[0], "section_scope": row[1], "review_text": _truncate(row[2], 100)}
+            for row in draft_reviews[:1]
+        ],
+    )
+    result = _run_content_request(request)
+    comment = _require_llm_visible_text(result, field="comment_text", node_type="discussion.comment")
     execute(
         "INSERT INTO discussions(run_id, task_id, agent_id, comment_text) VALUES (%s,%s,%s,%s)",
         (run_id, task_id, agent_id, comment),
@@ -2901,30 +3562,20 @@ def create_discussion_comment(run_id: str, task_id: str, agent_id: str) -> str:
 
 
 def create_draft_review_comment(run_id: str, task_id: str, agent_id: str) -> str:
-    bundle = _load_output_bundle(run_id)
-    final_json = bundle.get("final_json") or {}
-    sections = AGENT_SECTIONS.get(agent_id, [])
+    sections = AGENT_SECTIONS.get(agent_id) or ["政治经济", "科技", "体育娱乐", "其他"]
     scope = ",".join(sections)
-    prompt_sections = {section: final_json.get(section) or {} for section in sections}
-    fallback = {
-        "review_text": _unique_join(
-            [
-                f"{section}：{(((payload.get('main') or {}).get('summary_zh')) or '')[:90]}"
-                for section, payload in prompt_sections.items()
-                if (payload.get("main") or {}).get("summary_zh")
-            ]
-        )
-        or f"{scope} 当前仍需逐条核对素材承接、字段准确性和结构归位。"
-    }
-    result = _stage_chat_json(
-        "discussion.comment",
-        f"你是 {agent_id}，正在做 draft review。请基于当前 draft 和自己负责的板块，写一条真实校稿意见。"
-        "不要套固定问题，不要只报数量。"
-        "输出 JSON：review_text。",
-        json.dumps({"run_id": run_id, "agent_id": agent_id, "sections": prompt_sections}, ensure_ascii=False),
-        fallback,
+    prompt_sections = _draft_sections_for_prompt(run_id, sections)
+    approved_materials = _approved_materials_for_prompt(run_id, sections)
+    latest = _latest_draft_version(run_id)
+    request = content_layer.draft_review_comment_request(
+        run_id=run_id,
+        agent_id=agent_id,
+        draft_version_no=latest.get("version_no", 0),
+        sections=prompt_sections,
+        approved_materials=approved_materials,
     )
-    text = (result.get("review_text") or fallback["review_text"]).strip()
+    result = _run_content_request(request)
+    text = _require_llm_visible_text(result, field="review_text", node_type="draft.review.comment")
     execute(
         "INSERT INTO draft_reviews(run_id, task_id, agent_id, section_scope, review_text) VALUES (%s,%s,%s,%s,%s)",
         (run_id, task_id, agent_id, scope, text),
@@ -2937,7 +3588,7 @@ def start_proofread(run_id: str, task_id: str) -> dict:
     return {
         "status": "started",
         "draft_version_no": latest.get("version_no", 0),
-        "message_body": f"proofread 已启动，当前检查对象是 draft v{latest.get('version_no', 0)}。",
+        "message_body": "",
     }
 
 
@@ -3037,14 +3688,13 @@ def start_cycle(run_id: str, task_id: str) -> dict:
         """,
         (files["markdown_path"], files["json_path"], files["html_path"], run_id),
     )
-    message = f"cycle {cycle_no or 1} 已启动。manager 已生成 cycle_task_plan，并注入 {len(active_rules)} 条有效优化规则。"
     return {
         "status": "started",
         "cycle_no": cycle_no,
         "active_rule_count": len(active_rules),
         "cycle_task_plan": plan_json,
         "cycle_task_plan_files": files,
-        "message_body": message,
+        "message_body": "",
     }
 
 
@@ -3056,6 +3706,7 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
     existing_rows = _proofread_issue_rows(run_id)
     sections = AGENT_SECTIONS.get(agent_id, [])
     prompt_sections = []
+    section_contexts = {}
     for section in sections:
         selected_row = fetch_one(
             """
@@ -3068,58 +3719,128 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
             (run_id, section),
         )
         selected_ids = set(_load_json(selected_row[0]) if selected_row and selected_row[0] else [])
-        prompt_sections.append(
-            {
-                "section": section,
-                "draft": report_json.get(section) or {},
-                "approved_materials": [
-                    {
-                        "material_id": item["id"],
-                        "title": item["title"],
-                        "source_media": item["source_media"],
-                        "published_at": item["published_at"],
-                        "link": item["link"],
-                        "image_count": len(item.get("images") or []),
-                        "summary_zh": item.get("summary_zh", ""),
-                        "relevance_note": (item.get("metadata") or {}).get("relevance_note", ""),
-                    }
-                    for item in get_materials(run_id, section)
-                    if not selected_ids or item["id"] in selected_ids
-                ],
-            }
+        compact_materials = [
+            _compact_material_for_proofread(item)
+            for item in get_materials(run_id, section)
+            if not selected_ids or item["id"] in selected_ids
+        ]
+        compact_section = _compact_draft_section_for_proofread(
+            section,
+            report_json.get(section) or {},
+            compact_materials,
         )
-    fallback = {"summary": f"{agent_id} 未拿到稳定的 LLM proofread 结果，当前保留 draft v{draft.get('version_no')} 供人工复核。", "issues": []}
-    proofread_result = _stage_chat_json(
-        "draft.proofread",
-        "你是新闻 workflow 的 tester，正在做 correctness proofread。"
-        "请读取当前 draft 和对应素材对象，提出真正需要修的 issue。"
-        "不要只盯固定问题，不要把产品体验报告伪装成 proofread。"
-        "输出 JSON：summary,issues。issues 每项字段必须包含 section,item_ref,severity,issue_type,description,required_actions,patch_instruction,evidence。"
-        "item_ref 例如 main、secondary:1、brief:3 或 section。severity 只能是 blocker/high/medium/low。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "agent_id": agent_id,
-                "draft_version": draft.get("version_no"),
-                "sections": prompt_sections,
-                "existing_open_issues": [
-                    {
-                        "issue_id": row["issue_id"],
-                        "section": row["section"],
-                        "item_ref": row["item_ref"],
-                        "severity": row["severity"],
-                        "issue_type": row["issue_type"],
-                        "description": row["description"],
-                        "status": row["status"],
-                    }
-                    for row in existing_rows
-                    if row["section"] in sections and row["status"] != "closed"
-                ],
+        prompt_sections.append(
+            compact_section
+        )
+        section_contexts[section] = {
+            "draft_items": {
+                item.get("item_ref"): item
+                for item in compact_section.get("draft_items") or []
+                if item.get("item_ref")
             },
-            ensure_ascii=False,
-        ),
-        fallback,
+            "approved_materials": {
+                item.get("material_id"): item
+                for item in compact_materials
+                if item.get("material_id") is not None
+            },
+        }
+    existing_open_issues = [
+        {
+            "issue_id": row["issue_id"],
+            "section": row["section"],
+            "item_ref": row["item_ref"],
+            "severity": row["severity"],
+            "issue_type": row["issue_type"],
+            "description": row["description"],
+            "status": row["status"],
+        }
+        for row in existing_rows
+        if row["section"] in sections and row["status"] != "closed"
+    ]
+    section_summaries = []
+    proofread_issues = []
+    for section_payload in prompt_sections:
+        section_name = section_payload["section"]
+        section_existing_open_issues = [
+            issue
+            for issue in existing_open_issues
+            if issue["section"] == section_name
+        ]
+        draft_items = list(section_payload.get("draft_items") or [])
+        draft_outline = [_proofread_outline_item(item) for item in draft_items]
+        batch_size = 1
+        batch_count = max(1, (len(draft_items) + batch_size - 1) // batch_size)
+        for batch_index in range(batch_count):
+            focus_items = draft_items[batch_index * batch_size : (batch_index + 1) * batch_size]
+            focus_refs = {item.get("item_ref") for item in focus_items if item.get("item_ref")}
+            focus_material_ids = {
+                item.get("material_id")
+                for item in focus_items
+                if item.get("material_id") is not None
+            }
+            focus_open_issues = [
+                issue
+                for issue in section_existing_open_issues
+                if issue.get("item_ref") in focus_refs or issue.get("item_ref") == "section"
+            ]
+            request = content_layer.draft_proofread_section_request(
+                run_id=run_id,
+                agent_id=agent_id,
+                draft_version_no=draft.get("version_no"),
+                section_payload={
+                    "section": section_name,
+                    "batch_index": batch_index + 1,
+                    "batch_count": batch_count,
+                    "structure": section_payload.get("structure") or {},
+                    "draft_outline": draft_outline,
+                    "focus_items": focus_items,
+                    "approved_materials": [
+                        item
+                        for item in (section_payload.get("approved_materials") or [])
+                        if item.get("material_id") in focus_material_ids
+                    ],
+                },
+                existing_open_issues=focus_open_issues,
+            )
+            section_result = _run_content_request(request)
+            section_summary = _require_llm_visible_text(
+                section_result,
+                field="section_summary",
+                node_type="draft.proofread",
+            )
+            section_summaries.append(
+                {
+                    "section": section_name,
+                    "batch_index": batch_index + 1,
+                    "section_summary": section_summary,
+                }
+            )
+            for raw_issue in section_result.get("issues") or []:
+                proofread_issues.append(
+                    {
+                        **raw_issue,
+                        "section": (raw_issue.get("section") or section_name).strip() or section_name,
+                    }
+                )
+    proofread_result = _run_content_request(
+        content_layer.draft_proofread_rollup_request(
+            run_id=run_id,
+            agent_id=agent_id,
+            draft_version_no=draft.get("version_no"),
+            section_summaries=section_summaries,
+            issues=[
+                {
+                    "section": issue.get("section") or "",
+                    "item_ref": issue.get("item_ref") or "",
+                    "severity": issue.get("severity") or "",
+                    "issue_type": issue.get("issue_type") or "",
+                    "description": str(issue.get("description") or "")[:160],
+                }
+                for issue in proofread_issues
+            ],
+        )
     )
+    summary_text = _require_llm_visible_text(proofread_result, field="summary", node_type="draft.proofread")
     existing_by_key = {
         (row["section"], row["item_ref"], row["issue_type"]): row
         for row in existing_rows
@@ -3129,7 +3850,7 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
     closed = []
     reopened = []
     seen_keys = set()
-    for raw_issue in proofread_result.get("issues") or []:
+    for raw_issue in proofread_issues:
         section = (raw_issue.get("section") or "").strip()
         if section not in sections:
             continue
@@ -3141,10 +3862,17 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
         description = (raw_issue.get("description") or "").strip()
         if not description:
             continue
+        section_ctx = section_contexts.get(section) or {}
+        item_snapshot = (section_ctx.get("draft_items") or {}).get(item_ref) or {}
+        material_id = raw_issue.get("material_id") or item_snapshot.get("material_id")
+        material_snapshot = (section_ctx.get("approved_materials") or {}).get(material_id) or {}
         evidence = raw_issue.get("evidence") if isinstance(raw_issue.get("evidence"), dict) else {}
         evidence = {
             **evidence,
             "draft_version_no": draft.get("version_no"),
+            "item_snapshot": item_snapshot,
+            "material_id": material_id,
+            "material_snapshot": material_snapshot,
             "required_actions": raw_issue.get("required_actions") or evidence.get("required_actions") or [],
             "patch_instruction": raw_issue.get("patch_instruction") or evidence.get("patch_instruction") or "",
             "review_rationale": evidence.get("review_rationale") or description,
@@ -3157,7 +3885,7 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
                 """
                 UPDATE proofread_issues
                 SET severity=%s, description=%s, evidence=%s::jsonb, reported_by=%s, status='open',
-                    updated_at=NOW(), resolution_note=COALESCE(resolution_note,'') || ' | proofread refreshed'
+                    updated_at=NOW(), closed_at=NULL, resolution_note=''
                 WHERE issue_id=%s
                 """,
                 (severity, description, jdump(evidence), agent_id, existing["issue_id"]),
@@ -3185,20 +3913,12 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
             execute(
                 """
                 UPDATE proofread_issues
-                SET status='closed', updated_at=NOW(), closed_at=NOW(),
-                    resolution_note=COALESCE(resolution_note,'') || ' | proofread issue no longer reproduced'
+                SET status='closed', updated_at=NOW(), closed_at=NOW(), resolution_note=''
                 WHERE issue_id=%s
                 """,
                 (row["issue_id"],),
             )
             closed.append(row["issue_id"])
-    lines = [proofread_result.get("summary") or f"{agent_id} 已完成 proofread issue 提交，共提出 {len(created)} 个问题。"]
-    if closed:
-        lines.append(f"- 已关闭 {len(closed)} 个已修复 issue。")
-    if reopened:
-        lines.append(f"- 重新打开 {len(reopened)} 个未修复 issue。")
-    for item in created[:4]:
-        lines.append(f"- [{item['severity']}] {item['section']}：{item['description']}")
     return {
         "status": "submitted",
         "draft_version_no": draft.get("version_no"),
@@ -3206,9 +3926,10 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
         "closed_issue_count": len(closed),
         "reopened_issue_count": len(reopened),
         "issues": created,
+        "summary": summary_text,
         "generation_mode": proofread_result.get("generation_mode", ""),
         "generation_error": proofread_result.get("generation_error", ""),
-        "message_body": "\n".join(lines),
+        "message_body": summary_text,
     }
 
 
@@ -3280,6 +4001,11 @@ def _evaluate_proofread_issue(issue: dict) -> dict:
 
 
 def _prepare_proofread_decision_explanation_job(run_id: str, task_id: str) -> dict:
+    proofread_phase, proofread_round, proofread_gate_settled = _proofread_gate_settled(run_id)
+    if not proofread_gate_settled:
+        raise RuntimeError(
+            f"active proofread gate 尚未收敛（{proofread_phase} round {proofread_round}），禁止生成 decision explanation"
+        )
     project_id, cycle_no = get_run_project_context(run_id)
     draft = _latest_draft_version(run_id)
     decisions = fetch_all(
@@ -3307,33 +4033,15 @@ def _prepare_proofread_decision_explanation_job(run_id: str, task_id: str) -> di
     ]
     accepted = [row for row in decision_rows if row["decision_type"] == "accept"]
     rejected = [row for row in decision_rows if row["decision_type"] == "reject"]
-    issue_fallback = {
-        "summary": f"本轮 proofread 共处理 {len(decision_rows)} 个 issue，其中采纳 {len(accepted)} 个，驳回 {len(rejected)} 个。",
-        "accepted": [f"{row['section']}：{row['description']}" for row in accepted[:5]],
-        "rejected": [f"{row['section']}：{row['description']}" for row in rejected[:5]],
-        "required_actions": sorted({action for row in accepted for action in (row.get('decision_json') or {}).get('required_actions', [])}),
-    }
-    return {
-        "node_type": "proofread.decision.explanation",
-        "project_id": project_id,
-        "cycle_no": cycle_no,
-        "task_id": task_id,
-        "prompt_system": "你是新闻 workflow 的 manager。基于已完成的结构化 proofread 决策，输出一份给人看的简洁 explanation，说明为什么 blocker 需要修、为什么可放行或需要 recheck。不要重做规则决策，只做解释。",
-        "prompt_user": "\n".join(
-            [
-                f"run_id={run_id}",
-                f"draft_version={draft.get('version_no')}",
-                "proofread decisions:",
-                *[
-                    f"- issue_id={row['issue_id']} | section={row['section']} | severity={row['severity']} | issue_type={row['issue_type']} | description={row['description']} | decision={row['decision_type']} | rationale={row['rationale']} | required_actions={json.dumps((row.get('decision_json') or {}).get('required_actions', []), ensure_ascii=False)}"
-                    for row in decision_rows
-                ],
-                "返回 JSON，字段：summary(string)、accepted(array of string)、rejected(array of string)、required_actions(array of string)。",
-            ]
-        ),
-        "fallback_payload": issue_fallback,
-        "evidence_object_count": len(decision_rows) + 3,
-    }
+    request = content_layer.proofread_explanation_request(
+        run_id=run_id,
+        draft_version_no=draft.get("version_no"),
+        decision_rows=decision_rows,
+    )
+    request["project_id"] = project_id
+    request["cycle_no"] = cycle_no
+    request["task_id"] = task_id
+    return request
 
 
 def _apply_proofread_rule_decision(run_id: str, task_id: str, decision_data: dict) -> dict:
@@ -3456,7 +4164,7 @@ def _apply_proofread_rule_decision(run_id: str, task_id: str, decision_data: dic
         "recheck_required": bool(accepted),
         "html_path": files["html_path"],
         "generation_mode": "rule",
-        "message_body": f"系统已完成 proofread 结构化决策，采纳 {len(accepted)} 项，驳回 {len(rejected)} 项，当前 blocker 余量 {_active_blocker_count(run_id)}。",
+        "message_body": "",
     }
 
 
@@ -3465,30 +4173,42 @@ def decide_proofread_issues(run_id: str, task_id: str) -> dict:
 
 
 def _apply_proofread_explanation_result(run_id: str, task_id: str, explanation_data: dict) -> dict:
-    fallback = {
-        "summary": explanation_data.get("summary") or "proofread explanation 未生成，已保留结构化 decision 与 required_actions 供 manager 查看。",
-        "accepted": explanation_data.get("accepted") or [],
-        "rejected": explanation_data.get("rejected") or [],
-        "required_actions": explanation_data.get("required_actions") or [],
-    }
-    body_md = "\n".join(
-        [
-            "# Proofread Decision Explanation",
-            "",
-            fallback["summary"],
-            "",
-            "## 需要处理的动作",
-            *( [f"- {item}" for item in fallback["required_actions"]] if fallback["required_actions"] else ["- 无"] ),
-        ]
+    summary = _require_llm_visible_text(
+        explanation_data,
+        field="summary",
+        node_type="proofread.decision.explanation",
     )
+    body_md = _reject_template_shell(
+        _require_llm_visible_text(
+            explanation_data,
+            field="explanation_markdown",
+            node_type="proofread.decision.explanation",
+        ),
+        node_type="proofread.decision.explanation",
+        markers=[
+            "## 已采纳",
+            "## 暂不采纳",
+            "## Required Actions",
+            "已采纳：",
+            "暂不采纳：",
+            "Required Actions：",
+        ],
+    )
+    accepted = _clean_string_list(explanation_data.get("accepted"), limit=6)
+    rejected = _clean_string_list(explanation_data.get("rejected"), limit=6)
+    required_actions = _clean_string_list(explanation_data.get("required_actions"), limit=8)
     files = _write_aux_report_files(
         run_id,
         "proofread_decision_explanation",
         "Proofread Decision Explanation",
         body_md,
         {
-            **fallback,
-            "generation_mode": explanation_data.get("generation_mode", "fallback"),
+            "summary": summary,
+            "accepted": accepted,
+            "rejected": rejected,
+            "required_actions": required_actions,
+            "explanation_markdown": body_md,
+            "generation_mode": explanation_data.get("generation_mode", ""),
             "generation_error": explanation_data.get("generation_error", ""),
             "timeout_ms": explanation_data.get("timeout_ms"),
             "prompt_size": explanation_data.get("prompt_size"),
@@ -3503,18 +4223,35 @@ def _apply_proofread_explanation_result(run_id: str, task_id: str, explanation_d
         UPDATE workflow_runs
         SET notes =
             jsonb_set(
-                jsonb_set(COALESCE(notes, '{}'::jsonb), '{proofread_decision_explanation_html}', to_jsonb(%s::text), true),
+                jsonb_set(
+                    jsonb_set(
+                        jsonb_set(
+                            jsonb_set(COALESCE(notes, '{}'::jsonb), '{proofread_decision_explanation_md}', to_jsonb(%s::text), true),
+                            '{proofread_decision_explanation_json}', to_jsonb(%s::text), true
+                        ),
+                        '{proofread_decision_explanation_html}', to_jsonb(%s::text), true
+                    ),
+                    '{proofread_decision_html}', to_jsonb(%s::text), true
+                ),
                 '{proofread_decision_explanation_mode}', to_jsonb(%s::text), true
             )
         WHERE run_id=%s
         """,
-        (files["html_path"], explanation_data.get("generation_mode", "fallback"), run_id),
+        (
+            files["markdown_path"],
+            files["json_path"],
+            files["html_path"],
+            files["html_path"],
+            explanation_data.get("generation_mode", "fallback"),
+            run_id,
+        ),
     )
     return {
         "status": "explained",
-        "summary": fallback["summary"],
+        "summary": summary,
+        "markdown_path": files["markdown_path"],
         "html_path": files["html_path"],
-        "generation_mode": explanation_data.get("generation_mode", "fallback"),
+        "generation_mode": explanation_data.get("generation_mode", ""),
         "generation_error": explanation_data.get("generation_error", ""),
         "timeout_ms": explanation_data.get("timeout_ms"),
         "prompt_size": explanation_data.get("prompt_size"),
@@ -3522,7 +4259,7 @@ def _apply_proofread_explanation_result(run_id: str, task_id: str, explanation_d
         "evidence_object_count": explanation_data.get("evidence_object_count"),
         "started_at": explanation_data.get("started_at"),
         "finished_at": explanation_data.get("finished_at"),
-        "message_body": f"proofread explanation 已生成（mode={explanation_data.get('generation_mode', 'fallback')}）。",
+        "message_body": summary,
     }
 
 
@@ -3531,28 +4268,20 @@ def summarize_draft_review(run_id: str) -> dict:
         "SELECT agent_id, section_scope, review_text FROM draft_reviews WHERE run_id=%s ORDER BY created_at",
         (run_id,),
     )
-    accepted = [f"{agent_id}（{scope}）：{text}" for agent_id, scope, text in rows]
-    fallback = {
-        "summary_markdown": "\n".join(["# Draft Review Summary", "", *[f"- {item}" for item in accepted[:6]]]),
-        "accepted_review_notes": accepted[:6],
-        "revision_focus": [text for _, _, text in rows[:3]],
-        "summary": "draft review summary 已基于当前校稿意见生成。",
-    }
-    result = _stage_chat_json(
-        "discussion.summary",
-        "你是新闻项目的 manager。基于当前 draft review notes，输出一份简洁的 draft review summary。"
-        "不要固定写三条通用修订重点。"
-        "输出 JSON：summary_markdown,accepted_review_notes,revision_focus,summary。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "draft_reviews": [{"agent_id": agent_id, "section_scope": scope, "review_text": text} for agent_id, scope, text in rows],
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    request = content_layer.draft_review_summary_request(
+        run_id=run_id,
+        draft_reviews=[{"agent_id": agent_id, "section_scope": scope, "review_text": text} for agent_id, scope, text in rows],
     )
-    body_md = (result.get("summary_markdown") or fallback["summary_markdown"]).strip()
+    result = _run_content_request(request)
+    body_md = _reject_template_shell(
+        _require_llm_visible_text(result, field="summary_markdown", node_type="discussion.summary"),
+        node_type="discussion.summary",
+        markers=[
+            "主要问题：",
+            "修订重点：",
+            "统一建议：",
+        ],
+    )
     run_dir = RUN_OUTPUT_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     md_path = run_dir / "draft_review_summary.md"
@@ -3560,14 +4289,15 @@ def summarize_draft_review(run_id: str) -> dict:
     md_path.write_text(body_md)
     payload = {
         "run_id": run_id,
-        "accepted_review_notes": result.get("accepted_review_notes") or fallback["accepted_review_notes"],
-        "revision_focus": result.get("revision_focus") or fallback["revision_focus"],
-        "summary": result.get("summary") or fallback["summary"],
+        "accepted_review_notes": _clean_string_list(result.get("accepted_review_notes"), limit=6),
+        "revision_focus": _clean_string_list(result.get("revision_focus"), limit=4),
+        "summary": _require_llm_visible_text(result, field="summary", node_type="discussion.summary"),
+        "summary_markdown": body_md,
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
     }
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
-    html_path = write_product_report_html(run_id, "Draft Review Summary", body_md, payload, "draft_review_summary")
+    html_path = write_product_report_html(run_id, "Draft Review Brief", body_md, payload, "draft_review_summary")
     execute("UPDATE outputs SET revision_plan=%s, updated_at=NOW() WHERE run_id=%s", (body_md, run_id))
     execute(
         """
@@ -3590,7 +4320,7 @@ def summarize_draft_review(run_id: str) -> dict:
         "markdown_path": str(md_path),
         "json_path": str(json_path),
         "html_path": str(html_path),
-        "message_body": result.get("summary") or fallback["summary"],
+        "message_body": payload["summary"],
     }
 
 
@@ -3625,34 +4355,46 @@ def manager_review_materials(run_id: str, task_id: str, section: str) -> dict:
         "signal_type": signal,
         "event_id": event["event_id"],
         "reason": row[1],
-        "message_body": f"manager 已对【{section}】material.review 做最小验收，决定：{signal}。",
+        "message_body": "",
     }
 
 
 def manager_publish_decision(run_id: str, task_id: str) -> dict:
-    blocker_count = _active_blocker_count(run_id)
-    recheck_done = fetch_one(
+    proofread_phase, proofread_round, proofread_gate_settled = _proofread_gate_settled(run_id)
+    proofread_done = fetch_one(
         """
         SELECT COUNT(*)
         FROM tasks
-        WHERE run_id=%s AND phase IN ('draft.proofread', 'draft.recheck') AND status='completed'
+        WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
         """,
-        (run_id,),
+        (run_id, proofread_phase, proofread_round),
     )[0]
-    approved = blocker_count == 0 and recheck_done > 0
-    reason = "all blockers closed and recheck passed" if approved else "proofread blockers unresolved or recheck missing"
+    blocker_count = _active_blocker_count(run_id)
+    approved = proofread_gate_settled and blocker_count == 0 and int(proofread_done or 0) > 0
+    reason = (
+        "all blockers closed and active proofread gate settled"
+        if approved
+        else f"active proofread gate not settled or blockers unresolved ({proofread_phase} round {proofread_round})"
+    )
     event = _manager_control_event(
         run_id=run_id,
         stage_name="publish.decision",
         signal_type="publish_approved" if approved else "pause",
-        payload={"blocker_count": blocker_count, "recheck_done": int(recheck_done), "reason": reason},
+        payload={
+            "blocker_count": blocker_count,
+            "proofread_phase": proofread_phase,
+            "proofread_round": proofread_round,
+            "proofread_gate_settled": proofread_gate_settled,
+            "proofread_done": int(proofread_done or 0),
+            "reason": reason,
+        },
     )
     return {
         "status": "approved" if approved else "rejected",
         "approved": approved,
         "event_id": event["event_id"],
         "reason": reason,
-        "message_body": f"manager publish decision：{reason}。",
+        "message_body": "",
     }
 
 
@@ -3673,66 +4415,68 @@ def manager_pre_retro_review(run_id: str, task_id: str) -> dict:
         "signal_type": signal,
         "event_id": event["event_id"],
         "reason": reason,
-        "message_body": f"manager 已完成 pre-retro report review：{reason}。",
+        "message_body": "",
     }
 
 
 def summarize_discussion(run_id: str) -> dict:
     comments = fetch_all("SELECT agent_id, comment_text FROM discussions WHERE run_id=%s ORDER BY created_at", (run_id,))
+    draft_reviews = fetch_all(
+        "SELECT agent_id, section_scope, review_text FROM draft_reviews WHERE run_id=%s ORDER BY created_at",
+        (run_id,),
+    )
     product_eval = _product_report_by_type(run_id, "product_evaluation_report")
     top_issues = (product_eval.get("report_json", {}) or {}).get("top_product_issues", [])
-    fallback = {
-        "summary_markdown": "\n".join(
-            [
-                "# Discussion Summary",
-                "",
-                "以下内容来自当前讨论记录：",
-                *[f"- {agent_id}：{comment_text}" for agent_id, comment_text in comments[:6]],
-                "",
-                *([f"- 当前最先要处理：{item}" for item in top_issues[:2]] if top_issues else []),
-            ]
-        ),
-        "top_issues": top_issues[:3],
-        "accepted_comments": [f"{agent_id}：{comment_text}" for agent_id, comment_text in comments[:4]],
-        "rejected_comments": [],
-        "revision_actions": [comment_text for _, comment_text in comments[:3]],
-        "summary": "discussion summary 已基于当前讨论记录收敛。",
-    }
-    result = _stage_chat_json(
-        "discussion.summary",
-        "你是新闻项目的 manager。你现在要基于真实讨论记录生成一份 discussion summary。"
-        "不要固定栏目拼装，不要把评论原样堆进去。"
-        "输出 JSON：summary_markdown,top_issues,accepted_comments,rejected_comments,revision_actions,summary。"
-        "summary_markdown 请写成自然的 markdown，总结真正采纳了什么、没采纳什么、接下来怎么改。",
-        json.dumps(
+    output_bundle = _load_output_bundle(run_id)
+    latest = _latest_draft_version(run_id)
+    request = content_layer.discussion_summary_request(
+        run_id=run_id,
+        draft_version_no=latest.get("version_no", 0),
+        discussion_comments=[
+            {"agent_id": agent_id, "comment_text": _truncate(comment_text, 180)}
+            for agent_id, comment_text in comments[:8]
+        ],
+        draft_reviews=[
             {
-                "run_id": run_id,
-                "discussion_comments": [{"agent_id": agent_id, "comment_text": comment_text} for agent_id, comment_text in comments],
-                "top_product_issues": top_issues[:4],
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+                "agent_id": agent_id,
+                "section_scope": section_scope,
+                "review_text": _truncate(review_text, 180),
+            }
+            for agent_id, section_scope, review_text in draft_reviews[:6]
+        ],
+        top_product_issues=top_issues[:4],
+        revision_plan=_truncate(output_bundle.get("revision_plan"), 260),
     )
-    plan = (result.get("summary_markdown") or fallback["summary_markdown"]).strip()
+    result = _run_content_request(request)
+    plan = _reject_template_shell(
+        _require_llm_visible_text(result, field="summary_markdown", node_type="discussion.summary"),
+        node_type="discussion.summary",
+        markers=[
+            "Discussion Summary",
+            "Accepted Comments",
+            "Rejected Comments",
+            "Revision Actions",
+        ],
+    )
     run_dir = RUN_OUTPUT_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     md_path = run_dir / "discussion_summary.md"
     json_path = run_dir / "discussion_summary.json"
     md_path.write_text(plan)
+    summary_text = _require_llm_visible_text(result, field="summary", node_type="discussion.summary")
     payload = {
         "run_id": run_id,
-        "top_issues": result.get("top_issues") or fallback["top_issues"],
-        "accepted_comments": result.get("accepted_comments") or fallback["accepted_comments"],
-        "rejected_comments": result.get("rejected_comments") or fallback["rejected_comments"],
-        "revision_actions": result.get("revision_actions") or fallback["revision_actions"],
-        "summary": result.get("summary") or fallback["summary"],
+        "top_issues": _clean_string_list(result.get("top_issues"), limit=5),
+        "accepted_comments": _clean_string_list(result.get("accepted_comments"), limit=5),
+        "rejected_comments": _clean_string_list(result.get("rejected_comments"), limit=5),
+        "revision_actions": _clean_string_list(result.get("revision_actions"), limit=6),
+        "summary": summary_text,
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
         "markdown_path": str(md_path),
     }
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
-    html_path = write_product_report_html(run_id, "Discussion Summary", plan, payload, "discussion_summary")
+    html_path = write_product_report_html(run_id, "Draft Discussion Brief", plan, payload, "discussion_summary")
     execute(
         """
         UPDATE outputs
@@ -3762,7 +4506,7 @@ def summarize_discussion(run_id: str) -> dict:
         "markdown_path": str(md_path),
         "json_path": str(json_path),
         "html_path": str(html_path),
-        "message_body": result.get("summary") or fallback["summary"],
+        "message_body": summary_text,
     }
 
 
@@ -3782,40 +4526,30 @@ def _prepare_draft_revise_job(run_id: str) -> dict:
         (run_id,),
     )
     touched_sections = sorted({section for _, section, _, _, _, _ in revision_patches if section})
-    revise_fallback = {
-        "section_updates": [{"section": section, "item_updates": [], "reason": ""} for section in touched_sections],
-        "revision_plan": "\n".join(f"- {patch_instruction}" for _, _, patch_instruction, _, _, _ in revision_patches) or "- 无新增修订。",
-    }
-    return {
-        "node_type": "draft.revise",
-        "project_id": project_id,
-        "cycle_no": cycle_no,
-        "task_id": None,
-        "prompt_system": "你是新闻编辑。基于 accepted proofread issues、revision patch 和当前 draft，输出真正要改动的 section/item 级更新。"
-        "不要复读问题，不要只改一个固定句式，也不要生成整篇全文。"
-        "输出 JSON：section_updates(array of {section,item_updates,reason}), revision_plan。"
-        "item_updates 每项字段：item_ref,title,summary_zh。item_ref 只能写 main、secondary:1、secondary:2、brief:1 ...",
-        "prompt_user": "\n".join(
-            [
-                f"run_id={run_id}",
-                f"draft_version={latest.get('version_no')}",
-                f"writer_guidance={json.dumps(_writer_guidance_settings(get_effective_optimization_log(project_id, 'neko', cycle_no or 0)), ensure_ascii=False)}",
-                "current_draft_sections:",
-                *[
-                    f"- {section} | {json.dumps(sections_payload.get(section) or {}, ensure_ascii=False)}"
-                    for section in touched_sections
-                ],
-                "proofread decisions and revision patches:",
-                *[
-                    f"- issue_id={issue_id} | section={section} | issue_type={issue_type} | patch_instruction={patch_instruction} | description={description}"
-                    for issue_id, section, patch_instruction, _, _, issue_type in revision_patches
-                ],
-                "返回 JSON，字段：section_updates(array of {section,item_updates,reason}), revision_plan。",
-            ]
-        ),
-        "fallback_payload": revise_fallback,
-        "evidence_object_count": len(revision_patches),
-    }
+    request = content_layer.draft_revise_request(
+        run_id=run_id,
+        draft_version_no=latest.get("version_no"),
+        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, "neko", cycle_no or 0)),
+        current_draft_sections=[
+            {"section": section, "draft": sections_payload.get(section) or {}}
+            for section in touched_sections
+        ],
+        revision_patches=[
+            {
+                "issue_id": issue_id,
+                "section": section,
+                "patch_instruction": patch_instruction,
+                "description": description,
+                "issue_type": issue_type,
+                "patch_payload": _load_json(patch_payload),
+            }
+            for issue_id, section, patch_instruction, patch_payload, description, issue_type in revision_patches
+        ],
+    )
+    request["project_id"] = project_id
+    request["cycle_no"] = cycle_no
+    request["task_id"] = None
+    return request
 
 
 def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
@@ -3882,18 +4616,28 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
             applied.append(section_update.get("reason"))
     for issue in accepted_issues:
         execute(
-            "UPDATE proofread_issues SET status='fixed', updated_at=NOW(), resolution_note=COALESCE(resolution_note,'') || %s WHERE issue_id=%s",
-            (" | patch applied", issue["issue_id"]),
+            "UPDATE proofread_issues SET status='fixed', updated_at=NOW(), closed_at=NULL, resolution_note='' WHERE issue_id=%s",
+            (issue["issue_id"],),
         )
     sections_payload = _apply_writer_guidance(sections_payload, get_effective_optimization_log(project_id, "neko", cycle_no or 0))
-    revision_plan = revise_data.get("revision_plan") or ("\n".join(f"- {item}" for item in applied) if applied else "- 无新增修订。")
-    final_markdown = _report_markdown_from_sections(
-        sections_payload,
+    revision_plan = _require_llm_visible_text(revise_data, field="revision_plan", node_type="draft.revise")
+    render_data = _render_draft_markdown_via_llm(
         run_id=run_id,
-        project_id=project_id,
-        cycle_no=cycle_no,
-        heading="# 近24小时国际新闻热点（修订稿）",
+        stage_name="draft.revise",
+        draft_version_no=(latest.get("version_no") or 0) + 1,
+        sections_payload=sections_payload,
+        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, "neko", cycle_no or 0)),
+        revision_context=[
+            {
+                "issue_id": issue["issue_id"],
+                "section": issue["section"],
+                "issue_type": issue["issue_type"],
+                "description": issue["description"],
+            }
+            for issue in accepted_issues
+        ],
     )
+    final_markdown = render_data["report_markdown"]
     run_dir = RUN_OUTPUT_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     md_path = run_dir / "revised_final_report.md"
@@ -3945,40 +4689,42 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
         "json_path": str(json_path),
         "html_path": str(html_path),
         "draft_version_no": version["version_no"],
-        "generation_mode": revise_data["generation_mode"],
-        "generation_error": revise_data.get("generation_error", ""),
+        "generation_mode": render_data["generation_mode"],
+        "generation_error": render_data.get("generation_error", ""),
+        "update_generation_mode": revise_data.get("generation_mode", ""),
+        "update_generation_error": revise_data.get("generation_error", ""),
         "timeout_ms": revise_data.get("timeout_ms"),
         "prompt_size": revise_data.get("prompt_size"),
         "input_size": revise_data.get("input_size"),
         "evidence_object_count": revise_data.get("evidence_object_count"),
         "started_at": revise_data.get("started_at"),
-        "finished_at": revise_data.get("finished_at"),
-        "message_body": f"已基于 proofread decision 与 revision patch 完成修订稿 v{version['version_no']}，进入 blocker recheck。生成方式：{revise_data['generation_mode']}",
+        "finished_at": render_data.get("finished_at") or revise_data.get("finished_at"),
+        "message_body": render_data["summary"],
     }
 
 
 def revise_draft(run_id: str) -> dict:
     prepared = _prepare_draft_revise_job(run_id)
-    revise_data = _stage_chat_json("draft.revise", prepared["prompt_system"], prepared["prompt_user"], prepared["fallback_payload"])
-    revise_data["evidence_object_count"] = prepared["evidence_object_count"]
+    revise_data = _run_content_request(prepared)
     return _apply_draft_revise_result(run_id, revise_data)
 
 
 def publish_report(run_id: str) -> dict:
-    proofread_round = fetch_one(
-        "SELECT COALESCE(MAX(retry_count), 0) FROM tasks WHERE run_id=%s AND phase IN ('draft.proofread','draft.recheck') AND status='completed'",
-        (run_id,),
-    )[0]
+    proofread_phase, proofread_round, proofread_gate_settled = _proofread_gate_settled(run_id)
     proofread_done = fetch_one(
         """
         SELECT COUNT(*) FROM tasks
-        WHERE run_id=%s AND phase IN ('draft.proofread','draft.recheck') AND retry_count=%s AND status='completed'
+        WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
         """,
-        (run_id, proofread_round),
+        (run_id, proofread_phase, proofread_round),
     )[0]
     blocker_count = _active_blocker_count(run_id)
+    if not proofread_gate_settled:
+        raise RuntimeError(
+            f"active proofread gate 尚未收敛（{proofread_phase} round {proofread_round}），禁止 publish"
+        )
     if proofread_done < 1:
-        raise RuntimeError("draft.proofread 尚未完成，禁止 publish")
+        raise RuntimeError(f"{proofread_phase} round {proofread_round} 尚未完成，禁止 publish")
     if blocker_count > 0:
         raise RuntimeError(f"proofread blocker 未清零，当前仍有 {blocker_count} 个 blocker，禁止 publish")
     closed_blockers = fetch_one(
@@ -4115,7 +4861,7 @@ def publish_report(run_id: str) -> dict:
         "recheck_done": int(proofread_done),
         "blocker_count": int(blocker_count),
         "closed_blocker_count": int(closed_blockers),
-        "message_body": "终稿已在修订后正式发布，可直接查看 HTML 成品页、Markdown 和 JSON 结构化文件。",
+        "message_body": "",
     }
 
 
@@ -4144,26 +4890,15 @@ def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
         }
         for issue_id, section, issue_type, status, description, evidence_text in rows
     ]
-    fallback = {
-        "summary": f"{agent_id} 未拿到稳定的 recheck 结果，当前保留 {len(prompt_issues)} 个 issue 继续待确认。",
-        "decisions": [{"issue_id": issue_id, "resolved": False, "resolution_note": "LLM recheck unavailable，保留 issue 待人工确认。"} for issue_id, _, _, _, _, _ in rows],
-    }
-    result = _stage_chat_json(
-        "draft.recheck",
-        "你是新闻 workflow 的 tester。你现在要对修订稿逐项 recheck，判断上一轮 issue 是否真的解决。"
-        "不要默认通过，也不要只看固定句式。"
-        "输出 JSON：summary,decisions。decisions 每项字段必须包含 issue_id,resolved,resolution_note。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "agent_id": agent_id,
-                "draft_version": latest.get("version_no"),
-                "issues": prompt_issues,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    result = _run_content_request(
+        content_layer.draft_recheck_request(
+            run_id=run_id,
+            agent_id=agent_id,
+            draft_version_no=latest.get("version_no"),
+            issues=prompt_issues,
+        )
     )
+    summary_text = _require_llm_visible_text(result, field="summary", node_type="draft.recheck")
     decisions = {}
     for item in result.get("decisions") or []:
         issue_id = str(item.get("issue_id") or "").strip()
@@ -4173,16 +4908,24 @@ def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
     reopened = []
     for issue_id, section, issue_type, status, description, evidence_text in rows:
         decision = decisions.get(issue_id, {})
-        resolved = bool(decision.get("resolved"))
-        note = (decision.get("resolution_note") or "").strip() or "recheck 未返回明确说明。"
+        if not decision:
+            raise RuntimeError(f"draft.recheck missing llm decision for issue_id={issue_id}")
+        resolved = _require_llm_bool(
+            decision | {"generation_mode": result.get("generation_mode", "")},
+            field="resolved",
+            node_type="draft.recheck",
+        )
+        note = str(decision.get("resolution_note") or "").strip()
+        if not note:
+            raise RuntimeError(f"draft.recheck missing llm resolution_note for issue_id={issue_id}")
         if resolved:
             execute(
                 """
                 UPDATE proofread_issues
-                SET status='closed', updated_at=NOW(), closed_at=NOW(), resolution_note=COALESCE(resolution_note,'') || ' | rechecked closed'
+                SET status='closed', updated_at=NOW(), closed_at=NOW(), resolution_note=%s
                 WHERE issue_id=%s
                 """,
-                (issue_id,),
+                (note, issue_id),
             )
             closed.append(issue_id)
         else:
@@ -4201,7 +4944,7 @@ def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
         "reopened_issues": reopened,
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
-        "message_body": result.get("summary") or f"{agent_id} 已完成 proofread recheck，关闭 {len(closed)} 个 issue，重新打开 {len(reopened)} 个 issue。",
+        "message_body": summary_text,
     }
 
 
@@ -4224,73 +4967,48 @@ def _prepare_product_test_job(run_id: str, task_id: str, agent_id: str) -> dict:
                 }
             )
     evidence = evidence[:4]
-    fallback = {
-        "focus": "成品体验",
-        "most_obvious_problems": [
-            "主推首屏冲击力和板块收束感还不够统一",
-            "部分条目的信息排序仍偏晚，读者抓重点成本偏高",
-        ],
-        "priority_improvements": [
-            "先把主推首句改成影响前置",
-            "把图片稳定性和板块边界前置成硬约束",
-        ],
-        "execution_link": [f"{agent_id} 需要把本轮暴露的问题前置到自己负责的采集/编排阶段"],
-        "summary": f"{agent_id} 已基于最终成品生成产品测试报告，输出 2 个优先问题和下一轮建议。",
-    }
-    return {
-        "node_type": "product.test",
-        "project_id": get_run_project_context(run_id)[0],
-        "cycle_no": get_run_project_context(run_id)[1],
-        "task_id": task_id,
-        "prompt_system": "你是多 agent 新闻项目的参与者。现在要基于最终成品输出产品体验测试报告。不要写流程回执，不要写模板栏目，不要假装评分表。要像真正看完成品后给出的产品意见。",
-        "prompt_user": "\n".join(
-            [
-                f"run_id={run_id}",
-                f"agent_id={agent_id}",
-                "final artifact slices:",
-                *[
-                    f"- {item['section']} | {item['title']} | images={item['image_count']} | summary={item['summary']}"
-                    for item in evidence
-                ],
-                "请返回 JSON：focus, most_obvious_problems(array), priority_improvements(array), execution_link(array), summary。只提 2-3 个真正的问题，优先看首屏完成度、板块收束感、阅读节奏、图片与结构。",
-            ]
-        ),
-        "fallback_payload": fallback,
-        "evidence_object_count": len(evidence),
-        "evidence": evidence,
-        "agent_id": agent_id,
-    }
+    request = content_layer.product_test_request(run_id=run_id, agent_id=agent_id, evidence=evidence)
+    request["project_id"] = get_run_project_context(run_id)[0]
+    request["cycle_no"] = get_run_project_context(run_id)[1]
+    request["task_id"] = task_id
+    request["evidence"] = evidence
+    request["agent_id"] = agent_id
+    return request
 
 
 def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidence: list[dict], decision: dict) -> dict:
-    focus = decision.get("focus") or "成品体验"
-    problems = list(dict.fromkeys(decision.get("most_obvious_problems") or []))[:4]
-    priorities = list(dict.fromkeys(decision.get("priority_improvements") or []))[:4]
-    own_responsibility = list(dict.fromkeys(decision.get("execution_link") or []))[:3]
+    focus = _require_llm_visible_text(decision, field="focus", node_type="product.test")
+    problems = _require_llm_string_list(
+        decision,
+        field="most_obvious_problems",
+        node_type="product.test",
+        min_items=1,
+        limit=4,
+    )
+    priorities = _require_llm_string_list(
+        decision,
+        field="priority_improvements",
+        node_type="product.test",
+        min_items=1,
+        limit=4,
+    )
+    own_responsibility = _require_llm_string_list(
+        decision,
+        field="execution_link",
+        node_type="product.test",
+        min_items=1,
+        limit=3,
+    )
     title = f"{agent_id} 产品测试报告"
-    summary = decision.get("summary") or f"{agent_id} 已基于最终成品生成产品测试报告。"
-    body_md = "\n".join(
-        [
-            f"# {title}",
-            "",
-            f"- run_id: {run_id}",
-            f"- 视角: {focus}",
-            "",
-            "## 成品证据",
-            *[
-                f"- {item['section']} | {item['kind']} | {item['title']} | image_count={item['image_count']} | {item['summary']}"
-                for item in evidence
-            ],
-            "",
-            "## 最明显的问题",
-            *[f"- {line}" for line in problems],
-            "",
-            "## 最值得优先改的点",
-            *[f"- {line}" for line in priorities],
-            "",
-            "## 与我本轮执行的关系",
-            *[f"- {line}" for line in own_responsibility],
-        ]
+    summary = _require_llm_visible_text(decision, field="summary", node_type="product.test")
+    body_md = _reject_template_shell(
+        _require_llm_visible_text(decision, field="report_markdown", node_type="product.test"),
+        node_type="product.test",
+        markers=[
+            "最明显问题：",
+            "优先改进：",
+            "执行关联：",
+        ],
     )
     payload = {
         "run_id": run_id,
@@ -4301,6 +5019,7 @@ def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidenc
         "priority_improvements": priorities,
         "execution_link": own_responsibility,
         "summary": summary,
+        "report_markdown": body_md,
         "generation_mode": decision["generation_mode"],
         "generation_error": decision.get("generation_error", ""),
         "timeout_ms": decision.get("timeout_ms"),
@@ -4328,8 +5047,7 @@ def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidenc
 
 def create_product_test_report(run_id: str, task_id: str, agent_id: str) -> dict:
     prepared = _prepare_product_test_job(run_id, task_id, agent_id)
-    decision = _stage_chat_json("product.test", prepared["prompt_system"], prepared["prompt_user"], prepared["fallback_payload"])
-    decision["evidence_object_count"] = prepared["evidence_object_count"]
+    decision = _run_content_request(prepared)
     return _apply_product_test_result(run_id, task_id, agent_id, prepared["evidence"], decision)
 
 
@@ -4401,71 +5119,47 @@ def create_benchmark_report(run_id: str, task_id: str) -> dict:
                     "image_count": len(main.get("images") or []),
                 }
             )
-    fallback = {
-        "comparisons": [
-            {
-                "name": item["name"],
-                "url": item["url"],
-                "page_title": item["page_title"],
-                "selected_reason": item.get("snippet") or "保留这个外部样本供下一轮继续比较。",
-                "gap": item.get("snippet") or "当前需要人工继续核对这个样本和我们的成品差距。",
-                "advice": "下一轮继续收紧首屏抓重点、主推层级和板块收束感。",
-                "source_media": item.get("source_media", ""),
-            }
-            for item in samples[:4]
-        ],
-        "most_visible_gap": "当前对标样本已抓到，但仍需更聚焦地比较首屏抓重点、主推层级和板块收束感。",
-        "next_cycle_actions": ["继续围绕当前对标样本收紧首屏表达和板块入口层级。"],
-        "summary": "benchmark report 已基于当前外部样本生成。",
-    }
-    result = _stage_chat_json(
-        "product.benchmark",
-        "你是新闻 workflow 的 tester。现在要基于 final artifact 和外部对标样本输出 benchmark report。"
-        "不要套固定差距模板，也不要假装做行业大全。"
-        "输出 JSON：comparisons,most_visible_gap,next_cycle_actions,summary。"
-        "comparisons 每项字段：name,url,page_title,selected_reason,gap,advice,source_media。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "benchmark_mode": search_mode,
-                "search_query": query,
-                "final_artifact": final_slices,
-                "samples": samples,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    request = content_layer.benchmark_request(
+        run_id=run_id,
+        benchmark_mode=search_mode,
+        search_query=query,
+        final_artifact=final_slices,
+        samples=samples,
     )
-    comparisons = result.get("comparisons") or fallback["comparisons"]
-    concise_actions = result.get("next_cycle_actions") or fallback["next_cycle_actions"]
-    summary = result.get("summary") or fallback["summary"]
+    result = _run_content_request(request)
+    if result.get("generation_mode") != "llm":
+        raise RuntimeError(
+            "product.benchmark requires llm-generated visible content; "
+            f"error={result.get('generation_error') or ''}"
+        )
+    comparisons = result.get("comparisons") or []
+    concise_actions = _require_llm_string_list(
+        result,
+        field="next_cycle_actions",
+        node_type="product.benchmark",
+        min_items=1,
+        limit=5,
+    )
+    summary = _require_llm_visible_text(result, field="summary", node_type="product.benchmark")
     title = "tester 外部对标报告"
-    body_md = "\n".join(
-        [
-            f"# {title}",
-            "",
-            f"- run_id: {run_id}",
-            f"- benchmark_mode: {search_mode}",
-            f"- search_query: {query}",
-            "",
-            "## 对标对象",
-            *[f"- {item['name']} | {item['url']} | {item.get('page_title') or '未抓到标题'} | 被选原因：{item.get('selected_reason', '')}" for item in comparisons],
-            "",
-            "## 最明显差距",
-            *[f"- {item.get('gap', '')}" for item in comparisons[:3]],
-            "",
-            "## 可落到下一轮的建议",
-            *[f"- {text}" for text in concise_actions],
-        ]
+    body_md = _reject_template_shell(
+        _require_llm_visible_text(result, field="report_markdown", node_type="product.benchmark"),
+        node_type="product.benchmark",
+        markers=[
+            "对标样本：",
+            "最明显差距：",
+            "下一轮建议：",
+        ],
     )
     payload = {
         "run_id": run_id,
         "benchmark_mode": search_mode,
         "search_query": query,
         "comparisons": comparisons,
-        "most_visible_gap": result.get("most_visible_gap") or fallback["most_visible_gap"],
+        "most_visible_gap": _require_llm_visible_text(result, field="most_visible_gap", node_type="product.benchmark"),
         "next_cycle_actions": concise_actions,
         "summary": summary,
+        "report_markdown": body_md,
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
     }
@@ -4524,67 +5218,42 @@ def create_cross_cycle_compare_report(run_id: str, task_id: str) -> dict:
                 },
             }
         )
-    fallback = {
-        "improved_issues": [],
-        "unimproved_issues": ["无上一轮可比样本，本轮作为跨轮对比基线"] if not previous_run_id else [],
-        "regressed_areas": [],
-        "unimplemented_previous_optimization_suggestions": [],
-        "summary": "跨轮对比已生成，当前需要继续结合上一轮复盘结论看是否真正落地。",
-    }
-    result = _stage_chat_json(
-        "product.cross_cycle_compare",
-        "你是新闻 workflow 的 tester。现在要对比本轮与上一轮 final artifact，以及上一轮 retrospective summary。"
-        "请只基于当前对象说话，不要默认写“有进步也有遗留问题”这种问卷答案。"
-        "输出 JSON：improved_issues,unimproved_issues,regressed_areas,unimplemented_previous_optimization_suggestions,summary。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "project_id": project_id,
-                "cycle_no": cycle_no,
-                "previous_run_id": previous_run_id,
-                "sections": sections_payload,
-                "previous_retrospective_summary": previous_summary,
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    request = content_layer.cross_cycle_compare_request(
+        run_id=run_id,
+        project_id=project_id,
+        cycle_no=cycle_no,
+        previous_run_id=previous_run_id,
+        sections=sections_payload,
+        previous_retrospective_summary=previous_summary,
     )
-    summary = result.get("summary") or fallback["summary"]
+    result = _run_content_request(request)
+    summary = _require_llm_visible_text(result, field="summary", node_type="product.cross_cycle_compare")
     title = "tester 跨轮对比报告"
     payload = {
         "run_id": run_id,
         "previous_run_id": previous_run_id,
-        "improved_issues": (result.get("improved_issues") or fallback["improved_issues"])[:5],
-        "unimproved_issues": (result.get("unimproved_issues") or fallback["unimproved_issues"])[:5],
-        "regressed_areas": (result.get("regressed_areas") or fallback["regressed_areas"])[:5],
-        "unimplemented_previous_optimization_suggestions": (
-            result.get("unimplemented_previous_optimization_suggestions")
-            or fallback["unimplemented_previous_optimization_suggestions"]
-        )[:5],
+        "improved_issues": _clean_string_list(result.get("improved_issues"), limit=5),
+        "unimproved_issues": _clean_string_list(result.get("unimproved_issues"), limit=5),
+        "regressed_areas": _clean_string_list(result.get("regressed_areas"), limit=5),
+        "unimplemented_previous_optimization_suggestions": _clean_string_list(
+            result.get("unimplemented_previous_optimization_suggestions"),
+            limit=5,
+        ),
         "summary": summary,
+        "report_markdown": _reject_template_shell(
+            _require_llm_visible_text(result, field="report_markdown", node_type="product.cross_cycle_compare"),
+            node_type="product.cross_cycle_compare",
+            markers=[
+                "改善：",
+                "未改善：",
+                "退步：",
+                "未落实建议：",
+            ],
+        ),
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
     }
-    body_md = "\n".join(
-        [
-            f"# {title}",
-            "",
-            f"- run_id: {run_id}",
-            f"- previous_run_id: {previous_run_id or '无'}",
-            "",
-            "## 改善点",
-            *([f"- {item}" for item in payload["improved_issues"]] or ["- 无明显改善"]),
-            "",
-            "## 未改善问题",
-            *([f"- {item}" for item in payload["unimproved_issues"]] or ["- 无"]),
-            "",
-            "## 退步项",
-            *([f"- {item}" for item in payload["regressed_areas"]] or ["- 无"]),
-            "",
-            "## 未落地的上一轮建议",
-            *([f"- {item}" for item in payload["unimplemented_previous_optimization_suggestions"]] or ["- 无"]),
-        ]
-    )
+    body_md = payload["report_markdown"]
     files = _write_aux_report_files(run_id, "cross_cycle_compare_report", title, body_md, payload)
     _insert_product_report(
         project_id=project_id,
@@ -4610,44 +5279,35 @@ def create_retrospective_plan(run_id: str, task_id: str) -> dict:
         "SELECT section, approved, reason FROM reviews WHERE run_id=%s ORDER BY created_at",
         (run_id,),
     )
-    fallback = {
-        "product_problems": [
-            {"priority": "P1", "object": "final_report", "problem": item}
-            for item in (usability.get("report_json", {}) or {}).get("most_obvious_problems", [])[:3]
-        ],
-        "behavior_problems": [
+    final_json = (_load_output_bundle(run_id).get("final_json") or {})
+    final_artifact = []
+    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+        main = ((final_json.get(section) or {}).get("main") or {})
+        if not main:
+            continue
+        final_artifact.append(
             {
-                "priority": "P1",
-                "agent": "worker-33" if section in {"政治经济", "科技"} else "worker-xhs",
-                "problem": (reason or "").strip() or f"{section} 在 material.review 才暴露可用性问题",
+                "section": section,
+                "title": _truncate(main.get("title"), 120),
+                "summary_zh": _truncate(main.get("summary_zh"), 180),
+                "image_count": len(main.get("images") or []),
             }
-            for section, _, reason in review_rows[:3]
-        ],
-        "topics": [],
-        "summary": "manager 已基于 tester 的三份报告和执行证据形成 retrospective plan。",
-    }
-    result = _stage_chat_json(
-        "retrospective.plan",
-        "你是新闻项目的 manager。你现在要基于 tester 的三份报告和执行证据生成 retrospective plan。"
-        "可以保留 machine-readable topic/owner/counterpart 字段，但不要用固定争吵脚本。"
-        "输出 JSON：product_problems,behavior_problems,topics,summary。"
-        "topics 每项字段必须包含 title,body,owner,counterpart。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "product_test": usability.get("report_json", {}) or {},
-                "benchmark": benchmark.get("report_json", {}) or {},
-                "cross_cycle_compare": cross_cycle.get("report_json", {}) or {},
-                "review_rows": [{"section": section, "approved": approved, "reason": reason} for section, approved, reason in review_rows],
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+        )
+    request = content_layer.retrospective_plan_request(
+        run_id=run_id,
+        product_test=usability.get("report_json", {}) or {},
+        benchmark=benchmark.get("report_json", {}) or {},
+        cross_cycle_compare=cross_cycle.get("report_json", {}) or {},
+        review_rows=[{"section": section, "approved": approved, "reason": reason} for section, approved, reason in review_rows],
+        final_artifact=final_artifact,
     )
-    product_problems = (result.get("product_problems") or fallback["product_problems"])[:5]
-    behavior_problems = (result.get("behavior_problems") or fallback["behavior_problems"])[:3]
-    topics = (result.get("topics") or fallback["topics"])[:5]
-    summary = result.get("summary") or fallback["summary"]
+    result = _run_content_request(request)
+    product_problems = _normalize_retro_plan_product_problems(result.get("product_problems"))[:5]
+    behavior_problems = _normalize_retro_plan_behavior_problems(result.get("behavior_problems"))[:3]
+    topics = _normalize_retro_plan_topics(result.get("topics"))[:5]
+    if not topics:
+        raise RuntimeError("retrospective.plan 必须生成至少 1 个可讨论 topic，禁止空 topics 进入 retrospective.discussion")
+    summary = _require_llm_visible_text(result, field="summary", node_type="retrospective.plan")
     title = "manager retrospective plan"
     payload = {
         "run_id": run_id,
@@ -4655,20 +5315,23 @@ def create_retrospective_plan(run_id: str, task_id: str) -> dict:
         "behavior_problems": behavior_problems,
         "topics": topics,
         "summary": summary,
+        "plan_markdown": _reject_template_shell(
+            _require_llm_visible_text(result, field="plan_markdown", node_type="retrospective.plan"),
+            node_type="retrospective.plan",
+            markers=[
+                "开场提醒",
+                "第一个讨论点",
+                "第二个讨论点",
+                "第三个讨论点",
+                "收尾",
+                "散会",
+                "行动项认领",
+            ],
+        ),
         "generation_mode": result.get("generation_mode", ""),
         "generation_error": result.get("generation_error", ""),
     }
-    body_md = "\n".join(
-        [
-            f"# {title}",
-            "",
-            "## Product Problems",
-            *[f"- [{item['priority']}] {item['problem']}" for item in product_problems],
-            "",
-            "## Agent Behavior Problems",
-            *[f"- [{item['priority']}] {item['agent']}: {item['problem']}" for item in behavior_problems],
-        ]
-    )
+    body_md = payload["plan_markdown"]
     files = _write_aux_report_files(run_id, "retrospective_plan", title, body_md, payload)
     _insert_product_report(
         project_id=project_id,
@@ -4688,69 +5351,62 @@ def _prepare_product_report_job(run_id: str, task_id: str) -> dict:
     reports = _product_report_rows(run_id)
     product_tests = [item for item in reports if item["report_type"] == "product_test"]
     benchmark = next((item for item in reports if item["report_type"] == "benchmark_report"), None)
-    fallback = {
-        "top_product_issues": [
-            "主推第一屏完成度和板块收束感仍不够统一",
-            "前置规则没有把同源堆叠、图片不稳和板块边界问题及时拦住",
-        ],
-        "agent_responsibility_links": [
-            f"{item['agent_id']}：{item['report_json'].get('execution_link', [''])[0] if item['report_json'].get('execution_link') else item['summary_text']}"
+    request = content_layer.product_evaluation_request(
+        run_id=run_id,
+        product_tests=[
+            {
+                "agent_id": item["agent_id"],
+                "summary": item["summary_text"],
+                "most_obvious_problems": (item.get("report_json") or {}).get("most_obvious_problems", [])[:3],
+                "priority_improvements": (item.get("report_json") or {}).get("priority_improvements", [])[:3],
+                "execution_link": (item.get("report_json") or {}).get("execution_link", [])[:3],
+            }
             for item in product_tests
         ],
-        "next_cycle_recommendations": [
-            "统一主推首句的影响前置规则",
-            "把图片稳定性、同源去重和板块边界前置到采集阶段",
-        ],
-        "summary": "本轮产品评估确认：最优先要改的是主推第一屏完成度、板块收束感和采集端前置规则。",
-    }
-    return {
-        "node_type": "product.report",
-        "project_id": get_run_project_context(run_id)[0],
-        "cycle_no": get_run_project_context(run_id)[1],
-        "task_id": task_id,
-        "prompt_system": "你是 newsflow 项目的 manager。基于三份产品测试报告和一份 benchmark 报告，输出真正的产品评估总报告。不要拼接原文，不要做 checklist。",
-        "prompt_user": "\n".join(
-            [
-                f"run_id={run_id}",
-                "product_tests:",
-                *[
-                    f"- agent={item['agent_id']} | summary={item['summary_text']} | problems={json.dumps(item['report_json'].get('most_obvious_problems', [])[:2], ensure_ascii=False)} | next={json.dumps(item['report_json'].get('priority_improvements', [])[:2], ensure_ascii=False)}"
-                    for item in product_tests
-                ],
-                f"benchmark_gap={((benchmark or {}).get('report_json', {}) or {}).get('most_visible_gap', '')}",
-                f"benchmark_next={json.dumps((((benchmark or {}).get('report_json', {}) or {}).get('next_cycle_actions', [])[:3]), ensure_ascii=False)}",
-                "返回 JSON：top_product_issues(array), agent_responsibility_links(array), next_cycle_recommendations(array), summary。每个数组控制在 2-4 项。",
-            ]
-        ),
-        "fallback_payload": fallback,
-        "evidence_object_count": len(product_tests) + (1 if benchmark else 0),
-    }
+        benchmark_gap=((benchmark or {}).get("report_json", {}) or {}).get("most_visible_gap", ""),
+        benchmark_next=(((benchmark or {}).get("report_json", {}) or {}).get("next_cycle_actions", [])[:3]),
+    )
+    request["project_id"] = get_run_project_context(run_id)[0]
+    request["cycle_no"] = get_run_project_context(run_id)[1]
+    request["task_id"] = task_id
+    return request
 
 
 def _apply_product_report_result(run_id: str, task_id: str, decision: dict) -> dict:
     reports = _product_report_rows(run_id)
     product_tests = [item for item in reports if item["report_type"] == "product_test"]
     benchmark = next((item for item in reports if item["report_type"] == "benchmark_report"), None)
-    dedup_problems = list(dict.fromkeys([item for item in decision.get("top_product_issues", []) if item]))[:5]
-    agent_links = list(dict.fromkeys([item for item in decision.get("agent_responsibility_links", []) if item]))[:5]
-    dedup_next = list(dict.fromkeys([item for item in decision.get("next_cycle_recommendations", []) if item]))[:6]
-    summary = decision.get("summary") or "本轮产品评估总报告已生成。"
+    dedup_problems = _require_llm_string_list(
+        decision,
+        field="top_product_issues",
+        node_type="product.report",
+        min_items=1,
+        limit=5,
+    )
+    agent_links = _require_llm_string_list(
+        decision,
+        field="agent_responsibility_links",
+        node_type="product.report",
+        min_items=1,
+        limit=5,
+    )
+    dedup_next = _require_llm_string_list(
+        decision,
+        field="next_cycle_recommendations",
+        node_type="product.report",
+        min_items=1,
+        limit=6,
+    )
+    summary = _require_llm_visible_text(decision, field="summary", node_type="product.report")
     title = "本轮产品评估总报告"
-    body_md = "\n".join(
-        [
-            f"# {title}",
-            "",
-            f"- run_id: {run_id}",
-            "",
-            "## 本轮成品最重要的问题",
-            *[f"- {item}" for item in dedup_problems],
-            "",
-            "## 与 agent 执行强相关的问题",
-            *[f"- {item}" for item in agent_links],
-            "",
-            "## 进入下一轮的建议",
-            *[f"- {item}" for item in dedup_next],
-        ]
+    body_md = _reject_template_shell(
+        _require_llm_visible_text(decision, field="report_markdown", node_type="product.report"),
+        node_type="product.report",
+        markers=[
+            "主要问题：",
+            "责任归属：",
+            "下一轮建议：",
+        ],
     )
     payload = {
         "run_id": run_id,
@@ -4758,6 +5414,7 @@ def _apply_product_report_result(run_id: str, task_id: str, decision: dict) -> d
         "agent_responsibility_links": agent_links,
         "next_cycle_recommendations": dedup_next,
         "summary": summary,
+        "report_markdown": body_md,
         "generation_mode": decision["generation_mode"],
         "generation_error": decision.get("generation_error", ""),
         "timeout_ms": decision.get("timeout_ms"),
@@ -4785,17 +5442,16 @@ def _apply_product_report_result(run_id: str, task_id: str, decision: dict) -> d
 
 def create_product_evaluation_report(run_id: str, task_id: str) -> dict:
     prepared = _prepare_product_report_job(run_id, task_id)
-    decision = _stage_chat_json("product.report", prepared["prompt_system"], prepared["prompt_user"], prepared["fallback_payload"])
-    decision["evidence_object_count"] = prepared["evidence_object_count"]
+    decision = _run_content_request(prepared)
     return _apply_product_report_result(run_id, task_id, decision)
 
 
 def start_retrospective_thread(run_id: str, task_id: str) -> dict:
     project_id, cycle_no = get_run_project_context(run_id)
-    data = _local_retro_opening(run_id)
-    first_topic = data.get("first_topic") or {}
-    topic_title = first_topic.get("topic") or data.get("topic") or "问题"
-    topic_body = first_topic.get("body") or data.get("body") or ""
+    plan_topics = _retrospective_plan_topics(run_id)
+    first_topic = _retro_topic_seed(plan_topics[0])
+    topic_title = first_topic.get("title") or first_topic.get("topic") or "问题"
+    topic_body = first_topic.get("body") or ""
     topic_id = _open_retro_topic(
         run_id,
         project_id=project_id,
@@ -4804,47 +5460,56 @@ def start_retrospective_thread(run_id: str, task_id: str) -> dict:
         opened_by="neko",
         evidence_refs=[{"body": topic_body, "owner": first_topic.get("owner"), "counterpart": first_topic.get("counterpart")}],
     )
-    fallback = {
-        "topic": topic_title,
-        "intent": data.get("intent") or "moderate",
-        "target_type": data.get("target_type") or "team",
-        "to_agent": data.get("to_agent") or ",".join(RETRO_PARTICIPANTS),
-        "body": topic_body or "请直接围绕当前复盘话题拿工件说话，不要复述流程。",
-        "next_agents": data.get("next_agents") or RETRO_PARTICIPANTS[:],
-    }
-    opening = _stage_chat_json(
-        "retrospective.discussion",
-        "你是 newsflow 项目的 manager neko。现在要开启 retrospective discussion。"
-        "请基于当前复盘 plan 里的首个 topic 主持开场。"
-        "你可以保留 topic / to_agent / next_agents 等 machine-readable 字段，但正文必须是基于当前对象的真实开场，不要套主持人台词模板。",
-        json.dumps(
-            {
-                "run_id": run_id,
-                "topic_id": topic_id,
-                "topic_title": topic_title,
-                "topic_body": topic_body,
-                "controversies": data.get("controversies") or [],
-                "next_agents": data.get("next_agents") or RETRO_PARTICIPANTS[:],
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    topic_evidence = [
+        {
+            "topic": item.get("title") or item.get("topic") or "问题",
+            "owner": item.get("owner") or "",
+            "counterpart": item.get("counterpart") or "",
+            "body": _truncate(item.get("body"), 180),
+        }
+        for item in [_retro_topic_seed(topic) for topic in plan_topics[:4]]
+    ]
+    request = content_layer.retrospective_opening_request(
+        run_id=run_id,
+        topic_id=topic_id,
+        topic_title=topic_title,
+        topic_body=_truncate(topic_body, 220),
+        topic_evidence=topic_evidence,
+        next_agents=first_topic.get("next_agents") or RETRO_PARTICIPANTS[:],
     )
-    body = (opening.get("body") or fallback["body"]).strip()
+    opening = _run_content_request(request)
+    body = _require_llm_visible_text(
+        opening,
+        field="body",
+        node_type="retrospective.discussion",
+        aliases=("content", "comment_text", "message_body"),
+    )
+    raw_next_agents = opening.get("next_agents")
+    suggested_next_agents = [
+        agent for agent in (raw_next_agents if isinstance(raw_next_agents, list) else _parse_agents(raw_next_agents))
+        if agent in RETRO_PARTICIPANTS
+    ]
+    if not suggested_next_agents:
+        suggested_next_agents = first_topic.get("next_agents") or RETRO_PARTICIPANTS[:]
     result = {
         "topic_id": topic_id,
         "message_id": task_id,
         "reply_to_message_id": None,
         "from_agent": "neko",
-        "to_agent": opening.get("to_agent") or fallback["to_agent"],
-        "target_type": opening.get("target_type") or fallback["target_type"],
+        "to_agent": opening.get("to_agent") or request["fallback_payload"]["to_agent"],
+        "target_type": opening.get("target_type") or request["fallback_payload"]["target_type"],
         "topic": _topic_label(opening.get("topic") or topic_title),
-        "intent": opening.get("intent") or fallback["intent"],
+        "intent": opening.get("intent") or request["fallback_payload"]["intent"],
         "round_no": 0,
         "body": body,
-        "next_agents": opening.get("next_agents") or fallback["next_agents"],
-        "controversies": data.get("controversies", []),
-        "next_topic": data.get("next_topic", {}),
+        "next_agents": suggested_next_agents,
+        "controversies": topic_evidence,
+        "next_topic": _retro_topic_seed(plan_topics[1]) if len(plan_topics) > 1 else {},
+        "generation_mode": opening.get("generation_mode", ""),
+        "generation_error": opening.get("generation_error", ""),
+        "evidence_object_count": opening.get("evidence_object_count"),
+        "started_at": opening.get("started_at"),
+        "finished_at": opening.get("finished_at"),
     }
     _insert_retrospective_message(
         project_id=project_id,
@@ -4881,8 +5546,20 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
         """,
         (run_id,),
     )
-    own_reviews = [_review_signal(section, approved, reason) for section, approved, reason in review_rows if section in sections]
-    other_reviews = [_review_signal(section, approved, reason) for section, approved, reason in review_rows if section not in sections]
+    own_reviews = [
+        signal
+        for section, approved, reason in review_rows
+        if section in sections
+        for signal in [_review_signal(section, approved, reason)]
+        if signal
+    ]
+    other_reviews = [
+        signal
+        for section, approved, reason in review_rows
+        if section not in sections
+        for signal in [_review_signal(section, approved, reason)]
+        if signal
+    ]
     thread = _retro_thread_rows(run_id)
     memory = get_project_memory(project_id, agent_id)
     reply_row = None
@@ -4900,7 +5577,6 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
     reply_text = ""
     if reply_row:
         reply_text = reply_row[4]
-    mode = payload.get("mode") or "open"
     peer_agent = "xhs" if agent_id == "33" else "33"
     peer_msg = next((msg for msg in reversed(thread) if msg["from_agent"] == peer_agent), None)
     product_reports = _product_report_rows(run_id)
@@ -4913,64 +5589,69 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
         elif report["report_type"] == "product_evaluation_report":
             product_signals.extend(report["report_json"].get("top_product_issues", [])[:2])
     benchmark = next((row for row in product_reports if row["report_type"] == "benchmark_report"), None)
+    topic_evidence = [
+        {
+            "owner": item.get("owner") or "",
+            "counterpart": item.get("counterpart") or "",
+            "body": _truncate(item.get("body"), 180),
+        }
+        for item in ((topic_row or {}).get("evidence_refs") or [])[:4]
+    ]
     relevant_context = {
         "own_reviews": own_reviews[:4],
         "other_reviews": other_reviews[:4],
         "memory_summary": memory.get("summary"),
-        "reply_text": reply_text,
-        "peer_message": peer_msg["body"] if peer_msg else "",
-        "thread": _thread_excerpt(run_id),
+        "reply_text": _truncate(reply_text, 200),
+        "peer_message": _truncate(peer_msg["body"], 180) if peer_msg else "",
+        "recent_thread": _retro_thread_for_prompt(run_id, limit=6, body_limit=150),
         "product_signals": list(dict.fromkeys([item for item in product_signals if item]))[:4],
         "product_tests": product_tests,
-        "benchmark_summary": benchmark["summary_text"] if benchmark else "",
+        "benchmark_summary": _truncate(benchmark["summary_text"], 180) if benchmark else "",
         "final_titles": _main_titles(run_id),
+        "topic_evidence": topic_evidence,
     }
-    base = _local_retro_comment(agent_id, payload, relevant_context)
-    fallback = {
-        "topic": payload.get("topic") or (topic_row or {}).get("title") or "复盘讨论",
-        "intent": base.get("intent") or "comment",
-        "target_type": base.get("target_type") or "team",
-        "to_agent": base.get("to_agent") or "neko",
-        "body": _unique_join(
-            [
-                reply_text[:160] if reply_text else "",
-                _first_nonempty(own_reviews, ""),
-                _first_nonempty(relevant_context.get("product_signals") or [], ""),
-            ]
-        )
-        or "我会继续围绕当前话题补充基于工件的判断和下一步建议。",
-        "next_agents": base.get("next_agents") or [],
-    }
-    discussion = _stage_chat_json(
-        "retrospective.discussion",
-        (
-            f"你是 newsflow retrospective 的参与者 {agent_id}。"
-            "请基于当前话题、线程上下文、产品报告和你本轮负责范围给出一条真实讨论发言。"
-            "不要照着预设角色台词说，不要复读前文。"
-            "输出 JSON：topic,intent,target_type,to_agent,body,next_agents。"
-        ),
-        json.dumps(
-            {
-                "run_id": run_id,
-                "agent_id": agent_id,
-                "mode": payload.get("mode") or "open",
-                "topic_id": topic_id,
-                "current_topic": (topic_row or {}).get("title") or payload.get("topic") or "",
-                "reply_to_message_id": reply_to_message_id,
-                "reply_text": reply_text,
-                "relevant_context": relevant_context,
-                "recent_thread": _thread_excerpt(run_id),
-            },
-            ensure_ascii=False,
-        ),
-        fallback,
+    fallback = _retro_route_defaults(payload, topic_row)
+    request = content_layer.retrospective_comment_request(
+        run_id=run_id,
+        agent_id=agent_id,
+        topic_id=topic_id,
+        current_topic=(topic_row or {}).get("title") or payload.get("topic") or "",
+        topic_evidence=topic_evidence,
+        reply_to_message_id=reply_to_message_id,
+        reply={
+            "from_agent": reply_row[0] if reply_row else "",
+            "to_agent": reply_row[1] if reply_row else "",
+            "topic": reply_row[2] if reply_row else "",
+            "intent": reply_row[3] if reply_row else "",
+            "body": _truncate(reply_text, 220),
+        },
+        responsibility_scope=sections,
+        review_signals={"own": own_reviews[:4], "other": other_reviews[:4]},
+        product_signals=relevant_context.get("product_signals") or [],
+        benchmark_summary=relevant_context.get("benchmark_summary") or "",
+        memory_summary=relevant_context.get("memory_summary") or "",
+        final_titles=relevant_context.get("final_titles") or {},
+        recent_thread=relevant_context.get("recent_thread") or [],
+        fallback=fallback,
     )
-    body = (discussion.get("body") or fallback["body"]).strip()
+    discussion = _run_content_request(request)
+    body = _require_llm_visible_text(
+        discussion,
+        field="body",
+        node_type="retrospective.discussion",
+        aliases=("content", "comment_text", "message_body"),
+    )
     to_agent = discussion.get("to_agent") or fallback["to_agent"]
     target_type = discussion.get("target_type") or fallback["target_type"]
     topic = discussion.get("topic") or fallback["topic"]
     intent = discussion.get("intent") or fallback["intent"]
-    next_agents = discussion.get("next_agents") or fallback["next_agents"]
+    raw_next_agents = discussion.get("next_agents")
+    next_agents = [
+        agent for agent in (raw_next_agents if isinstance(raw_next_agents, list) else _parse_agents(raw_next_agents))
+        if agent in RETRO_PARTICIPANTS
+    ]
+    if not next_agents:
+        next_agents = fallback["next_agents"]
     result = {
         "topic_id": topic_id,
         "message_id": task_id,
@@ -4983,6 +5664,11 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
         "round_no": round_no,
         "body": body.strip(),
         "next_agents": next_agents,
+        "generation_mode": discussion.get("generation_mode", ""),
+        "generation_error": discussion.get("generation_error", ""),
+        "evidence_object_count": discussion.get("evidence_object_count"),
+        "started_at": discussion.get("started_at"),
+        "finished_at": discussion.get("finished_at"),
     }
     _insert_retrospective_message(
         project_id=project_id,
@@ -5020,44 +5706,95 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
     cross_cycle = _product_report_by_type(run_id, "cross_cycle_compare_report")
     retro_plan = _product_report_by_type(run_id, "retrospective_plan")
     applied_rules = get_effective_optimization_log(project_id, "neko", (cycle_no or 0) + 1).get("compiled_rules") or []
-    thread_rows = _retro_thread_rows(run_id)
-    fallback_text = _local_retro_summary(run_id, _retro_thread_rows(run_id))["summary"]
-    return {
-        "node_type": "retrospective.summary",
-        "project_id": project_id,
-        "cycle_no": cycle_no,
-        "task_id": None,
-        "prompt_system": "你是 newsflow 项目的 manager。基于 retro topics、retro decisions、产品评估、benchmark 和已应用规则，输出正式的 retrospective summary。不要拼接线程原文。",
-        "prompt_user": "\n".join(
-            [
-                f"run_id={run_id}",
-                f"product_test={json.dumps({'summary': usability.get('summary_text'), 'most_obvious_problems': (usability.get('report_json', {}) or {}).get('most_obvious_problems', [])[:3], 'priority_improvements': (usability.get('report_json', {}) or {}).get('priority_improvements', [])[:4]}, ensure_ascii=False)}",
-                f"benchmark={json.dumps({'summary': benchmark.get('summary_text'), 'most_visible_gap': (benchmark.get('report_json', {}) or {}).get('most_visible_gap', ''), 'next_cycle_actions': (benchmark.get('report_json', {}) or {}).get('next_cycle_actions', [])[:3]}, ensure_ascii=False)}",
-                f"cross_cycle_compare={json.dumps({'summary': cross_cycle.get('summary_text'), 'improved_issues': (cross_cycle.get('report_json', {}) or {}).get('improved_issues', [])[:3], 'unimplemented': (cross_cycle.get('report_json', {}) or {}).get('unimplemented_previous_optimization_suggestions', [])[:3]}, ensure_ascii=False)}",
-                f"retrospective_plan={json.dumps({'summary': retro_plan.get('summary_text'), 'product_problems': (retro_plan.get('report_json', {}) or {}).get('product_problems', [])[:5], 'behavior_problems': (retro_plan.get('report_json', {}) or {}).get('behavior_problems', [])[:3]}, ensure_ascii=False)}",
-                "retro thread excerpt:",
-                *[
-                    f"- round {msg['round_no']} | {msg['from_agent']} -> {msg['to_agent']} | {msg['topic']} | {msg['intent']} | {_truncate(msg['body'], 160)}"
-                    for msg in thread_rows[:12]
-                ],
-                "retro decisions:",
-                *[f"- {title}: {decision_summary or '无'}" for _, title, decision_summary in topic_rows],
-                "applied_rules:",
-                *[
-                    f"- {rule.get('rule_type')} | target_agent={rule.get('target_agent')} | payload={json.dumps(rule.get('rule_payload') or {}, ensure_ascii=False)}"
-                    for rule in applied_rules[:8]
-                ],
-                "返回 JSON：summary。summary 用自然中文，必须明确：执行问题、产品问题、原因、进入下一轮的改法、每个 agent 的责任。",
-            ]
-        ),
-        "fallback_payload": {"summary": fallback_text},
-        "evidence_object_count": len(topic_rows) + len(applied_rules) + len(thread_rows[:12]) + 2,
-    }
+    thread_rows = _retro_thread_for_prompt(run_id, limit=8, body_limit=170)
+    final_json = (_load_output_bundle(run_id).get("final_json") or {})
+    final_artifact = []
+    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+        main = ((final_json.get(section) or {}).get("main") or {})
+        if not main:
+            continue
+        final_artifact.append(
+            {
+                "section": section,
+                "title": _truncate(main.get("title"), 120),
+                "summary_zh": _truncate(main.get("summary_zh"), 180),
+                "image_count": len(main.get("images") or []),
+            }
+        )
+    request = content_layer.retrospective_summary_request(
+        run_id=run_id,
+        product_test={
+            "summary": usability.get("summary_text"),
+            "most_obvious_problems": (usability.get("report_json", {}) or {}).get("most_obvious_problems", [])[:3],
+            "priority_improvements": (usability.get("report_json", {}) or {}).get("priority_improvements", [])[:4],
+        },
+        benchmark={
+            "summary": benchmark.get("summary_text"),
+            "most_visible_gap": (benchmark.get("report_json", {}) or {}).get("most_visible_gap", ""),
+            "next_cycle_actions": (benchmark.get("report_json", {}) or {}).get("next_cycle_actions", [])[:3],
+        },
+        cross_cycle_compare={
+            "summary": cross_cycle.get("summary_text"),
+            "improved_issues": (cross_cycle.get("report_json", {}) or {}).get("improved_issues", [])[:3],
+            "unimplemented": (cross_cycle.get("report_json", {}) or {}).get("unimplemented_previous_optimization_suggestions", [])[:3],
+        },
+        retrospective_plan={
+            "summary": retro_plan.get("summary_text"),
+            "product_problems": (retro_plan.get("report_json", {}) or {}).get("product_problems", [])[:5],
+            "behavior_problems": (retro_plan.get("report_json", {}) or {}).get("behavior_problems", [])[:3],
+        },
+        final_artifact=final_artifact,
+        retro_thread=thread_rows,
+        retro_decisions=[
+            {"topic_id": topic_id, "title": title, "summary": decision_summary or ""}
+            for topic_id, title, decision_summary in topic_rows
+        ],
+        applied_rules=applied_rules[:6],
+    )
+    request["project_id"] = project_id
+    request["cycle_no"] = cycle_no
+    request["task_id"] = None
+    return request
 
 
 def _apply_retrospective_summary_result(run_id: str, decision: dict) -> dict:
     project_id, cycle_no = get_run_project_context(run_id)
-    summary = decision["summary"]
+    summary = _require_llm_visible_text(decision, field="summary", node_type="retrospective.summary")
+    summary_md = _reject_template_shell(
+        _require_llm_visible_text(
+            decision,
+            field="summary_markdown",
+            node_type="retrospective.summary",
+            aliases=("summary",),
+        ),
+        node_type="retrospective.summary",
+        markers=[
+            "Discussion Summary",
+            "Product Problems",
+            "Root Causes",
+            "Accepted",
+            "Next Cycle",
+        ],
+    )
+    files = _write_aux_report_files(
+        run_id,
+        "retrospective_summary",
+        "Retrospective Summary",
+        summary_md,
+        {
+            "run_id": run_id,
+            "summary": summary,
+            "summary_markdown": summary_md,
+            "generation_mode": decision["generation_mode"],
+            "generation_error": decision.get("generation_error", ""),
+            "timeout_ms": decision.get("timeout_ms"),
+            "prompt_size": decision.get("prompt_size"),
+            "input_size": decision.get("input_size"),
+            "evidence_object_count": decision.get("evidence_object_count"),
+            "started_at": decision.get("started_at"),
+            "finished_at": decision.get("finished_at"),
+        },
+    )
     execute(
         """
         UPDATE project_cycles
@@ -5066,8 +5803,27 @@ def _apply_retrospective_summary_result(run_id: str, decision: dict) -> dict:
         """,
         (summary, project_id, cycle_no),
     )
+    execute(
+        """
+        UPDATE workflow_runs
+        SET notes =
+            jsonb_set(
+                jsonb_set(
+                    jsonb_set(COALESCE(notes, '{}'::jsonb), '{retrospective_summary_md}', to_jsonb(%s::text), true),
+                    '{retrospective_summary_json}', to_jsonb(%s::text), true
+                ),
+                '{retrospective_summary_html}', to_jsonb(%s::text), true
+            )
+        WHERE run_id=%s
+        """,
+        (files["markdown_path"], files["json_path"], files["html_path"], run_id),
+    )
     return {
         "summary": summary,
+        "summary_markdown": summary_md,
+        "markdown_path": files["markdown_path"],
+        "json_path": files["json_path"],
+        "html_path": files["html_path"],
         "generation_mode": decision["generation_mode"],
         "generation_error": decision.get("generation_error", ""),
         "timeout_ms": decision.get("timeout_ms"),
@@ -5081,145 +5837,90 @@ def _apply_retrospective_summary_result(run_id: str, decision: dict) -> dict:
 
 def summarize_retrospective(run_id: str) -> str:
     prepared = _prepare_retrospective_summary_job(run_id)
-    decision = _stage_chat_json("retrospective.summary", prepared["prompt_system"], prepared["prompt_user"], prepared["fallback_payload"])
-    decision["evidence_object_count"] = prepared["evidence_object_count"]
+    decision = _run_content_request(prepared)
     return _apply_retrospective_summary_result(run_id, decision)
 
 
 def _agent_memory_blueprint(agent_id: str, cycle_no: int, summary: str, previous: dict) -> dict:
-    common = {
-        "agent_id": agent_id,
-        "version_cycle": cycle_no,
-        "updated_at": now_iso(),
-        "retrospective_memory": summary,
-    }
-    if agent_id == "neko":
-        return common | {
-            "strategy_label": f"neko-cycle-{cycle_no}-review-first",
-            "summary": "审核前置、主推影响优先、复盘收敛更结构化。",
-            "execution_strategy": [
-                "dispatch 时明确给出热点性、图片数、时效三条硬约束",
-                "审核优先看图片和时效，再看热点性和去重",
-                "终稿前先校对四板块主推首句是否直达影响",
-            ],
-            "quality_checks": [
-                "每板块至少 10 条且主推/副推图片满足结构要求",
-                "review/reject 原因必须可执行",
-                "复盘总结必须包含问题、堵点、缺失能力、下一轮建议",
-            ],
-            "review_standards": [
-                "拒绝图片不稳定、来源不可靠、发布时间超窗的候选",
-                "主推必须具备影响描述和三图资源",
-            ],
-        }
-    if agent_id == "editor":
-        return common | {
-            "strategy_label": f"editor-cycle-{cycle_no}-artifact-first",
-            "summary": "editor 负责整稿整合、层级判断和修订收束，先保证结构完整，再处理阅读顺序。",
-            "execution_strategy": [
-                "只基于已通过审核的素材整稿，不替 tester 做质量放行",
-                "主推/副推/简讯层级由 editor 决定，但必须保留来源、时间、链接",
-                "修订时优先处理 blocker 和结构问题，再做语言精炼",
-            ],
-            "quality_checks": [
-                "四板块结构完整",
-                "主推/副推/简讯归位正确",
-                "修订稿准确落实 proofread required actions",
-            ],
-        }
-    if agent_id == "tester":
-        return common | {
-            "strategy_label": f"tester-cycle-{cycle_no}-gatekeeper",
-            "summary": "tester 负责 material review、draft proofread、product test、benchmark 与跨轮对比，先把问题结构化再放行。",
-            "execution_strategy": [
-                "对素材先查真实性、时效、图文一致性和可用性",
-                "对 draft 只做 correctness proofread，不做产品体验评价",
-                "对 final artifact 统一从读者/产品体验视角出报告",
-            ],
-            "quality_checks": [
-                "blocker 未清零不得 publish",
-                "product.test / benchmark / cross_cycle_compare 必须引用工件证据",
-            ],
-        }
-    if agent_id == "33":
-        return common | {
-            "strategy_label": f"collector-33-cycle-{cycle_no}-whitelist",
-            "summary": "政治经济/科技板块先白名单采集，再做影响句补写和同源去重。",
-            "execution_strategy": [
-                "优先 Reuters、AP、BBC、FT、Bloomberg、官方公告",
-                "科技条目优先公司官方博客/公告和主流科技媒体",
-                "每条补一条“为什么值得关注”的中文影响句",
-            ],
-            "source_whitelist": [
-                "Reuters",
-                "Associated Press",
-                "Bloomberg",
-                "Financial Times",
-                "The Verge",
-                "TechCrunch",
-                "官方公告",
-            ],
-            "source_blacklist": previous.get("source_blacklist", []) + ["低质量聚合站"],
-            "quality_checks": [
-                "去掉同一事件的重复来源",
-                "主推候选必须带至少 3 张可用图片的来源",
-            ],
-        }
-    return common | {
-        "strategy_label": f"collector-xhs-cycle-{cycle_no}-tight-briefs",
-        "summary": "体育娱乐/其他板块优先官方渠道，短讯更紧凑，图片稳定性优先。",
-        "execution_strategy": [
-            "优先赛事官方、主流文娱媒体和国际主流媒体",
-            "短讯先保留结果、时间、影响范围，再补背景",
-            "图片优先首发稿源或官方图床",
-        ],
-        "source_whitelist": [
-            "ESPN",
-            "BBC Sport",
-            "官方赛事渠道",
-            "Variety",
-            "Reuters",
-            "AP",
-        ],
-        "source_blacklist": previous.get("source_blacklist", []) + ["无来源转载站"],
-        "quality_checks": [
-            "减少边缘八卦内容，优先全球影响更大的事件",
-            "图片链接必须直接可访问",
-        ],
-    }
+    raise RuntimeError("legacy agent memory blueprint is disabled; use _agent_memory_seed with run-bound evidence")
 
 
 def self_optimize_agent(run_id: str, agent_id: str) -> dict:
     project_id, cycle_no = get_run_project_context(run_id)
     previous = get_project_memory(project_id, agent_id)
+    optimization_log = get_effective_optimization_log(project_id, agent_id, cycle_no or 0)
     summary_row = fetch_one(
         "SELECT retrospective_summary FROM project_cycles WHERE project_id=%s AND cycle_no=%s",
         (project_id, cycle_no),
     )
-    summary = summary_row[0] if summary_row and summary_row[0] else "本轮需要强化规则前置与热点筛选。"
+    summary = summary_row[0] if summary_row and summary_row[0] else ""
     thread = _retro_thread_rows(run_id)
     relevant = []
     for msg in thread:
         to_agent = msg["to_agent"] or ""
         if msg["from_agent"] == agent_id or agent_id in to_agent or to_agent in {"all", "team"}:
             relevant.append(msg)
-    memory = _agent_memory_blueprint(agent_id, cycle_no, summary, previous)
-    memory["run_context_summary"] = _run_context_summary(run_id)
-    fallback = {
-        "summary": _first_nonempty([msg.get("body", "") for msg in relevant], summary[:160]) or memory.get("summary", "下一轮继续优化"),
-        "exposed_issues": [msg.get("body", "") for msg in relevant[:3]] or memory.get("exposed_issues", []),
-        "next_cycle_strategy": list(memory.get("execution_strategy", [])),
-        "next_cycle_quality_checks": list(memory.get("quality_checks", [])),
-        "role_improvement_plan": previous.get("role_improvement_plan") or "",
-    }
-    data = _local_self_optimize(agent_id, cycle_no, summary, previous, relevant, memory)
+    memory = _agent_memory_seed(agent_id, cycle_no, summary, previous, optimization_log)
+    request = content_layer.agent_self_optimize_request(
+        agent_id=agent_id,
+        cycle_no=cycle_no,
+        evidence=_self_optimize_evidence(run_id, agent_id, summary, previous, relevant, memory, optimization_log),
+    )
+    data = _run_content_request(request)
+    generated_summary = _require_llm_visible_text(data, field="summary", node_type="agent.self_optimize")
+    exposed_issues = _require_llm_string_list(
+        data,
+        field="exposed_issues",
+        node_type="agent.self_optimize",
+        min_items=1,
+        limit=4,
+    )
+    next_cycle_strategy = _require_llm_string_list(
+        data,
+        field="next_cycle_strategy",
+        node_type="agent.self_optimize",
+        min_items=1,
+        limit=5,
+    )
+    next_cycle_quality_checks = _require_llm_string_list(
+        data,
+        field="next_cycle_quality_checks",
+        node_type="agent.self_optimize",
+        min_items=1,
+        limit=5,
+    )
+    role_improvement_plan = _require_llm_visible_text(
+        data,
+        field="role_improvement_plan",
+        node_type="agent.self_optimize",
+    )
+    optimization_markdown = _reject_template_shell(
+        _require_llm_visible_text(
+            data,
+            field="optimization_markdown",
+            node_type="agent.self_optimize",
+        ),
+        node_type="agent.self_optimize",
+        markers=[
+            "暴露问题：",
+            "下一轮策略：",
+            "质量检查：",
+            "角色改进：",
+        ],
+    )
     memory.update(
         {
-            "summary": data.get("summary") or fallback["summary"],
-            "exposed_issues": data.get("exposed_issues") or fallback["exposed_issues"],
-            "next_cycle_strategy": data.get("next_cycle_strategy") or fallback["next_cycle_strategy"],
-            "next_cycle_quality_checks": data.get("next_cycle_quality_checks") or fallback["next_cycle_quality_checks"],
-            "role_improvement_plan": data.get("role_improvement_plan") or fallback["role_improvement_plan"],
+            "summary": generated_summary,
+            "exposed_issues": exposed_issues,
+            "next_cycle_strategy": next_cycle_strategy,
+            "next_cycle_quality_checks": next_cycle_quality_checks,
+            "role_improvement_plan": role_improvement_plan,
+            "optimization_markdown": optimization_markdown,
+            "generation_mode": data.get("generation_mode", ""),
+            "generation_error": data.get("generation_error", ""),
+            "evidence_object_count": data.get("evidence_object_count"),
+            "started_at": data.get("started_at"),
+            "finished_at": data.get("finished_at"),
         }
     )
     if memory.get("next_cycle_strategy"):
@@ -5257,6 +5958,7 @@ def self_optimize_agent(run_id: str, agent_id: str) -> dict:
                     "next_cycle_strategy": memory.get("next_cycle_strategy", []),
                     "next_cycle_quality_checks": memory.get("next_cycle_quality_checks", []),
                     "role_improvement_plan": memory.get("role_improvement_plan", ""),
+                    "optimization_markdown": memory.get("optimization_markdown", ""),
                     "source_whitelist": memory.get("source_whitelist", []),
                     "source_blacklist": memory.get("source_blacklist", []),
                     "prefer_images": True,
@@ -5345,15 +6047,12 @@ def self_optimize_agent(run_id: str, agent_id: str) -> dict:
 
 
 def manager_write_agent_optimizations(run_id: str, task_id: str) -> dict:
-    project_id, cycle_no = get_run_project_context(run_id)
     results = {}
     for agent_id in ALL_AGENT_IDS:
         results[agent_id] = self_optimize_agent(run_id, agent_id)
-    summary = "manager 已为五个 agent 写入下一轮优化指令，并同步到项目 memory 与 optimization logs。"
     return {
         "status": "optimized",
         "agents": {agent_id: value.get("summary") for agent_id, value in results.items()},
-        "message_body": summary,
     }
 
 
@@ -5974,6 +6673,24 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
         return
     non_manager = [msg for msg in topic_messages if msg["from_agent"] in {"33", "xhs", "editor", "tester"}]
     manager_msgs = [msg for msg in topic_messages if msg["from_agent"] == "neko"]
+    if current_topic["status"] == "open" and manager_msgs and not non_manager:
+        opener = manager_msgs[-1]
+        target_agents = [agent for agent in _parse_agents(opener.get("to_agent")) if agent in RETRO_PARTICIPANTS] or RETRO_PARTICIPANTS[:]
+        _dispatch_retro_comment_tasks(
+            run_id,
+            project_id,
+            cycle_no,
+            trace_ctx,
+            round_no=max(msg["round_no"] for msg in topic_messages) + 1,
+            agents=target_agents,
+            reply_to_message_id=opener["message_id"],
+            topic_id=topic_id,
+            topic=topic_title,
+            target_type="agent",
+            to_agent="neko",
+            intent="critique",
+        )
+        return
     if current_topic["status"] == "open" and non_manager:
         _set_retro_topic_status(topic_id, "debating")
         opener = non_manager[-1]
@@ -6056,49 +6773,31 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
                     if agent in {"33", "xhs", "editor", "tester"}
                 }
             ) or RETRO_PARTICIPANTS[:]
-            kickoff_body = (
-                f"上一个话题先收口。现在换到更值得继续争的问题：{next_topic.get('body') or next_topic.get('topic') or '问题'}。"
-                " 还是只围绕工件和取舍说话，不要回到流程口号。"
-            )
-            _insert_retrospective_message(
-                project_id=project_id,
-                cycle_no=cycle_no,
-                run_id=run_id,
-                task_id=None,
-                topic_id=next_topic_id,
-                agent_id="neko",
-                message_id=f"rtm-{uuid.uuid4().hex[:10]}",
-                reply_to_message_id=None,
-                to_agent=",".join(next_agents),
-                target_type="team",
-                topic=next_topic.get("topic") or "问题",
-                intent="moderate",
-                round_no=max(msg["round_no"] for msg in topic_messages) + 1,
-                body=kickoff_body,
-            )
-            _dispatch_retro_comment_tasks(
+            dispatch_task(
                 run_id,
+                None,
+                "neko",
+                "manager",
+                "全局",
+                "retrospective.discussion",
+                0,
+                {
+                    "round_no": max(msg["round_no"] for msg in topic_messages) + 1,
+                    "reply_to_message_id": None,
+                    "topic_id": next_topic_id,
+                    "topic": next_topic.get("topic") or "问题",
+                    "target_type": "team",
+                    "to_agent": ",".join(next_agents),
+                    "intent": "moderate",
+                    "mode": "topic_shift",
+                    "topic_context": next_topic.get("body") or "",
+                    "next_agents": next_agents,
+                },
+                trace_ctx,
                 project_id,
                 cycle_no,
-                trace_ctx,
-                round_no=max(msg["round_no"] for msg in topic_messages) + 2,
-                agents=next_agents,
-                reply_to_message_id=None,
-                topic_id=next_topic_id,
-                topic=next_topic.get("topic") or "问题",
-                target_type="agent",
-                to_agent="neko",
-                intent="critique",
             )
-            execute(
-                """
-                UPDATE tasks
-                SET payload=jsonb_set(payload,'{mode}',to_jsonb(%s::text),true)
-                WHERE run_id=%s AND phase='retrospective.discussion' AND status='pending'
-                  AND COALESCE((payload->>'topic_id')::text, '')=%s
-                """,
-                ("open", run_id, next_topic_id),
-        )
+            return
 
 
 def _prepare_task_llm_job(task: dict) -> dict:
@@ -6159,24 +6858,6 @@ def _fail_run_due_to_llm(task: dict, job: dict) -> None:
 
 
 def _complete_noncritical_llm_failure(task: dict, job: dict) -> None:
-    if task["phase"] == "proofread.decision.explanation":
-        result = _apply_proofread_explanation_result(
-            task["run_id"],
-            task["task_id"],
-            {
-                **(job.get("fallback_payload") or {}),
-                "generation_mode": "failed",
-                "generation_error": job.get("generation_error", ""),
-                "timeout_ms": job.get("timeout_ms"),
-                "prompt_size": job.get("prompt_size"),
-                "input_size": job.get("input_size"),
-                "evidence_object_count": job.get("evidence_object_count"),
-                "started_at": job.get("started_at"),
-                "finished_at": job.get("finished_at"),
-            },
-        )
-        complete_task(task["task_id"], result | {"status": "explained"})
-        return
     fail_task(task["task_id"], job.get("generation_error") or f"llm job failed: {job['node_type']}")
 
 
@@ -6214,7 +6895,7 @@ def _progress_waiting_llm_tasks() -> None:
                 task["task_id"],
                 {
                     "status": "obsolete",
-                    "message_body": "proofread blocker 已清零，旧的 draft.revise 任务不再阻塞 publish。",
+                    "message_body": "",
                     "generation_mode": job.get("generation_mode") or "obsolete",
                     "generation_error": job.get("generation_error", ""),
                     "llm_job_id": job_id,
@@ -6223,7 +6904,7 @@ def _progress_waiting_llm_tasks() -> None:
             continue
         if not job or job["status"] in {"pending", "running", "retrying"}:
             continue
-        if job["status"] == "failed":
+        if job["status"] in {"failed", "fallback"} or str(job.get("generation_mode") or "") != "llm":
             if _llm_node_config(task["phase"]).get("critical"):
                 _fail_run_due_to_llm(task, job)
             else:
@@ -6281,7 +6962,7 @@ def _progress_retro_decision_jobs() -> None:
         job = _llm_job_row(fetch_one("SELECT job_id FROM llm_jobs WHERE job_key=%s", (_llm_job_key("retro_decision", run_id, extra=topic_id),))[0]) if fetch_one("SELECT job_id FROM llm_jobs WHERE job_key=%s", (_llm_job_key("retro_decision", run_id, extra=topic_id),)) else {}
         if not job or job["status"] in {"pending", "running", "retrying"}:
             continue
-        if job["status"] == "failed":
+        if job["status"] in {"failed", "fallback"} or str(job.get("generation_mode") or "") != "llm":
             execute("UPDATE workflow_runs SET status='failed', current_phase='retro_decision.failed' WHERE run_id=%s", (run_id,))
             continue
         thread = _retro_messages_for_topic(run_id, topic_id)
@@ -6548,55 +7229,57 @@ def orchestrator_tick():
                 dispatch_task(run_id, None, "tester", "tester", "全局", "draft.proofread", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "draft.proofread")
 
+            proofread_gate_phase, proofread_gate_round, proofread_gate_settled = _proofread_gate_settled(run_id)
             proofread_done = fetch_one(
                 """
-                SELECT COUNT(*) FROM tasks
-                WHERE run_id=%s AND phase IN ('draft.proofread','draft.recheck') AND retry_count=%s AND status='completed'
+                SELECT COUNT(*)
+                FROM tasks
+                WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
                 """,
-                (run_id, proofread_round),
+                (run_id, proofread_gate_phase, proofread_gate_round),
             )[0]
             explanation_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='proofread.decision.explanation' AND retry_count=%s
                 """,
-                (run_id, proofread_round),
+                (run_id, proofread_gate_round),
             )[0]
             revise_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='draft.revise' AND retry_count=%s
                 """,
-                (run_id, proofread_round),
+                (run_id, proofread_gate_round),
             )[0]
             blocker_count = _active_blocker_count(run_id)
-            if proofread_done > 0 and blocker_count > 0 and revise_exists == 0:
-                dispatch_task(run_id, None, "editor", "editor", "全局", "draft.revise", proofread_round, {}, trace_ctx, project_id, cycle_no)
+            if proofread_gate_settled and proofread_done > 0 and blocker_count > 0 and revise_exists == 0:
+                dispatch_task(run_id, None, "editor", "editor", "全局", "draft.revise", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "draft.revise")
-            if proofread_done > 0 and explanation_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "proofread.decision.explanation", proofread_round, {}, trace_ctx, project_id, cycle_no)
+            if proofread_gate_settled and proofread_done > 0 and explanation_exists == 0:
+                dispatch_task(run_id, None, "neko", "manager", "全局", "proofread.decision.explanation", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
 
             revise_done = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='draft.revise' AND retry_count=%s AND status='completed'
                 """,
-                (run_id, proofread_round),
+                (run_id, proofread_gate_round),
             )[0]
             next_recheck_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='draft.recheck' AND retry_count>%s
                 """,
-                (run_id, proofread_round),
+                (run_id, proofread_gate_round),
             )[0]
             if revise_done > 0 and next_recheck_exists == 0:
-                next_round = proofread_round + 1
+                next_round = proofread_gate_round + 1
                 dispatch_task(run_id, None, "tester", "tester", "全局", "draft.recheck", next_round, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "draft.recheck")
 
             publish_decision_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='publish.decision'", (run_id,))[0]
-            if proofread_done > 0 and blocker_count == 0 and publish_decision_exists == 0:
+            if proofread_gate_settled and proofread_done > 0 and blocker_count == 0 and publish_decision_exists == 0:
                 dispatch_task(run_id, None, "neko", "manager", "全局", "publish.decision", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "publish.decision")
 
@@ -6784,7 +7467,17 @@ def orchestrator_tick():
             )[0]
             retro_thread = _retro_thread_rows(run_id)
             open_or_closing_topics = fetch_one(
-                "SELECT COUNT(*) FROM retro_topics WHERE run_id=%s AND status IN ('open','debating','closing')",
+                """
+                SELECT COUNT(*)
+                FROM retro_topics
+                WHERE run_id=%s
+                  AND status IN ('open','debating','closing')
+                  AND EXISTS (
+                        SELECT 1
+                        FROM retrospectives
+                        WHERE retrospectives.topic_id=retro_topics.topic_id
+                    )
+                """,
                 (run_id,),
             )[0]
             if retro_summary_exists == 0 and pending_comments == 0 and open_or_closing_topics == 0 and len(retro_thread) > 0:
@@ -6882,7 +7575,7 @@ def run_worker(agent_id: str):
                             "source_count": len(items),
                             "memory_summary": memory_note,
                             "target_count": target_count,
-                            "message_body": f"已完成【{task['section']}】板块采集，收集到 {len(items)} 条候选素材。目标来自 cycle_task_plan：{target_count} 条。本轮应用策略：{memory_note}。附加优化日志 {len(optimization_log.get('combined') or [])} 条。",
+                            "message_body": "",
                         },
                     )
                 elif task["phase"] == "cycle.start":
@@ -6918,10 +7611,6 @@ def run_worker(agent_id: str):
                         for row in rows
                     ]
                     detail_url = f"{SETTINGS.public_base_url}:5555/newsflow/runs/{task['run_id']}/materials.html"
-                    message = [
-                        f"提交【{task['section']}】板块候选素材，共 {count} 条。",
-                        f"完整清单：{detail_url}",
-                    ]
                     span.set_attribute("status", "submitted")
                     span.set_attribute("source_count", count)
                     complete_task(
@@ -6931,7 +7620,7 @@ def run_worker(agent_id: str):
                             "source_count": count,
                             "submitted_materials": full_items,
                             "detail_url": detail_url,
-                            "message_body": "\n".join(message),
+                            "message_body": "",
                         },
                     )
                 elif task["phase"] == "material.review":

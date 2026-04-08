@@ -64,117 +64,34 @@ def _load_json(text: str | None) -> dict:
     return json.loads(text) if text else {}
 
 
+def _read_text(path_text: str | None) -> str:
+    path = Path(str(path_text or "").strip())
+    if not path_text or not path.exists() or not path.is_file():
+        return ""
+    try:
+        return path.read_text()
+    except Exception:
+        return ""
+
+
 def _dispatch_body(task: dict) -> str:
-    payload = task["payload"]
-    message = payload.get("message_body")
-    if message:
-        return message
-    phase = task["phase"]
-    section = task["section"]
-    retry = task["retry_count"]
-    if phase == "material.collect":
-        target = payload.get("target_count") or (payload.get("section_target") or {}).get("candidate_target") or "?"
-        if retry > 0:
-            return (
-                f"请重做【{section}】板块素材采集。要求至少 10 条候选、至少 3 条带图，"
-                f"并重点修复上轮问题：{payload.get('rework_reason', '请补强热点性和图片质量')}。"
-            )
-        return (
-            f"请采集【{section}】板块近24小时国际新闻热点候选素材。"
-            f"目标 {target} 条，优先主流媒体或官方来源，保留标题、来源、发布时间、原文链接和图片。"
-        )
-    if phase == "material.review":
-        return f"tester 请审核【{section}】板块候选素材，核对时效、真实性、图文一致性和可用性。"
-    if phase == "cycle.start":
-        return "manager 启动新 cycle，并注入本轮标准、优先级、分工和上一轮优化建议。"
-    if phase == "draft.compose":
-        return "editor 整合已通过素材为初稿，决定主推 / 副推 / 简讯层级。"
-    if phase == "draft.proofread":
-        return "tester 对 draft 做 correctness proofread，检查事实、来源、链接、图片、归位和 blocker。"
-    if phase == "proofread.decision":
-        return "请对 proofread issue 做 accept/reject 决策，并生成 revision patch。"
-    if phase == "draft.revise":
-        return "editor 根据 proofread blocker 与 required actions 修订 draft。"
-    if phase == "report.publish":
-        return "editor 交付最终成稿，manager 基于 publish gate 放行。"
-    if phase == "product.test":
-        return "tester 从统一读者/产品体验视角评估 final artifact。"
-    if phase == "product.benchmark":
-        return "tester 联网查找相近外部产品，提炼最重要差距与建议。"
-    if phase == "product.cross_cycle_compare":
-        return "tester 对比本轮与上一轮成品及上一轮复盘建议。"
-    if phase == "retrospective.plan":
-        return "manager 基于 tester 三份报告和执行证据制定 retrospective plan。"
-    if phase == "retrospective.discussion":
-        round_no = payload.get("round_no", 1)
-        topic = payload.get("topic", "问题")
-        target = payload.get("to_agent", "all")
-        return f"复盘回合 {round_no}，请围绕“{topic}”回应 {target}，基于本轮真实执行展开追问、反驳、补充或建议。"
-    if phase == "agent.optimization":
-        return "manager 为 editor/tester/worker-33/worker-xhs 写入下一轮优化指令。"
-    return f"请执行阶段 {phase}。"
+    raise RuntimeError("legacy dispatch body rendering is disabled; front-visible content must come from task outputs")
 
 
 def _task_body(task: dict) -> str:
     result = task["result"]
-    if task["phase"] == "material.submit":
-        lines = [f"已提交 {result.get('source_count', 0)} 条候选素材。"]
-        if result.get("detail_url"):
-            lines.append(f"完整素材清单：{result['detail_url']}")
-        return "\n".join(lines)
-    if task["phase"] == "material.review":
-        lines = [result.get("reason") or "已完成全量素材审核。"]
-        if result.get("detail_url"):
-            lines.append(f"逐条审核结果：{result['detail_url']}")
-        return "\n".join(lines)
-    if task["phase"] == "draft.compose":
-        summary = result.get("message_body", "初稿已生成。")
-        html_path = result.get("html_path")
-        if html_path:
-            return f"{summary}\n初稿入口：{html_path}"
-        return summary
-    if task["phase"] == "draft.proofread":
-        summary = result.get("message_body", "已完成 draft proofread。")
-        html_path = result.get("detail_url") or result.get("html_path")
-        if html_path:
-            return f"{summary}\nproofread 结果入口：{html_path}"
-        return summary
-    if task["phase"] == "proofread.decision":
-        summary = result.get("message_body", "已完成 proofread decision。")
-        html_path = result.get("html_path")
-        if html_path:
-            return f"{summary}\n决策入口：{html_path}"
-        return summary
-    if task["phase"] == "draft.revise":
-        summary = result.get("message_body", "已完成本轮修订稿。")
-        html_path = result.get("html_path")
-        if html_path:
-            return f"{summary}\n修订稿入口：{html_path}"
-        return summary
-    if task["phase"] == "draft.recheck":
-        summary = result.get("message_body", "已完成 recheck。")
-        html_path = result.get("detail_url")
-        if html_path:
-            return f"{summary}\nrecheck 结果入口：{html_path}"
-        return summary
-    if task["phase"] == "report.publish":
-        summary = result.get("message_body", "终稿已发布。")
-        html_path = result.get("html_path")
-        if html_path:
-            return f"{summary}\n成品入口：{html_path}"
-        return summary
-    if task["phase"] in {"product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan"}:
-        summary = result.get("message_body", "已生成产品报告。")
-        html_path = result.get("html_path")
-        if html_path:
-            return f"{summary}\n报告入口：{html_path}"
-        return summary
-    if task["phase"] == "retrospective.summary":
-        return result.get("message_body", "已完成复盘总结。")
-    if task["phase"] == "agent.optimization":
-        return result.get("message_body", "已完成自我优化。")
-    if result.get("message_body"):
-        return result["message_body"]
+    if str(result.get("status") or "").strip().lower() == "obsolete":
+        return ""
+    return str(result.get("message_body") or "").strip()
+
+
+def _task_artifact_url(task: dict) -> str:
+    result = task["result"]
+    phase = task["phase"]
+    if phase in {"draft.compose", "proofread.decision", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan"}:
+        return str(result.get("html_path") or "").strip()
+    if phase in {"draft.proofread", "draft.recheck"}:
+        return str(result.get("detail_url") or result.get("html_path") or "").strip()
     return ""
 
 
@@ -182,7 +99,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
     task_rows = fetch_all(
         """
         SELECT task_id, parent_task_id, agent_id, agent_role, section, phase, retry_count,
-               payload::text, result::text, created_at, finished_at
+               status, payload::text, result::text, created_at, finished_at
         FROM tasks WHERE run_id=%s ORDER BY created_at
         """,
         (run_id,),
@@ -197,25 +114,16 @@ def build_conversation_entries(run_id: str) -> list[dict]:
             "section": row[4],
             "phase": row[5],
             "retry_count": row[6],
-            "payload": _load_json(row[7]),
-            "result": _load_json(row[8]),
-            "created_at": row[9],
-            "finished_at": row[10],
+            "status": row[7],
+            "payload": _load_json(row[8]),
+            "result": _load_json(row[9]),
+            "created_at": row[10],
+            "finished_at": row[11],
             "run_id": run_id,
         }
-        if task["phase"] in {"cycle.start"}:
-            entries.append(
-                {
-                    "time": task["created_at"],
-                    "speaker": "system",
-                    "target": task["agent_id"],
-                    "phase": task["phase"],
-                    "section": task["section"],
-                    "kind": "system",
-                    "body": _dispatch_body(task),
-                }
-            )
-        if task["phase"] in {"draft.compose", "material.submit", "draft.proofread", "proofread.decision", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan", "retrospective.summary", "agent.optimization"}:
+        if task["status"] != "completed":
+            continue
+        if task["phase"] in {"draft.compose", "draft.proofread", "proofread.decision", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan", "retrospective.summary", "agent.optimization"}:
             body = _task_body(task)
             if body:
                 entries.append(
@@ -227,12 +135,13 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                         "section": task["section"],
                         "kind": "message",
                         "body": body,
+                        "artifact_url": _task_artifact_url(task),
                     }
                 )
 
     review_rows = fetch_all(
         """
-        SELECT r.created_at, r.section, r.approved, r.reason, t.parent_task_id, t.retry_count
+        SELECT r.created_at, r.section, r.approved, r.reason, t.parent_task_id
         FROM reviews r
         JOIN tasks t ON t.task_id = r.review_task_id
         WHERE r.run_id=%s
@@ -240,7 +149,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
         """,
         (run_id,),
     )
-    for created_at, section, approved, reason, parent_task_id, retry_count in review_rows:
+    for created_at, section, approved, reason, parent_task_id in review_rows:
         target_row = fetch_one("SELECT agent_id FROM tasks WHERE task_id=%s", (parent_task_id,)) if parent_task_id else None
         entries.append(
             {
@@ -250,7 +159,8 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                 "phase": "material.review",
                 "section": section,
                 "kind": "review" if approved else "reject",
-                "body": reason + (f"\n当前重试轮次: {retry_count}" if retry_count else ""),
+                "body": reason,
+                "artifact_url": "",
             }
         )
 
@@ -271,6 +181,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                 "section": section_scope,
                 "kind": "discussion",
                 "body": review_text,
+                "artifact_url": "",
             }
         )
 
@@ -293,6 +204,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                 "section": f"全局 | {topic}",
                 "kind": "discussion",
                 "body": comment_text,
+                "artifact_url": "",
             }
         )
 
@@ -309,6 +221,12 @@ def _render_feed(entries: list[dict], title: str) -> str:
         section = escape(entry["section"])
         body = _render_body_html(entry["body"])
         kind = escape(entry["kind"])
+        artifact_url = escape(entry.get("artifact_url") or "")
+        artifact_link = (
+            f'<a class="artifact-link" href="{artifact_url}" target="_blank">查看产物</a>'
+            if artifact_url
+            else ""
+        )
         chunks.append(
             f"""
             <article class="msg {kind}">
@@ -319,6 +237,7 @@ def _render_feed(entries: list[dict], title: str) -> str:
                 <span class="phase">{phase}</span>
                 <span class="section">{section}</span>
                 <time>{escape(_fmt_ts(entry["time"]))}</time>
+                {artifact_link}
               </div>
               <div class="body">{body}</div>
             </article>
@@ -390,7 +309,9 @@ def render_draft_review_html(run_id: str) -> str:
         """,
         (run_id,),
     )
-    decision_path = (meta["notes"] or {}).get("proofread_decision_html", "")
+    notes = meta["notes"] or {}
+    decision_md = _read_text(notes.get("proofread_decision_explanation_md"))
+    decision_html = str(notes.get("proofread_decision_explanation_html") or notes.get("proofread_decision_html") or "").strip()
     cards = []
     for created_at, agent_id, section_scope, severity, issue_type, review_text, status in rows:
         cards.append(
@@ -404,7 +325,13 @@ def render_draft_review_html(run_id: str) -> str:
     return _page(
         f"Run {meta['run_id']} Draft Review",
         f"<section><h2>Proofread Issues</h2>{''.join(cards) or '<p>暂无。</p>'}</section>"
-        f"<section class='revision'><h2>Proofread Decision</h2><div class='body'>{escape(decision_path or '暂无 proofread decision 产物。')}</div></section>",
+        + (
+            f"<section class='revision'><h2>Proofread Decision</h2><div class='body'>{_render_body_html(decision_md)}</div>"
+            + (f"<p><a href=\"{escape(decision_html)}\" target=\"_blank\">查看完整 explanation 页面</a></p>" if decision_html else "")
+            + "</section>"
+            if decision_md or decision_html
+            else "<section class='revision'><h2>Proofread Decision</h2><div class='body'>暂无 proofread explanation 产物。</div></section>"
+        ),
     )
 
 
@@ -427,11 +354,15 @@ def render_materials_html(run_id: str) -> str:
     for section, items in groups.items():
         cards = []
         for _, material_id, task_id, title, source_media, published_at, link, image_count, summary_zh, brief_zh, relevance_note, created_at in items:
+            summary_html = f"<p>{escape(summary_zh).replace(chr(10), '<br>')}</p>" if summary_zh else ""
+            brief_html = f"<p class='meta-line'>{escape(brief_zh).replace(chr(10), '<br>')}</p>" if brief_zh else ""
+            note_html = f"<p class='meta-line'>{escape(relevance_note).replace(chr(10), '<br>')}</p>" if relevance_note else ""
+            link_html = f"<p class='meta-line'><a href=\"{escape(link)}\" target=\"_blank\">{escape(link)}</a></p>" if link else ""
             cards.append(
                 f"""
                 <article class="review">
                   <header><strong>{escape(title)}</strong><span>{escape(source_media)}</span><span>images={image_count}</span><time>{escape(_fmt_ts(published_at))}</time></header>
-                  <div class="body">material_id={material_id} | task_id={escape(task_id)}<br>{escape(summary_zh).replace(chr(10), '<br>')}<br><br>brief={escape(brief_zh)}<br>why_selected={escape(relevance_note)}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
+                  <div class="body">{summary_html}{brief_html}{note_html}{link_html}</div>
                 </article>
                 """
             )
@@ -460,11 +391,15 @@ def render_material_review_html(run_id: str) -> str:
         cards = []
         for _, review_task_id, material_id, title, source_media, link, summary_zh, relevance_note, verdict, reason, created_at in items:
             css = "approved" if verdict == "approved" else "rejected"
+            summary_html = f"<p>{escape(summary_zh).replace(chr(10), '<br>')}</p>" if summary_zh else ""
+            note_html = f"<p class='meta-line'>{escape(relevance_note).replace(chr(10), '<br>')}</p>" if relevance_note else ""
+            reason_html = f"<p>{escape(reason).replace(chr(10), '<br>')}</p>" if reason else ""
+            link_html = f"<p class='meta-line'><a href=\"{escape(link)}\" target=\"_blank\">{escape(link)}</a></p>" if link else ""
             cards.append(
                 f"""
                 <article class="review {css}">
                   <header><strong>{escape(title)}</strong><span>{escape(verdict)}</span><span>{escape(source_media)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-                  <div class="body">review_task_id={escape(review_task_id)} | material_id={material_id}<br>{escape(summary_zh).replace(chr(10), '<br>')}<br><br>candidate_note={escape(relevance_note)}<br>review={escape(reason).replace(chr(10), '<br>')}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
+                  <div class="body">{summary_html}{note_html}{reason_html}{link_html}</div>
                 </article>
                 """
             )
@@ -493,11 +428,15 @@ def render_proofread_detail_html(run_id: str) -> str:
     )
     cards = []
     for issue_id, opened_at, reported_by, section, severity, issue_type, description, item_ref, status, decision_type, rationale in rows:
+        meta_bits = [reported_by, item_ref, issue_type, decision_type]
+        meta_line = " · ".join(escape(bit) for bit in meta_bits if bit)
+        description_html = f"<p>{escape(description).replace(chr(10), '<br>')}</p>" if description else ""
+        rationale_html = f"<p class='meta-line'>{escape(rationale).replace(chr(10), '<br>')}</p>" if rationale else ""
         cards.append(
             f"""
             <article class="review">
               <header><strong>{escape(issue_id)}</strong><span>{escape(section)}</span><span>{escape(severity)}</span><span>{escape(status)}</span><time>{escape(_fmt_ts(opened_at))}</time></header>
-              <div class="body">reported_by={escape(reported_by)} | item_ref={escape(item_ref)} | issue_type={escape(issue_type)}<br>{escape(description)}<br>decision={escape(decision_type)}<br>{escape(rationale)}</div>
+              <div class="body">{f'<p class=\"meta-line\">{meta_line}</p>' if meta_line else ''}{description_html}{rationale_html}</div>
             </article>
             """
         )
@@ -517,11 +456,14 @@ def render_recheck_html(run_id: str) -> str:
     )
     cards = []
     for issue_id, section, severity, issue_type, status, resolution_note, updated_at, closed_at in rows:
+        meta_bits = [severity, issue_type, _fmt_ts(closed_at)]
+        meta_line = " · ".join(escape(bit) for bit in meta_bits if bit)
+        resolution_html = f"<p>{escape(resolution_note or '').replace(chr(10), '<br>')}</p>" if resolution_note else ""
         cards.append(
             f"""
             <article class="review">
               <header><strong>{escape(issue_id)}</strong><span>{escape(section)}</span><span>{escape(issue_type)}</span><span>{escape(status)}</span><time>{escape(_fmt_ts(updated_at))}</time></header>
-              <div class="body">severity={escape(severity)}<br>{escape(resolution_note or '')}<br>closed_at={escape(_fmt_ts(closed_at))}</div>
+              <div class="body">{f'<p class="meta-line">{meta_line}</p>' if meta_line else ''}{resolution_html}</div>
             </article>
             """
         )
@@ -530,80 +472,17 @@ def render_recheck_html(run_id: str) -> str:
 
 def render_final_report_html(run_id: str) -> str:
     meta = get_run_meta(run_id)
-    output_row = fetch_one("SELECT final_json::text, final_markdown FROM outputs WHERE run_id=%s", (run_id,))
+    output_row = fetch_one("SELECT final_markdown FROM outputs WHERE run_id=%s", (run_id,))
     if not output_row or not output_row[0]:
         return _page(f"Run {meta['run_id']} Final Report", "<p>终稿尚未生成。</p>")
-    final_json = json.loads(output_row[0])
-    sections = []
-    ordered_sections = ["政治经济", "科技", "体育娱乐", "其他"]
-    for section in ordered_sections:
-        data = final_json[section]
-        main = data["main"]
-        secondary = data["secondary"]
-        briefs = data["briefs"]
-        main_image_list = list(main.get("images", [])[:3])
-        while len(main_image_list) < 3:
-            main_image_list.append("")
-        main_images = "".join(
-            [
-                f'<img src="{escape(img)}" alt="{escape(main["title"])}">' if img else '<div class="img-placeholder">主推图片占位</div>'
-                for img in main_image_list
-            ]
-        )
-        secondary_cards = []
-        for idx, item in enumerate(secondary, 1):
-            image = item.get("images", [""])
-            img_html = (
-                f'<img src="{escape(image[0])}" alt="{escape(item["title"])}">'
-                if image and image[0]
-                else '<div class="img-placeholder">副推图片占位</div>'
-            )
-            secondary_cards.append(
-                f"""
-                <article class="secondary-card">
-                  {img_html}
-                  <h4>副推{idx} | {escape(item['title'])}</h4>
-                  <p class="meta-line">来源：{escape(item['source_media'])} | 发布时间：{escape(item['published_at'])}</p>
-                  <p>{escape(item['summary_zh'])}</p>
-                  <p><a href="{escape(item['link'])}" target="_blank">原文链接</a></p>
-                </article>
-                """
-            )
-        brief_items = "".join(
-            [
-                f"<li><strong>{escape(item['title'])}</strong><br><span>来源：{escape(item['source_media'])} | 发布时间：{escape(item['published_at'])} | <a href=\"{escape(item['link'])}\" target=\"_blank\">原文链接</a></span><p>{escape(item['summary_zh'])}</p></li>"
-                for item in briefs
-            ]
-        )
-        sections.append(
-            f"""
-            <section class="news-section">
-              <h2>{escape(section)}</h2>
-              <article class="main-card">
-                <div class="main-images">{main_images}</div>
-                <div class="main-body">
-                  <h3>主推 | {escape(main['title'])}</h3>
-                  <p class="meta-line">来源：{escape(main['source_media'])} | 发布时间：{escape(main['published_at'])} | <a href="{escape(main['link'])}" target="_blank">原文链接</a></p>
-                  <p>{escape(main['summary_zh'])}</p>
-                </div>
-              </article>
-              <div class="secondary-grid">{''.join(secondary_cards)}</div>
-              <div class="briefs">
-                <h4>其余 7 条简讯</h4>
-                <ul>{brief_items}</ul>
-              </div>
-            </section>
-            """
-        )
+    final_markdown = output_row[0] or ""
     return _page(
         f"Run {meta['run_id']} Final Report",
         f"""
-        <header class="report-header">
-          <h1>近24小时国际新闻热点</h1>
-          <p>workflow_id: {escape(meta['workflow_id'])} | project_id: {escape(meta['project_id'] or 'standalone')} | cycle_no: {escape(str(meta['cycle_no'] or 0))} | run_id: {escape(meta['run_id'])} | 时区: {escape(SETTINGS.timezone)}</p>
-          <p>时间窗口：近 24 小时国际新闻热点汇总，分为政治经济、科技、体育娱乐、其他四个板块。</p>
-        </header>
-        {''.join(sections)}
+        <section class="revision">
+          <h1>Published Final Artifact</h1>
+          <div class="body">{_render_body_html(final_markdown)}</div>
+        </section>
         """,
     )
 
@@ -666,32 +545,18 @@ def render_retrospective_html(run_id: str) -> str:
         (run_id,),
     )
     topic_by_id = {row[0]: row for row in topic_rows}
+    visible_topic_ids = {topic_id for topic_id, *_ in comments if topic_id} | {topic_id for topic_id, *_ in decision_rows if topic_id}
     blocks = ["<section><h2>复盘讨论线程</h2>"]
     for topic_id, message_id, reply_to_message_id, agent_id, to_agent, target_type, topic, intent, round_no, comment_text, created_at in comments:
         blocks.append(
             f"""
             <article class="review">
               <header><strong>{escape(agent_id)}</strong><span>round {round_no}</span><span>{escape(topic)}</span><span>{escape(intent)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-              <div class="meta-line">topic_id: <code>{escape(topic_id or '')}</code> | message_id: <code>{escape(message_id or '')}</code> | to: {escape(to_agent)} | target_type: {escape(target_type)}</div>
               <div class="body">{escape(comment_text).replace(chr(10), '<br>')}</div>
             </article>
             """
         )
     blocks.append("</section>")
-    topic_cards = []
-    for topic_id, title, status, opened_by, opened_at, closed_at, evidence_text in topic_rows:
-        evidence = _load_json(evidence_text)
-        evidence_preview = "<br>".join(escape(str(item)) for item in evidence[:3]) if isinstance(evidence, list) else escape(str(evidence))
-        topic_cards.append(
-            f"""
-            <article class="review">
-              <header><strong>{escape(title)}</strong><span>{escape(status)}</span><span>{escape(opened_by)}</span><time>{escape(_fmt_ts(opened_at))}</time></header>
-              <div class="meta-line">topic_id: <code>{escape(topic_id)}</code> | closed_at: {escape(_fmt_ts(closed_at))}</div>
-              <div class="body">{evidence_preview or '无 evidence refs'}</div>
-            </article>
-            """
-        )
-    blocks.append(f"<section><h2>Retro Topics</h2>{''.join(topic_cards) or '<p>暂无。</p>'}</section>")
     decision_cards = []
     for topic_id, summary_text, owner_agent, decision_text, created_at in decision_rows:
         title = topic_by_id.get(topic_id, [None, topic_id])[1] or topic_id
@@ -699,33 +564,25 @@ def render_retrospective_html(run_id: str) -> str:
             f"""
             <article class="review approved">
               <header><strong>{escape(title)}</strong><span>{escape(owner_agent)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-              <div class="meta-line">topic_id: <code>{escape(topic_id)}</code></div>
               <div class="body">{escape(summary_text).replace(chr(10), '<br>')}</div>
             </article>
             """
         )
     blocks.append(f"<section><h2>Retro Decisions</h2>{''.join(decision_cards) or '<p>暂无。</p>'}</section>")
-    summary = summary_row[0] if summary_row and summary_row[0] else "暂无复盘总结。"
-    blocks.append(
-        f"<section class='revision'><h2>neko 收敛总结</h2><div class='body'>{escape(summary).replace(chr(10), '<br>')}</div></section>"
-    )
+    summary = summary_row[0] if summary_row and summary_row[0] else ""
+    if summary:
+        blocks.append(
+            f"<section class='revision'><h2>neko 收敛总结</h2><div class='body'>{escape(summary).replace(chr(10), '<br>')}</div></section>"
+        )
     opt_cards = []
     for agent_id, summary_text, optimization_json in optimization_rows:
         data = _load_json(optimization_json)
-        details = []
-        if data.get("exposed_issues"):
-            details.append("暴露问题：" + "；".join(data["exposed_issues"][:3]))
-        if data.get("next_cycle_strategy"):
-            details.append("下一轮策略：" + "；".join(data["next_cycle_strategy"][:3]))
-        if data.get("next_cycle_quality_checks"):
-            details.append("质量检查：" + "；".join(data["next_cycle_quality_checks"][:3]))
-        if data.get("role_improvement_plan"):
-            details.append("角色改进：" + data["role_improvement_plan"])
+        visible_body = data.get("optimization_markdown") or summary_text or ""
         opt_cards.append(
             f"""
             <article class="review approved">
               <header><strong>{escape(agent_id)}</strong><span>agent.self_optimize</span></header>
-              <div class="body">{escape(summary_text).replace(chr(10), '<br>')}<br><br>{escape(chr(10).join(details)).replace(chr(10), '<br>')}</div>
+              <div class="body">{_render_body_html(visible_body) if visible_body else ''}</div>
             </article>
             """
         )
@@ -735,8 +592,7 @@ def render_retrospective_html(run_id: str) -> str:
         log_cards.append(
             f"""
             <article class="review">
-              <header><strong>{escape(agent_id or 'project')}</strong><span>{escape(source_type)}</span><span>{escape(category)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-              <div class="meta-line">author: {escape(author)} | effective_from_cycle: {escape(str(effective_from_cycle))} | expires_after_cycle: {escape(str(expires_after_cycle or ''))}</div>
+              <header><strong>{escape(agent_id or 'project')}</strong><span>{escape(category)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
               <div class="body">{escape(body_text).replace(chr(10), '<br>')}</div>
             </article>
             """
@@ -761,22 +617,19 @@ def render_product_report_html(run_id: str) -> str:
     sections = ["<section><h2>产品测试与评估</h2>"]
     for agent_id, report_type, title, summary_text, report_json, created_at in rows:
         data = _load_json(report_json)
-        lines = []
-        if report_type == "product_test":
-            lines.extend([f"证据：{item}" for item in data.get("evidence", [])[:4]])
-            lines.extend([f"优先改进：{item}" for item in data.get("priority_improvements", [])[:4]])
-        elif report_type == "benchmark_report":
-            lines.extend([f"对标：{item['name']} | {item['url']}" for item in data.get("comparisons", [])[:4]])
-            lines.extend([f"下一轮建议：{item}" for item in data.get("next_cycle_actions", [])[:4]])
-        elif report_type == "product_evaluation_report":
-            lines.extend([f"重要问题：{item}" for item in data.get("top_product_issues", [])[:5]])
-            lines.extend([f"下一轮建议：{item}" for item in data.get("next_cycle_recommendations", [])[:5]])
-        body = "<br>".join(escape(line) for line in lines)
+        visible_body = (
+            data.get("report_markdown")
+            or data.get("plan_markdown")
+            or data.get("summary_markdown")
+            or data.get("explanation_markdown")
+            or ""
+        )
+        body = _render_body_html(visible_body) if visible_body else ""
         sections.append(
             f"""
             <article class="review approved">
               <header><strong>{escape(title)}</strong><span>{escape(report_type)}</span><span>{escape(agent_id or 'neko')}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-              <div class="body"><p>{escape(summary_text)}</p><p>{body}</p></div>
+              <div class="body"><p>{escape(summary_text)}</p>{body}</div>
             </article>
             """
         )
@@ -800,13 +653,19 @@ def render_single_product_report_html(run_id: str, report_type: str) -> str:
     blocks = []
     for agent_id, _, title, summary_text, report_json, created_at in rows:
         data = _load_json(report_json)
-        pretty = escape(json.dumps(data, ensure_ascii=False, indent=2)).replace("\n", "<br>")
+        visible_body = (
+            data.get("report_markdown")
+            or data.get("plan_markdown")
+            or data.get("summary_markdown")
+            or data.get("explanation_markdown")
+            or ""
+        )
         blocks.append(
             f"""
             <section class="revision">
               <h2>{escape(title)}</h2>
               <p class="meta-line">{escape(agent_id or 'neko')} | {_fmt_ts(created_at)}</p>
-              <div class="body"><p>{escape(summary_text)}</p><pre>{pretty}</pre></div>
+              <div class="body"><p>{escape(summary_text)}</p>{_render_body_html(visible_body) if visible_body else ''}</div>
             </section>
             """
         )
@@ -897,16 +756,10 @@ def write_product_report_html(run_id: str, title: str, markdown_body: str, paylo
     run_dir = OUTPUT_ROOT / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     path = run_dir / f"{stem}.html"
-    bullets = []
-    for key, value in payload.items():
-        if isinstance(value, list):
-            bullets.append(f"<h3>{escape(str(key))}</h3><ul>{''.join(f'<li>{escape(str(item))}</li>' for item in value)}</ul>")
-        elif isinstance(value, dict):
-            bullets.append(f"<h3>{escape(str(key))}</h3><pre>{escape(json.dumps(value, ensure_ascii=False, indent=2))}</pre>")
     path.write_text(
         _page(
             title,
-            f"<section class='revision'><h1>{escape(title)}</h1><div class='body'>{escape(markdown_body).replace(chr(10), '<br>')}</div>{''.join(bullets)}</section>",
+            f"<section class='revision'><h1>{escape(title)}</h1><div class='body'>{_render_body_html(markdown_body)}</div></section>",
         )
     )
     return str(path)
