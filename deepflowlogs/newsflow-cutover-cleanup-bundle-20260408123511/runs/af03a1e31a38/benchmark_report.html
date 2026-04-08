@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tester 外部对标报告</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>tester 外部对标报告</h1><div class='body'># tester 外部对标报告<br><br>- run_id: af03a1e31a38<br>- benchmark_mode: fallback<br>- search_query: 英国食物银行扩建应对需求激增，折射民生经济压力 international news roundup page<br><br>## 对标对象<br>- BBC News | https://www.bbc.com/news | Home - BBC News | 被选原因：英国本土最权威的新闻来源，用于验证&#x27;英国食物银行&#x27;这一核心选题的报道深度与真实性。<br>- Reuters World | https://www.reuters.com/world/ | N/A (Fetch Failed) | 被选原因：国际通讯社标杆，用于对标国际视野下的新闻筛选逻辑。<br>- Google News | https://news.google.com/topstories?hl=en-US&amp;gl=US&amp;ceid=US:en | Google News | 被选原因：全球最大的新闻聚合平台，用于对比选题的多样性与时效性。<br><br>## 最明显差距<br>- Final Artifact 仅提供了 Stratford 食物银行的简短摘要，缺乏具体数据支撑（如需求增长百分比、具体搬迁地址）。BBC 通常会提供受助者采访、政府回应及数据图表，Artifact 目前更像是一个&#x27;快讯&#x27;而非深度报道。<br>- 抓取失败（401 Forbidden），导致无法直接对比。但这也反映出 Workflow 在应对反爬虫机制时的脆弱性，直接导致无法验证该选题在国际视角下的重要性排序。<br>- Google News 呈现的是海量多源信息流，而 Final Artifact 呈现的是高度精简的 4 条 Roundup。Artifact 中的科技（Google AI 听写）与体育（NCAA）选题虽然精准，但与核心查询（英国食物银行）的关联度较弱，显得像是&#x27;硬凑&#x27;的版面填充，缺乏 Google News 那种基于热点关联的推荐逻辑。<br><br>## 可落到下一轮的建议<br>- 修复 Reuters 等核心信源的抓取权限问题，确保 Benchmark 数据完整性。<br>- 优化 Roundup 生成逻辑，引入&#x27;主题聚类&#x27;机制，确保非核心板块的新闻在地域或主题上与核心 Query 保持一定相关性。<br>- 针对民生经济类新闻，强制要求输出中包含&#x27;关键数据&#x27;（Key Stats）字段，提升信息密度。</div><h3>comparisons</h3><ul><li>{&#x27;name&#x27;: &#x27;BBC News&#x27;, &#x27;url&#x27;: &#x27;https://www.bbc.com/news&#x27;, &#x27;page_title&#x27;: &#x27;Home - BBC News&#x27;, &#x27;selected_reason&#x27;: &quot;英国本土最权威的新闻来源，用于验证&#x27;英国食物银行&#x27;这一核心选题的报道深度与真实性。&quot;, &#x27;gap&#x27;: &quot;Final Artifact 仅提供了 Stratford 食物银行的简短摘要，缺乏具体数据支撑（如需求增长百分比、具体搬迁地址）。BBC 通常会提供受助者采访、政府回应及数据图表，Artifact 目前更像是一个&#x27;快讯&#x27;而非深度报道。&quot;, &#x27;advice&#x27;: &quot;针对民生类选题，建议增加&#x27;数据卡片&#x27;或&#x27;关键引语&#x27;字段，补充硬性数据以支撑&#x27;折射民生压力&#x27;的观点，避免流于表面。&quot;, &#x27;source_media&#x27;: &#x27;BBC News&#x27;}</li><li>{&#x27;name&#x27;: &#x27;Reuters World&#x27;, &#x27;url&#x27;: &#x27;https://www.reuters.com/world/&#x27;, &#x27;page_title&#x27;: &#x27;N/A (Fetch Failed)&#x27;, &#x27;selected_reason&#x27;: &#x27;国际通讯社标杆，用于对标国际视野下的新闻筛选逻辑。&#x27;, &#x27;gap&#x27;: &#x27;抓取失败（401 Forbidden），导致无法直接对比。但这也反映出 Workflow 在应对反爬虫机制时的脆弱性，直接导致无法验证该选题在国际视角下的重要性排序。&#x27;, &#x27;advice&#x27;: &#x27;需优化外部抓取策略，增加代理池或降级使用公开 API 接口，确保基准数据源的可用性，否则 Benchmark 将失去参照系。&#x27;, &#x27;source_media&#x27;: &#x27;Reuters World&#x27;}</li><li>{&#x27;name&#x27;: &#x27;Google News&#x27;, &#x27;url&#x27;: &#x27;https://news.google.com/topstories?hl=en-US&amp;gl=US&amp;ceid=US:en&#x27;, &#x27;page_title&#x27;: &#x27;Google News&#x27;, &#x27;selected_reason&#x27;: &#x27;全球最大的新闻聚合平台，用于对比选题的多样性与时效性。&#x27;, &#x27;gap&#x27;: &quot;Google News 呈现的是海量多源信息流，而 Final Artifact 呈现的是高度精简的 4 条 Roundup。Artifact 中的科技（Google AI 听写）与体育（NCAA）选题虽然精准，但与核心查询（英国食物银行）的关联度较弱，显得像是&#x27;硬凑&#x27;的版面填充，缺乏 Google News 那种基于热点关联的推荐逻辑。&quot;, &#x27;advice&#x27;: &quot;在生成 Roundup 时，应增加&#x27;相关性权重&#x27;计算。如果核心 Query 是&#x27;英国食物银行&#x27;，其他推荐内容应倾向于英国经济、通胀或欧洲社会新闻，而非突兀的 NCAA 体育新闻。&quot;, &#x27;source_media&#x27;: &#x27;Google News&#x27;}</li></ul><h3>next_cycle_actions</h3><ul><li>修复 Reuters 等核心信源的抓取权限问题，确保 Benchmark 数据完整性。</li><li>优化 Roundup 生成逻辑，引入&#x27;主题聚类&#x27;机制，确保非核心板块的新闻在地域或主题上与核心 Query 保持一定相关性。</li><li>针对民生经济类新闻，强制要求输出中包含&#x27;关键数据&#x27;（Key Stats）字段，提升信息密度。</li></ul></section></body>
+</html>

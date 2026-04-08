@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Draft Report</title>
+  <style>
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --ink: #16202a;
+      --muted: #5d6975;
+      --line: #d9d4c8;
+      --accent: #1f6f5f;
+      --warm: #9a5a32;
+      --danger: #a33e35;
+    }
+    body { margin: 0; padding: 20px; font: 15px/1.6 "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: linear-gradient(180deg, #f6f4ee 0%, #ebe5d9 100%); }
+    h1,h2,h3,h4,p { margin: 0 0 10px; }
+    a { color: #0d5f9b; text-decoration: none; }
+    .feed, .news-section, .revision, .review { display: block; }
+    .msg, .review, .main-card, .secondary-card, .revision { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 10px 24px rgba(25,35,45,.06); }
+    .msg.dispatch { border-left: 6px solid var(--accent); }
+    .msg.message { border-left: 6px solid #3f6db3; }
+    .msg.review { border-left: 6px solid var(--warm); }
+    .msg.reject { border-left: 6px solid var(--danger); }
+    .msg.discussion { border-left: 6px solid #7a4ea3; }
+    .meta { color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .speaker { font-weight: 700; color: var(--ink); }
+    .phase, .section { background: #eef3f7; border-radius: 999px; padding: 2px 8px; }
+    .body { white-space: normal; }
+    .report-header { margin-bottom: 20px; }
+    .main-card { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    .main-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .main-images img, .secondary-card img, .img-placeholder { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background: #ddd; }
+    .img-placeholder { display: flex; align-items: center; justify-content: center; color: #69707a; font-size: 13px; border: 1px dashed #b8bfc7; }
+    .secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    .briefs ul { padding-left: 18px; }
+    .briefs li { margin-bottom: 10px; }
+    .meta-line { color: var(--muted); font-size: 13px; }
+    .review.approved header span { color: var(--accent); font-weight: 700; }
+    .review.rejected header span { color: var(--danger); font-weight: 700; }
+    .review header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .main-card { grid-template-columns: 1fr; }
+      .main-images { grid-template-columns: 1fr; }
+      .secondary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body><section class='revision'><h1>Draft Report</h1><div class='body'># 近24小时国际新闻热点（初稿）<br><br>- workflow_id: intl-news-hotspots<br>- project_id: content_detempl_final_20260408_1414<br>- cycle_no: 1<br>- run_id: af03a1e31a38<br>- 时区: Asia/Shanghai<br><br>## 政治经济<br>### 主推 | 英国食物银行扩建应对需求激增，折射民生经济压力<br>- 来源: BBC News<br>- 发布时间: 2026-04-08T05:09:56+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cy01k55ygl7o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/4690/live/53db92c0-3299-11f1-8cba-9df81803c83c.jpg, https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png, https://ichef.bbci.co.uk/news/480/cpsprodpb/4690/live/53db92c0-3299-11f1-8cba-9df81803c83c.jpg.webp<br>Stratford 食物银行因需求激增计划搬迁至更大场所，这一微观变化折射出当地日益严峻的民生经济压力。<br><br>### 副推1 | 停火开启伊朗“10点计划”谈判窗口<br>- 来源: Al Jazeera – Breaking News, World News and Video from Al Jazeera<br>- 发布时间: 2026-04-08T05:04:37+00:00<br>- 原文链接: https://www.aljazeera.com/video/newsfeed/2026/4/8/us-ceasefire-allows-negotiations-on-irans-workable-10-point-plan?traffic_source=rss<br>- 图片: https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775624663.jpg?resize=1920%2C1080&amp;quality=80<br>特朗普宣布的停火协议为伊朗“可行”10点计划的谈判开启窗口，标志着地缘冲突正向外交谈判转化。<br><br>### 副推2 | 巴基斯坦斡旋促成美伊停火，展现关键地缘角色<br>- 来源: BBC News<br>- 发布时间: 2026-04-08T05:03:31+00:00<br>- 原文链接: https://www.bbc.com/news/articles/cj401qvgg19o?at_medium=RSS&amp;at_campaign=rss<br>- 图片: https://ichef.bbci.co.uk/news/1024/branded_news/0bc6/live/dc5f72b0-3302-11f1-9fa9-a19ec9096555.jpg<br>巴基斯坦利用与伊朗的历史渊源促成脆弱停火，展示了地区国家在化解大国冲突中的关键外交角色。<br><br>### 其他 7 条<br>- 纽约时报深入调查试图揭开比特币创造者中本聪真身 | NYT &gt; Business | 2026-04-08T04:40:26+00:00 | https://www.nytimes.com/video/business/100000010821603/unraveling-the-mystery-behind-bitcoins-creator.html | 纽约时报记者历时18个月深挖档案，试图确认比特币发明者“中本聪”的真实身份。<br>- 伊朗民众悼念米纳布学校空袭遇难者 | Al Jazeera – Breaking News, World News and Video from Al Jazeera | 2026-04-08T04:29:15+00:00 | https://www.aljazeera.com/video/newsfeed/2026/4/8/iranians-commemorate-victims-of-minab-school-strike?traffic_source=rss | 伊朗民众集会悼念美军空袭米纳布女子学校的168名遇难者，凸显冲突对平民的惨痛伤害。<br>- 美国政界对伊朗停火反应不一，折射外交极化困境 | Al Jazeera – Breaking News, World News and Video from Al Jazeera | 2026-04-08T04:34:31+00:00 | https://www.aljazeera.com/news/2026/4/8/caution-relief-as-us-politicians-respond-to-trumps-ceasefire-with-iran?traffic_source=rss | 共和党怀疑谈判与民主党欢迎停火并存，折射美国外交政策在国内的极化困境。<br>- 国际社会欢迎美伊停火，呼吁中东实现持久和平 | Al Jazeera – Breaking News, World News and Video from Al Jazeera | 2026-04-08T04:23:34+00:00 | https://www.aljazeera.com/news/2026/4/8/world-welcomes-us-iran-ceasefire-urges-lasting-peace-in-the-middle-east?traffic_source=rss | 多国表态支持美伊停火并赞赏巴基斯坦斡旋，显著缓解了中东紧张局势。<br>- 美伊以达成停火协议，霍尔木兹海峡危机暂缓 | NYT &gt; World News | 2026-04-08T05:58:11+00:00 | https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news | 美伊以在最后期限前达成停火，避免霍尔木兹海峡局势恶化，保障全球能源通道安全。<br>- 美伊在最后关头达成两周停火协议 | NYT &gt; World News | 2026-04-08T05:04:49+00:00 | https://www.nytimes.com/2026/04/07/world/iran-deadline-jd-vance-hungary-election.html | 在特朗普发出严厉威胁后，美伊双方在最后关头达成两周停火协议，暂时避免了冲突升级。<br>- 美伊停火引发油价暴跌股市飙升 | NYT &gt; Business | 2026-04-08T04:16:27+00:00 | https://www.nytimes.com/2026/04/08/business/oil-stocks-gas-prices-iran.html | 受美伊停火影响，全球市场避险情绪降温，油价大幅下跌而股市强劲反弹。<br><br>## 科技<br>### 主推 | Google 悄然发布支持离线运行的 AI 听写应用<br>- 来源: TechCrunch<br>- 发布时间: 2026-04-08T05:40:19+00:00<br>- 原文链接: https://techcrunch.com/2026/04/07/google-quietly-releases-an-offline-first-ai-dictation-app-on-ios/<br>- 图片: https://techcrunch.com/wp-content/uploads/2026/02/google-logo.jpg?resize=1200,800, https://techcrunch.com/wp-content/uploads/2024/09/tc-lockup.svg, https://techcrunch.com/wp-content/uploads/2024/09/tc-logo-mobile.svg<br>Google 推出基于 Gemma 模型的离线听写应用，无需联网即可运行，直接对标 Wispr Flow 等竞品，展示了大模型在端侧落地的最新尝试。<br><br>### 副推1 | Valve 为 Vision Pro 推出原生 Steam Link 应用<br>- 来源: Ars Technica - All content<br>- 发布时间: 2026-04-07T22:21:21+00:00<br>- 原文链接: https://arstechnica.com/gaming/2026/04/valve-brings-native-steam-link-app-to-apples-vision-pro/<br>- 图片: https://cdn.arstechnica.net/wp-content/uploads/2024/02/Vision-Pro-HMD-1152x648.jpeg<br>Valve 为 Apple Vision Pro 发布原生版 Steam Link 应用，解决了第三方方案体验不佳的问题，让用户能更流畅地串流 PC 游戏。<br><br>### 副推2 | Nothing CMF Buds 2A 降噪耳机限时降价至 19.99 美元<br>- 来源: The Verge<br>- 发布时间: 2026-04-07T22:16:21+00:00<br>- 原文链接: https://www.theverge.com/gadgets/908409/nothing-cmf-buds-2a-earbuds-amazon-lightning-deal-sale<br>- 图片: https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/CMF-Buds-2a-in-Dark-Grey.jpg?quality=90&amp;strip=all&amp;crop=0%2C3.4613147178592%2C100%2C93.077370564282&amp;w=1200<br>Nothing 旗下 CMF Buds 2A 降噪耳机闪电促销价降至 19.99 美元，支持主动降噪和通透模式，性价比突出。<br><br>### 其他 7 条<br>- 苹果与联想笔记本可维修性评分垫底 | Ars Technica - All content | 2026-04-07T22:08:32+00:00 | https://arstechnica.com/gadgets/2026/04/apple-has-the-lowest-grades-in-laptop-phone-repairability-analysis/ | 最新报告显示苹果与联想笔记本可维修性评分垫底，MacBook Neo 设计思路有所转变。<br>- 亚马逊将停止旧款 Kindle 设备的商店服务 | The Verge | 2026-04-07T21:44:20+00:00 | https://www.theverge.com/tech/908302/amazon-ending-support-kindle-fire-tablet-e-reader-pre-2012-older | 亚马逊宣布 5 月 20 日起停止 2012 年及更早款 Kindle 和 Fire 平板的商店服。<br>- 初创公司 Arcee 凭借开源 AI 模型获市场关注 | TechCrunch | 2026-04-07T21:35:02+00:00 | https://techcrunch.com/2026/04/07/i-cant-help-rooting-for-tiny-open-source-ai-model-maker-arcee/ | 仅 26 人的初创公司 Arcee 推出高性能开源大模型，展示小团队对抗巨头的新趋势。<br>- 风投 Eclipse 募资 13 亿美元押注“物理 AI” | TechCrunch | 2026-04-07T21:24:54+00:00 | https://techcrunch.com/2026/04/07/vc-eclipse-has-a-new-1-3b-to-back-and-build-physical-ai-startups/ | 风投 Eclipse 成立 13 亿美元新基金，重点投资“物理 AI”领域的初创公司。<br>- Spotify 将“提示播放列表”功能扩展至播客 | The Verge | 2026-04-07T20:13:23+00:00 | https://www.theverge.com/entertainment/908339/spotify-prompted-playlists-podcasts | Spotify 更新功能，允许 Premium 用户通过生成定制化列表发现新的播客节目。<br>- 深度报道揭示 AI 行业内部的混乱与野心 | Ars Technica - All content | 2026-04-07T20:02:25+00:00 | https://arstechnica.com/tech-policy/2026/04/what-the-heck-is-wrong-with-our-ai-overlords/ | 关于 Sam Altman 的新深度报道揭示 AI 行业内部的混乱与野心，引发伦理反思。<br>- 美国机构警告伊朗黑客瞄准关键基础设施 | TechCrunch | 2026-04-07T19:59:06+00:00 | https://techcrunch.com/2026/04/07/iranian-hackers-are-targeting-american-critical-infrastructure-u-s-agencies-warn/ | 美国多家机构联合警告伊朗黑客正瞄准关键基础设施，攻击战术出现升级。<br><br>## 体育娱乐<br>### 主推 | ESPN发布2026-27赛季NCAA女篮转校球员排名榜<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-08T06:15:43+00:00<br>- 原文链接: https://www.espn.com/womens-college-basketball/story/_/id/48416462/women-ncaa-basketball-transfer-portal-player-rankings-2026-27-season<br>- 图片: https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F1130%2Fr1582922_1296x729_16%2D9.jpg, https://a.espncdn.com/redesign/assets/img/logos/ESPNcom-powerby-espnw.png, https://a1.espncdn.com/combiner/i?img=%2Fredesign%2Fassets%2Fimg%2Ficons%2FESPN%2Dicon%2Dbasketball.png&amp;w=40&amp;h=40&amp;scale=crop&amp;cquality=40&amp;location=origin<br>ESPN更新新赛季NCAA女篮转校市场球员排名，梳理出最具价值的流动人才，为观察联盟格局变动与选秀走势提供重要参考。<br><br>### 副推1 | 美国大师赛前瞻：舍弗勒对决德尚博成焦点<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-08T06:04:18+00:00<br>- 原文链接: https://www.espn.com/golf/story/_/id/48412522/top-storylines-scottie-scheffler-bryson-dechambeau-masters-2026<br>- 图片: https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0406%2Fr1639431_1296x729_16%2D9.jpg<br>年度首场高尔夫大满贯开赛在即，焦点集中于世界第一舍弗勒能否延续统治，以及德尚博等挑战者的突围机会。<br><br>### 副推2 | WNBA重磅交易：安吉尔·里斯转投亚特兰大梦想队<br>- 来源: www.espn.com - TOP<br>- 发布时间: 2026-04-08T06:01:44+00:00<br>- 原文链接: https://www.espn.com/wnba/story/_/id/48412968/wnba-trade-grades-2026-free-agency-winners-losers<br>- 图片: https://a4.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F0703%2Fr1514464_1296x729_16%2D9.jpg<br>WNBA自由市场首日爆出大动作，明星球员安吉尔·里斯离开芝加哥天空队转投亚特兰大梦想队，这笔交易将改变联盟实力版图。<br><br>### 其他 7 条<br>- 独行侠反驳雷迪克：否认弄错里夫斯MRI检查部位 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/nba/story/_/id/48424364/mavericks-dispute-redick-claim-erred-reaves-mri | 独行侠官方回应湖人主帅雷迪克指控，坚决否认医疗团队弄错里夫斯MRI检查部位。<br>- 前NBA名帅马龙出任北卡男篮主帅 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/mens-college-basketball/story/_/id/48425089/malone-sees-chance-part-special-unc | 迈克尔·马龙正式出任北卡男篮主帅，称这是唯一能让他离开NBA的大学职位。<br>- UConn名帅奥列马为四强赛失态道歉 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/womens-college-basketball/story/_/id/48425047/uconn-auriemma-apologizes-staley | UConn女篮主帅奥列马就四强赛期间对南卡主帅的不当行为致歉，承认情绪失控。<br>- NHL雪崩队锁定中部赛区冠军及西部第一 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/nhl/story/_/id/48426007/colorado-avalanche-clinch-central-division-west-top-seed | 科罗拉多雪崩队击败蓝调队，锁定中部赛区冠军及西部头号种子席位。<br>- 欧冠：阿森纳险胜葡萄牙体育 | www.espn.com - TOP | 2026-04-08T05:46:21+00:00 | https://www.espn.com/soccer/story/_/id/48423856/fine-margins-define-arsenals-title-hopes-season | 阿森纳在欧冠四分之一决赛中凭借最后时刻进球惊险战胜葡萄牙体育，争冠形势向好。<br>- 科罗拉多大学四分卫车祸身亡，尸检证实酒驾 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/college-football/story/_/id/48422979/colorado-qb-dominiq-ponder-bac-double-limit-fatal-crash | 科罗拉多大学四分卫庞德车祸身亡，尸检显示其血液酒精浓度超法定限值两倍。<br>- MLB赛场爆发群殴：天使与勇士球员大打出手 | www.espn.com - TOP | 2026-04-08T05:41:18+00:00 | https://www.espn.com/mlb/story/_/id/48426065/angels-soler-braves-lopez-ejected-benches-clear-brawl | 天使队索勒因不满内角球冲向投手丘，引发双方大规模冲突，两人遭驱逐。<br><br>## 其他<br>### 主推 | NASA卫星捕捉猛犸湖附近壮观火山地貌<br>- 来源: NASA<br>- 发布时间: 2026-04-08T04:01:00+00:00<br>- 原文链接: https://science.nasa.gov/earth/earth-observatory/a-volcanic-medley-near-mammoth-lakes/<br>- 图片: https://assets.science.nasa.gov/content/dam/science/esd/eo/images/iotd/2026/a-volcanic-medley-near-mammoth-lakes-/mammothlakes_oli2_20260329_th.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg, https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png, https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint<br>NASA发布卫星影像，展示内华达山脉东部古老火山口与新近火山坑共同塑造的独特地理景观，画面极具视觉冲击力。<br><br>### 副推1 | NASA发布四月观星指南：聚焦狮子座天象奇观<br>- 来源: NASA<br>- 发布时间: 2026-04-08T03:01:24+00:00<br>- 原文链接: https://science.nasa.gov/solar-system/skywatching/night-sky-network/celestial-wonders-in-leo/<br>- 图片: https://science.nasa.gov/wp-content/uploads/2023/04/heic1006a-jpg.webp<br>NASA推荐四月观测狮子座，其标志性的“镰刀”造型、亮星轩辕十四及著名双星和星系三重奏值得关注。<br><br>### 副推2 | Artemis II宇航员传回首批月球飞掠照片<br>- 来源: NASA<br>- 发布时间: 2026-04-07T20:44:05+00:00<br>- 原文链接: https://www.nasa.gov/news-release/nasas-artemis-ii-crew-beams-official-moon-flyby-photos-to-earth/<br>- 图片: https://images-assets.nasa.gov/image/art002e009571/art002e009571~large.jpg<br>NASA发布Artemis II宇航员拍摄的首批月球飞掠照片，展示了人类从未见过的月球背面区域及罕见的太空日食景象。<br><br>### 其他 7 条<br>- Artemis II捕捉壮观“地落”景象 | NASA | 2026-04-07T18:54:50+00:00 | https://www.nasa.gov/image-article/earthset/ | 宇航员飞越月球背面时拍下地球在月球地平线落下的壮观景象，极具视觉冲击力。<br>- Artemis II机组返航途中休整 | NYT &gt; Science | 2026-04-08T01:39:55+00:00 | https://www.nytimes.com/2026/04/07/science/artemis-2-moon-nasa-astronauts-crew.html | 阿尔忒弥斯二号机组完成绕月飞行返航途中迎来休息日，任务进展顺利。<br>- 爱达荷州削减精神卫生服务致人死亡 | NYT &gt; Science | 2026-04-08T00:20:43+00:00 | https://www.nytimes.com/2026/04/07/health/idaho-mental-health-act-cuts.html | 爱达荷州削减精神分裂症患者服务引发死亡事件，迫使当局紧急回撤政策。<br>- 新研究揭示迷幻药物影响大脑机制 | NYT &gt; Science | 2026-04-07T20:45:48+00:00 | https://www.nytimes.com/2026/04/07/health/psychedelic-medicine-brain.html | 研究分析数百张大脑图像，揭示迷幻药物如何驱动大脑活动及潜在医疗用途。<br>- 灵长类学家Biruté Galdikas逝世 | NYT &gt; Science | 2026-04-07T20:21:12+00:00 | https://www.nytimes.com/2026/04/02/science/earth/birute-galdikas-dead.html | 与珍·古道尔齐名的灵长类动物学家Biruté Galdikas辞世，毕生致力于红毛猩猩保护。<br>- Artemis II宇航员完成绕月飞行返航 | NYT &gt; Science | 2026-04-07T20:10:33+00:00 | https://www.nytimes.com/2026/04/06/science/space/nasa-artemis-moon-flyby.html | 四名宇航员完成绕月飞行抵达距地球最远点，返程观测日食，总统特朗普通话致贺。<br>- Artemis II宇航员命名陨石坑致敬指令长亡妻 | NYT &gt; Science | 2026-04-07T18:26:11+00:00 | https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html | 机组人员将月球陨石坑命名为指令长已故妻子之名，展现太空探索背后的人性光辉。<br></div><h3>draft_json</h3><pre>{
+  &quot;政治经济&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 14,
+      &quot;title&quot;: &quot;英国食物银行扩建应对需求激增，折射民生经济压力&quot;,
+      &quot;source_media&quot;: &quot;BBC News&quot;,
+      &quot;published_at&quot;: &quot;2026-04-08T05:09:56+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cy01k55ygl7o?at_medium=RSS&amp;at_campaign=rss&quot;,
+      &quot;images&quot;: [
+        &quot;https://ichef.bbci.co.uk/news/1024/branded_news/4690/live/53db92c0-3299-11f1-8cba-9df81803c83c.jpg&quot;,
+        &quot;https://static.files.bbci.co.uk/bbcdotcom/web/20260401-100641-27b89b8af6-2.44.0-3/grey-placeholder.png&quot;,
+        &quot;https://ichef.bbci.co.uk/news/480/cpsprodpb/4690/live/53db92c0-3299-11f1-8cba-9df81803c83c.jpg.webp&quot;
+      ],
+      &quot;summary_zh&quot;: &quot;Stratford 食物银行因需求激增计划搬迁至更大场所，这一微观变化折射出当地日益严峻的民生经济压力。&quot;,
+      &quot;brief_zh&quot;: &quot;英国食物银行因需求激增扩建。&quot;,
+      &quot;is_primary_candidate&quot;: false,
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Stratford Foodbank is preparing to move to a larger unit, to meet growing demand for its services.&quot;,
+        &quot;candidate_rank&quot;: 2,
+        &quot;relevance_note&quot;: &quot;反映经济下行压力下的社会民生现状，作为经济板块的软性补充素材，且源素材含图，适合丰富版面。&quot;,
+        &quot;generation_mode&quot;: &quot;llm&quot;,
+        &quot;generation_error&quot;: &quot;&quot;
+      }
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 16,
+        &quot;title&quot;: &quot;停火开启伊朗“10点计划”谈判窗口&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:04:37+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/video/newsfeed/2026/4/8/us-ceasefire-allows-negotiations-on-irans-workable-10-point-plan?traffic_source=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://www.aljazeera.com/wp-content/uploads/2026/04/image-1775624663.jpg?resize=1920%2C1080&amp;quality=80&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;特朗普宣布的停火协议为伊朗“可行”10点计划的谈判开启窗口，标志着地缘冲突正向外交谈判转化。&quot;,
+        &quot;brief_zh&quot;: &quot;停火为伊朗核问题谈判铺路。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Donald Trump’s announcement of a two-week ceasefire paves the way for negotiations on Iran&#x27;s 10-point plan.&quot;,
+          &quot;candidate_rank&quot;: 4,
+          &quot;relevance_note&quot;: &quot;提供了停火后的具体政治解决方案线索，补充了头条新闻的后续展望，具有较高情报价值。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 17,
+        &quot;title&quot;: &quot;巴基斯坦斡旋促成美伊停火，展现关键地缘角色&quot;,
+        &quot;source_media&quot;: &quot;BBC News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:03:31+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.bbc.com/news/articles/cj401qvgg19o?at_medium=RSS&amp;at_campaign=rss&quot;,
+        &quot;images&quot;: [
+          &quot;https://ichef.bbci.co.uk/news/1024/branded_news/0bc6/live/dc5f72b0-3302-11f1-9fa9-a19ec9096555.jpg&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;巴基斯坦利用与伊朗的历史渊源促成脆弱停火，展示了地区国家在化解大国冲突中的关键外交角色。&quot;,
+        &quot;brief_zh&quot;: &quot;巴基斯坦斡旋美伊停火，展现地缘外交关键作用。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Pakistan has a historic relationship with Iran, but an agreement was far from certain, writes the BBC’s Caroline Davies&quot;,
+          &quot;candidate_rank&quot;: 5,
+          &quot;relevance_note&quot;: &quot;直接涉及大国博弈、地缘政治冲突降温及外交斡旋，高度契合政治经济板块的核心关注点。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 18,
+        &quot;title&quot;: &quot;纽约时报深入调查试图揭开比特币创造者中本聪真身&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Business&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T04:40:26+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/video/business/100000010821603/unraveling-the-mystery-behind-bitcoins-creator.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;纽约时报记者历时18个月深挖档案，试图确认比特币发明者“中本聪”的真实身份。&quot;,
+        &quot;brief_zh&quot;: &quot;NYT调查记者深挖中本聪身份，探寻加密货币源头。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Our investigative reporter John Carreyrou spent 18 months digging through the archives of online cryptography communities in search of the identity of Satoshi Nakamoto, the anonymous inventor of bitcoin.&quot;,
+          &quot;candidate_rank&quot;: 6,
+          &quot;relevance_note&quot;: &quot;涉及重大经济金融谜团与深度调查报道，属于经济领域的重磅独家内容，符合板块质量要求。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 20,
+        &quot;title&quot;: &quot;伊朗民众悼念米纳布学校空袭遇难者&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T04:29:15+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/video/newsfeed/2026/4/8/iranians-commemorate-victims-of-minab-school-strike?traffic_source=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;伊朗民众集会悼念美军空袭米纳布女子学校的168名遇难者，凸显冲突对平民的惨痛伤害。&quot;,
+        &quot;brief_zh&quot;: &quot;伊朗悼念美军空袭遇难者，冲突人道代价引关注。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Iranians have commemorated the victims of the US strike on a girls school in Minab, that killed 168 people.&quot;,
+          &quot;candidate_rank&quot;: 8,
+          &quot;relevance_note&quot;: &quot;提供冲突现场的后续视角，补充政治军事新闻的人道主义维度，适合作为相关主新闻的辅助素材。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 19,
+        &quot;title&quot;: &quot;美国政界对伊朗停火反应不一，折射外交极化困境&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T04:34:31+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/8/caution-relief-as-us-politicians-respond-to-trumps-ceasefire-with-iran?traffic_source=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;共和党怀疑谈判与民主党欢迎停火并存，折射美国外交政策在国内的极化困境。&quot;,
+        &quot;brief_zh&quot;: &quot;美两党对伊朗停火反应分裂，折射外交政策极化。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Republican hawks voice scepticism about talks with Tehran as Democrats welcome the truce and call for accountability.&quot;,
+          &quot;candidate_rank&quot;: 7,
+          &quot;relevance_note&quot;: &quot;紧扣美国国内政治动态与外交成果的联动，政治属性强，且与前述停火新闻形成良好的事件闭环。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 21,
+        &quot;title&quot;: &quot;国际社会欢迎美伊停火，呼吁中东实现持久和平&quot;,
+        &quot;source_media&quot;: &quot;Al Jazeera – Breaking News, World News and Video from Al Jazeera&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T04:23:34+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.aljazeera.com/news/2026/4/8/world-welcomes-us-iran-ceasefire-urges-lasting-peace-in-the-middle-east?traffic_source=rss&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;多国表态支持美伊停火并赞赏巴基斯坦斡旋，显著缓解了中东紧张局势。&quot;,
+        &quot;brief_zh&quot;: &quot;美伊停火获国际欢迎，巴基斯坦斡旋受赞。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Countries urge full commitment to two-week ceasefire, praise Pakistan for role in facilitating truce.&quot;,
+          &quot;candidate_rank&quot;: 9,
+          &quot;relevance_note&quot;: &quot;地缘政治重大突破，直接影响中东局势，符合板块定位。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 13,
+        &quot;title&quot;: &quot;美伊以达成停火协议，霍尔木兹海峡危机暂缓&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:58:11+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/live/2026/04/07/world/iran-war-trump-news&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;美伊以在最后期限前达成停火，避免霍尔木兹海峡局势恶化，保障全球能源通道安全。&quot;,
+        &quot;brief_zh&quot;: &quot;美伊以三方达成停火，霍尔木兹海峡危机暂缓。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The deal came shortly before President Trump’s deadline for Iran to reopen the Strait of Hormuz or face devastation. Israel said the cease-fire did not include Lebanon.&quot;,
+          &quot;candidate_rank&quot;: 1,
+          &quot;relevance_note&quot;: &quot;核心地缘政治事件，直接影响全球石油供应与经济稳定，符合板块定位，建议作为头条候选。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 15,
+        &quot;title&quot;: &quot;美伊在最后关头达成两周停火协议&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; World News&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:04:49+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/world/iran-deadline-jd-vance-hungary-election.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;在特朗普发出严厉威胁后，美伊双方在最后关头达成两周停火协议，暂时避免了冲突升级。&quot;,
+        &quot;brief_zh&quot;: &quot;美伊在最后时刻达成停火。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The U.S. and Iran reached a two-week cease-fire agreement, hours after President Trump threatened to wipe out a “whole civilization.”&quot;,
+          &quot;candidate_rank&quot;: 3,
+          &quot;relevance_note&quot;: &quot;与条目0为同一事件的不同报道侧重点，强调谈判过程的惊险，可作为关联候选丰富报道维度。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 22,
+        &quot;title&quot;: &quot;美伊停火引发油价暴跌股市飙升&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Business&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T04:16:27+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/08/business/oil-stocks-gas-prices-iran.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;受美伊停火影响，全球市场避险情绪降温，油价大幅下跌而股市强劲反弹。&quot;,
+        &quot;brief_zh&quot;: &quot;美伊停火引发油价跌股市涨。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Markets reacted positively after the United States and Iran reached a last-minute cease-fire agreement.&quot;,
+          &quot;candidate_rank&quot;: 10,
+          &quot;relevance_note&quot;: &quot;地缘政治的直接经济后果，典型的政经联动题材。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ]
+  },
+  &quot;科技&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 38,
+      &quot;title&quot;: &quot;Google 悄然发布支持离线运行的 AI 听写应用&quot;,
+      &quot;source_media&quot;: &quot;TechCrunch&quot;,
+      &quot;published_at&quot;: &quot;2026-04-08T05:40:19+00:00&quot;,
+      &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/google-quietly-releases-an-offline-first-ai-dictation-app-on-ios/&quot;,
+      &quot;images&quot;: [
+        &quot;https://techcrunch.com/wp-content/uploads/2026/02/google-logo.jpg?resize=1200,800&quot;,
+        &quot;https://techcrunch.com/wp-content/uploads/2024/09/tc-lockup.svg&quot;,
+        &quot;https://techcrunch.com/wp-content/uploads/2024/09/tc-logo-mobile.svg&quot;
+      ],
+      &quot;summary_zh&quot;: &quot;Google 推出基于 Gemma 模型的离线听写应用，无需联网即可运行，直接对标 Wispr Flow 等竞品，展示了大模型在端侧落地的最新尝试。&quot;,
+      &quot;brief_zh&quot;: &quot;Google 推离线 AI 听写应用&quot;,
+      &quot;is_primary_candidate&quot;: true,
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;Google&#x27;s new offline-first dictation app uses Gemma AI models to take on the apps like Wispr Flow.&quot;,
+        &quot;candidate_rank&quot;: 1,
+        &quot;relevance_note&quot;: &quot;涉及 AI 大模型端侧落地与 Google 新品发布，属于核心科技新闻，且具备较高的行业参考价值。&quot;,
+        &quot;generation_mode&quot;: &quot;llm&quot;,
+        &quot;generation_error&quot;: &quot;&quot;
+      }
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 39,
+        &quot;title&quot;: &quot;Valve 为 Vision Pro 推出原生 Steam Link 应用&quot;,
+        &quot;source_media&quot;: &quot;Ars Technica - All content&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T22:21:21+00:00&quot;,
+        &quot;link&quot;: &quot;https://arstechnica.com/gaming/2026/04/valve-brings-native-steam-link-app-to-apples-vision-pro/&quot;,
+        &quot;images&quot;: [
+          &quot;https://cdn.arstechnica.net/wp-content/uploads/2024/02/Vision-Pro-HMD-1152x648.jpeg&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;Valve 为 Apple Vision Pro 发布原生版 Steam Link 应用，解决了第三方方案体验不佳的问题，让用户能更流畅地串流 PC 游戏。&quot;,
+        &quot;brief_zh&quot;: &quot;Steam Link 登陆 Vision Pro&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;New app can replace third-party options that were jankier to use.&quot;,
+          &quot;candidate_rank&quot;: 2,
+          &quot;relevance_note&quot;: &quot;涉及苹果 Vision Pro 生态扩展及游戏串流技术，硬件与软件结合度高，符合科技板块对前沿硬件生态的关注。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 40,
+        &quot;title&quot;: &quot;Nothing CMF Buds 2A 降噪耳机限时降价至 19.99 美元&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T22:16:21+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/gadgets/908409/nothing-cmf-buds-2a-earbuds-amazon-lightning-deal-sale&quot;,
+        &quot;images&quot;: [
+          &quot;https://platform.theverge.com/wp-content/uploads/sites/2/2026/04/CMF-Buds-2a-in-Dark-Grey.jpg?quality=90&amp;strip=all&amp;crop=0%2C3.4613147178592%2C100%2C93.077370564282&amp;w=1200&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;Nothing 旗下 CMF Buds 2A 降噪耳机闪电促销价降至 19.99 美元，支持主动降噪和通透模式，性价比突出。&quot;,
+        &quot;brief_zh&quot;: &quot;CMF Buds 2A 限时降价&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;It’s not every day you find a decent pair of wireless earbuds with active noise cancellation, a transparency mode, and app support for less than $20, which is why the current lighting deal on the CMF Buds 2A stands out. Now through 11:15PM ET today, April 7th, Nothing’s budget earbuds are available on Amazon in […]&quot;,
+          &quot;candidate_rank&quot;: 3,
+          &quot;relevance_note&quot;: &quot;属于消费数码类促销信息，时效性强但硬科技属性较弱，适合作为板块内的短资讯或填充内容。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 41,
+        &quot;title&quot;: &quot;苹果与联想笔记本可维修性评分垫底&quot;,
+        &quot;source_media&quot;: &quot;Ars Technica - All content&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T22:08:32+00:00&quot;,
+        &quot;link&quot;: &quot;https://arstechnica.com/gadgets/2026/04/apple-has-the-lowest-grades-in-laptop-phone-repairability-analysis/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;最新报告显示苹果与联想笔记本可维修性评分垫底，MacBook Neo 设计思路有所转变。&quot;,
+        &quot;brief_zh&quot;: &quot;苹果联想笔记本难维修&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The MacBook Neo is a step in the right direction, though.&quot;,
+          &quot;candidate_rank&quot;: 4,
+          &quot;relevance_note&quot;: &quot;涉及硬件维修权议题及行业分析，属于具有深度的科技产业新闻，适合作为板块内的深度资讯补充。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 42,
+        &quot;title&quot;: &quot;亚马逊将停止旧款 Kindle 设备的商店服务&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T21:44:20+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/tech/908302/amazon-ending-support-kindle-fire-tablet-e-reader-pre-2012-older&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;亚马逊宣布 5 月 20 日起停止 2012 年及更早款 Kindle 和 Fire 平板的商店服。&quot;,
+        &quot;brief_zh&quot;: &quot;亚马逊将停止旧款 Kindle 设备的商店服务&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Amazon has announced that starting on May 20th, 2026, Kindle e-readers and Kindle Fire devices released in 2012 and earlier will \&quot;no longer be able to purchase, borrow, or download new content via the Kindle Store,\&quot; Amazon spokesperson Jackie Burke wrote in an email to The Verge. Users will still be able to read books […]&quot;,
+          &quot;candidate_rank&quot;: 5,
+          &quot;relevance_note&quot;: &quot;硬件生命周期管理的重大变动，直接影响存量用户权益，属于典型的消费科技新闻，适合作为板块重要资讯。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 43,
+        &quot;title&quot;: &quot;初创公司 Arcee 凭借开源 AI 模型获市场关注&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T21:35:02+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/i-cant-help-rooting-for-tiny-open-source-ai-model-maker-arcee/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;仅 26 人的初创公司 Arcee 推出高性能开源大模型，展示小团队对抗巨头的新趋势。&quot;,
+        &quot;brief_zh&quot;: &quot;26 人初创 Arcee 推出高性能开源大模型&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Arcee is a tiny 26-person U.S. startup that built a high-performing, massive, open source LLM. And it&#x27;s gaining popularity with OpenClaw users.&quot;,
+          &quot;candidate_rank&quot;: 6,
+          &quot;relevance_note&quot;: &quot;AI 领域的初创公司动态，反映了开源模型赛道的竞争格局，符合科技板块对 AI 趋势的关注点。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 44,
+        &quot;title&quot;: &quot;风投 Eclipse 募资 13 亿美元押注“物理 AI”&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T21:24:54+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/vc-eclipse-has-a-new-1-3b-to-back-and-build-physical-ai-startups/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;风投 Eclipse 成立 13 亿美元新基金，重点投资“物理 AI”领域的初创公司。&quot;,
+        &quot;brief_zh&quot;: &quot;Eclipse 设立 13 亿美元基金投资物理 AI&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Eclipse will put some of that money towards incubating, or building startups.&quot;,
+          &quot;candidate_rank&quot;: 7,
+          &quot;relevance_note&quot;: &quot;一级市场大额融资新闻，涉及“物理 AI”这一前沿概念，对科技行业投融资趋势有重要参考价值。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 45,
+        &quot;title&quot;: &quot;Spotify 将“提示播放列表”功能扩展至播客&quot;,
+        &quot;source_media&quot;: &quot;The Verge&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:13:23+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.theverge.com/entertainment/908339/spotify-prompted-playlists-podcasts&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;Spotify 更新功能，允许 Premium 用户通过生成定制化列表发现新的播客节目。&quot;,
+        &quot;brief_zh&quot;: &quot;Spotify 推出播客发现新功能&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;On Tuesday, Spotify expanded its Prompted Playlists feature to include podcasts, an update that could make it easier for Premium users to find new shows to listen to. Prompted Playlists were originally launched as a beta feature in December, but previously only worked for music. You can use the feature to effectively generate customized Discover […]&quot;,
+          &quot;candidate_rank&quot;: 8,
+          &quot;relevance_note&quot;: &quot;主流流媒体平台的产品功能更新，涉及播客生态，属于常规科技产品动态。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 46,
+        &quot;title&quot;: &quot;深度报道揭示 AI 行业内部的混乱与野心&quot;,
+        &quot;source_media&quot;: &quot;Ars Technica - All content&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:02:25+00:00&quot;,
+        &quot;link&quot;: &quot;https://arstechnica.com/tech-policy/2026/04/what-the-heck-is-wrong-with-our-ai-overlords/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;关于 Sam Altman 的新深度报道揭示 AI 行业内部的混乱与野心，引发伦理反思。&quot;,
+        &quot;brief_zh&quot;: &quot;Sam Altman 传记引发的行业反思。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;New profile of Sam Altman shines a light on a whole industry.&quot;,
+          &quot;candidate_rank&quot;: 9,
+          &quot;relevance_note&quot;: &quot;AI 行业深度分析，热点人物。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 47,
+        &quot;title&quot;: &quot;美国机构警告伊朗黑客瞄准关键基础设施&quot;,
+        &quot;source_media&quot;: &quot;TechCrunch&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T19:59:06+00:00&quot;,
+        &quot;link&quot;: &quot;https://techcrunch.com/2026/04/07/iranian-hackers-are-targeting-american-critical-infrastructure-u-s-agencies-warn/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;美国多家机构联合警告伊朗黑客正瞄准关键基础设施，攻击战术出现升级。&quot;,
+        &quot;brief_zh&quot;: &quot;美国警告伊朗黑客攻击升级。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;A joint FBI, NSA, and CISA advisory warns that Iranian hackers have \&quot;escalated\&quot; their tactics in response to the ongoing U.S.-Israel war with Iran.&quot;,
+          &quot;candidate_rank&quot;: 10,
+          &quot;relevance_note&quot;: &quot;网络安全，地缘政治科技。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ]
+  },
+  &quot;体育娱乐&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 1,
+      &quot;title&quot;: &quot;ESPN发布2026-27赛季NCAA女篮转校球员排名榜&quot;,
+      &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+      &quot;published_at&quot;: &quot;2026-04-08T06:15:43+00:00&quot;,
+      &quot;link&quot;: &quot;https://www.espn.com/womens-college-basketball/story/_/id/48416462/women-ncaa-basketball-transfer-portal-player-rankings-2026-27-season&quot;,
+      &quot;images&quot;: [
+        &quot;https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F1130%2Fr1582922_1296x729_16%2D9.jpg&quot;,
+        &quot;https://a.espncdn.com/redesign/assets/img/logos/ESPNcom-powerby-espnw.png&quot;,
+        &quot;https://a1.espncdn.com/combiner/i?img=%2Fredesign%2Fassets%2Fimg%2Ficons%2FESPN%2Dicon%2Dbasketball.png&amp;w=40&amp;h=40&amp;scale=crop&amp;cquality=40&amp;location=origin&quot;
+      ],
+      &quot;summary_zh&quot;: &quot;ESPN更新新赛季NCAA女篮转校市场球员排名，梳理出最具价值的流动人才，为观察联盟格局变动与选秀走势提供重要参考。&quot;,
+      &quot;brief_zh&quot;: &quot;NCAA女篮转校市场球员排名更新。&quot;,
+      &quot;is_primary_candidate&quot;: true,
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;null&quot;,
+        &quot;candidate_rank&quot;: 1,
+        &quot;relevance_note&quot;: &quot;属于核心体育竞技范畴，数据详实，适合作为板块常规资讯填充。&quot;,
+        &quot;generation_mode&quot;: &quot;llm&quot;,
+        &quot;generation_error&quot;: &quot;&quot;
+      }
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 2,
+        &quot;title&quot;: &quot;美国大师赛前瞻：舍弗勒对决德尚博成焦点&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T06:04:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/golf/story/_/id/48412522/top-storylines-scottie-scheffler-bryson-dechambeau-masters-2026&quot;,
+        &quot;images&quot;: [
+          &quot;https://a2.espncdn.com/combiner/i?img=%2Fphoto%2F2026%2F0406%2Fr1639431_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;年度首场高尔夫大满贯开赛在即，焦点集中于世界第一舍弗勒能否延续统治，以及德尚博等挑战者的突围机会。&quot;,
+        &quot;brief_zh&quot;: &quot;高尔夫大师赛开打在即，球星看点全解析。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Is Scottie Scheffler still the favorite? Can Bryson DeChambeau break through? How hard could the course play? We break down what to watch at the 2026 Masters.&quot;,
+          &quot;candidate_rank&quot;: 2,
+          &quot;relevance_note&quot;: &quot;顶级高尔夫赛事前瞻，明星效应显著，图文并茂，适合作为体育板块重点内容。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 3,
+        &quot;title&quot;: &quot;WNBA重磅交易：安吉尔·里斯转投亚特兰大梦想队&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T06:01:44+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/wnba/story/_/id/48412968/wnba-trade-grades-2026-free-agency-winners-losers&quot;,
+        &quot;images&quot;: [
+          &quot;https://a4.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F0703%2Fr1514464_1296x729_16%2D9.jpg&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;WNBA自由市场首日爆出大动作，明星球员安吉尔·里斯离开芝加哥天空队转投亚特兰大梦想队，这笔交易将改变联盟实力版图。&quot;,
+        &quot;brief_zh&quot;: &quot;WNBA明星球员里斯转会亚特兰大。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;On the first day of WNBA free agency, Angel Reese is headed to Atlanta after two seasons in Chicago.&quot;,
+          &quot;candidate_rank&quot;: 3,
+          &quot;relevance_note&quot;: &quot;涉及明星球员转会，话题性强，符合体育娱乐板块对流量内容的诉求，推荐置顶。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 5,
+        &quot;title&quot;: &quot;独行侠反驳雷迪克：否认弄错里夫斯MRI检查部位&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nba/story/_/id/48424364/mavericks-dispute-redick-claim-erred-reaves-mri&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;独行侠官方回应湖人主帅雷迪克指控，坚决否认医疗团队弄错里夫斯MRI检查部位。&quot;,
+        &quot;brief_zh&quot;: &quot;独行侠否认医疗失误指控，反驳雷迪克言论。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Mavericks disputed Lakers coach JJ Redick&#x27;s claim that their medical team examined the wrong part of Austin Reaves&#x27; body when the Lakers guard received an MRI by the Mavs&#x27; staff.&quot;,
+          &quot;candidate_rank&quot;: 5,
+          &quot;relevance_note&quot;: &quot;NBA球队间的医疗争议具有较高话题度，涉及知名球员和教练，符合体育娱乐板块的冲突性叙事需求。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 7,
+        &quot;title&quot;: &quot;前NBA名帅马龙出任北卡男篮主帅&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mens-college-basketball/story/_/id/48425089/malone-sees-chance-part-special-unc&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;迈克尔·马龙正式出任北卡男篮主帅，称这是唯一能让他离开NBA的大学职位。&quot;,
+        &quot;brief_zh&quot;: &quot;NBA名帅马龙转战NCAA，执掌北卡教鞭。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;New Tar Heels coach Michael Malone called North Carolina the only college job he would&#x27;ve accepted, saying he recognizes he has a \&quot;chance to be a part of something special\&quot; there.&quot;,
+          &quot;candidate_rank&quot;: 7,
+          &quot;relevance_note&quot;: &quot;NBA资深教练转战大学篮球界属于重磅新闻，涉及名校北卡，具有较高关注度，符合体育板块深度内容需求。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 9,
+        &quot;title&quot;: &quot;UConn名帅奥列马为四强赛失态道歉&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/womens-college-basketball/story/_/id/48425047/uconn-auriemma-apologizes-staley&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;UConn女篮主帅奥列马就四强赛期间对南卡主帅的不当行为致歉，承认情绪失控。&quot;,
+        &quot;brief_zh&quot;: &quot;NCAA名帅就四强赛失态公开道歉&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;UConn Huskies coach Geno Auriemma said in a statement Tuesday night that he lost himself with his behavior toward South Carolina coach Dawn Staley during his team&#x27;s Final Four defeat last Friday.&quot;,
+          &quot;candidate_rank&quot;: 9,
+          &quot;relevance_note&quot;: &quot;涉及顶级大学联赛教练冲突与和解，具备体育伦理讨论价值，属于高关注度赛事后续。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 10,
+        &quot;title&quot;: &quot;NHL雪崩队锁定中部赛区冠军及西部第一&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/nhl/story/_/id/48426007/colorado-avalanche-clinch-central-division-west-top-seed&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;科罗拉多雪崩队击败蓝调队，锁定中部赛区冠军及西部头号种子席位。&quot;,
+        &quot;brief_zh&quot;: &quot;NHL雪崩队锁定西部第一&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Colorado Avalanche defeated the St. Louis Blues 3-1 on Tuesday night to clinch Central Division and secure the No. 1 seed in the Western Conference, but after the win, coach Jared Bednar was quick to caution his team is \&quot;not all the way there yet.\&quot;&quot;,
+          &quot;candidate_rank&quot;: 10,
+          &quot;relevance_note&quot;: &quot;NHL季后赛重要里程碑新闻，赛事结果明确，适合作为常规体育战报收录。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 4,
+        &quot;title&quot;: &quot;欧冠：阿森纳险胜葡萄牙体育&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:46:21+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/soccer/story/_/id/48423856/fine-margins-define-arsenals-title-hopes-season&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;阿森纳在欧冠四分之一决赛中凭借最后时刻进球惊险战胜葡萄牙体育，争冠形势向好。&quot;,
+        &quot;brief_zh&quot;: &quot;阿森纳欧冠险胜，争冠形势分析。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Arsenal won it very late against Sporting CP in their UEFA Champions League quarterfinals match.&quot;,
+          &quot;candidate_rank&quot;: 4,
+          &quot;relevance_note&quot;: &quot;欧冠赛事战报结合深度分析，豪门球队动态，属于高质量体育新闻。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 8,
+        &quot;title&quot;: &quot;科罗拉多大学四分卫车祸身亡，尸检证实酒驾&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/college-football/story/_/id/48422979/colorado-qb-dominiq-ponder-bac-double-limit-fatal-crash&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;科罗拉多大学四分卫庞德车祸身亡，尸检显示其血液酒精浓度超法定限值两倍。&quot;,
+        &quot;brief_zh&quot;: &quot;大学球员车祸身亡，涉严重酒驾。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Colorado quarterback Dominiq Ponder had a blood alcohol level twice the legal limit for driving under the influence when he died in a single-car crash near Boulder on March 1.&quot;,
+          &quot;candidate_rank&quot;: 8,
+          &quot;relevance_note&quot;: &quot;虽然是悲剧新闻，但涉及大学橄榄球明星球员的意外身亡与酒驾问题，社会关注度高，属于体育界严肃新闻，需谨慎处理但不可或缺。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 6,
+        &quot;title&quot;: &quot;MLB赛场爆发群殴：天使与勇士球员大打出手&quot;,
+        &quot;source_media&quot;: &quot;www.espn.com - TOP&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T05:41:18+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.espn.com/mlb/story/_/id/48426065/angels-soler-braves-lopez-ejected-benches-clear-brawl&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;天使队索勒因不满内角球冲向投手丘，引发双方大规模冲突，两人遭驱逐。&quot;,
+        &quot;brief_zh&quot;: &quot;MLB赛场爆发激烈群殴，索勒冲撞投手丘。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Angels DH Jorge Soler charged the mound after Braves starter Reynaldo Lopez threw a high inside pitch, as both players threw punches amid a bench-clearing brawl in the fifth inning of Tuesday&#x27;s game.&quot;,
+          &quot;candidate_rank&quot;: 6,
+          &quot;relevance_note&quot;: &quot;职业棒球赛场罕见的全武行，冲突画面极具传播力，图片素材丰富（3张），非常适合作为体育娱乐板块的视觉焦点。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ]
+  },
+  &quot;其他&quot;: {
+    &quot;main&quot;: {
+      &quot;id&quot;: 26,
+      &quot;title&quot;: &quot;NASA卫星捕捉猛犸湖附近壮观火山地貌&quot;,
+      &quot;source_media&quot;: &quot;NASA&quot;,
+      &quot;published_at&quot;: &quot;2026-04-08T04:01:00+00:00&quot;,
+      &quot;link&quot;: &quot;https://science.nasa.gov/earth/earth-observatory/a-volcanic-medley-near-mammoth-lakes/&quot;,
+      &quot;images&quot;: [
+        &quot;https://assets.science.nasa.gov/content/dam/science/esd/eo/images/iotd/2026/a-volcanic-medley-near-mammoth-lakes-/mammothlakes_oli2_20260329_th.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg&quot;,
+        &quot;https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png&quot;,
+        &quot;https://images-assets.nasa.gov/image/art002e008486/art002e008486~large.jpg?w=1920&amp;h=1440&amp;fit=clip&amp;crop=faces%2Cfocalpoint&quot;
+      ],
+      &quot;summary_zh&quot;: &quot;NASA发布卫星影像，展示内华达山脉东部古老火山口与新近火山坑共同塑造的独特地理景观，画面极具视觉冲击力。&quot;,
+      &quot;brief_zh&quot;: &quot;NASA卫星捕捉猛犸湖火山地貌，配图精美。&quot;,
+      &quot;is_primary_candidate&quot;: true,
+      &quot;metadata&quot;: {
+        &quot;summary_en&quot;: &quot;A massive, old caldera and more recently formed craters shape the landscape in the eastern Sierra Nevada.&quot;,
+        &quot;candidate_rank&quot;: 1,
+        &quot;relevance_note&quot;: &quot;符合&#x27;其他&#x27;板块对高质量科普视觉素材的需求，满足min_with_images要求，建议作为首选图片素材。&quot;,
+        &quot;generation_mode&quot;: &quot;llm&quot;,
+        &quot;generation_error&quot;: &quot;&quot;
+      }
+    },
+    &quot;secondary&quot;: [
+      {
+        &quot;id&quot;: 27,
+        &quot;title&quot;: &quot;NASA发布四月观星指南：聚焦狮子座天象奇观&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T03:01:24+00:00&quot;,
+        &quot;link&quot;: &quot;https://science.nasa.gov/solar-system/skywatching/night-sky-network/celestial-wonders-in-leo/&quot;,
+        &quot;images&quot;: [
+          &quot;https://science.nasa.gov/wp-content/uploads/2023/04/heic1006a-jpg.webp&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;NASA推荐四月观测狮子座，其标志性的“镰刀”造型、亮星轩辕十四及著名双星和星系三重奏值得关注。&quot;,
+        &quot;brief_zh&quot;: &quot;NASA推荐四月狮子座观测亮点，图文并茂。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Leo is a prominent sight for stargazers in April. Its famous sickle, punctuated by the bright star Regulus, draws many a beginning stargazer’s eyes, inviting deeper looks into some of Leo’s celestial delights, including a great double star and a famous galactic trio. Leo’s distinctive forward sickle, or “reverse question mark,” is easy to spot […]&quot;,
+          &quot;candidate_rank&quot;: 2,
+          &quot;relevance_note&quot;: &quot;符合&#x27;其他&#x27;板块的天文科普定位，图片资源丰富，可满足min_with_images要求，建议作为主要候选。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 32,
+        &quot;title&quot;: &quot;Artemis II宇航员传回首批月球飞掠照片&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:44:05+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/news-release/nasas-artemis-ii-crew-beams-official-moon-flyby-photos-to-earth/&quot;,
+        &quot;images&quot;: [
+          &quot;https://images-assets.nasa.gov/image/art002e009571/art002e009571~large.jpg&quot;
+        ],
+        &quot;summary_zh&quot;: &quot;NASA发布Artemis II宇航员拍摄的首批月球飞掠照片，展示了人类从未见过的月球背面区域及罕见的太空日食景象。&quot;,
+        &quot;brief_zh&quot;: &quot;Artemis II 宇航员传回首批月球飞掠照片&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The first flyby images of the Moon captured by NASA’s Artemis II astronauts during their historic test flight reveal some regions no human has seen, including a rare in-space solar eclipse. Released Tuesday, astronauts captured the images April 6 during the mission’s seven-hour flyby of the lunar far side, showing humanity’s return to the Moon’s […]&quot;,
+          &quot;candidate_rank&quot;: 7,
+          &quot;relevance_note&quot;: &quot;重大航天成就，官方权威发布，配有高质量图片，是本板块的核心视觉素材。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ],
+    &quot;briefs&quot;: [
+      {
+        &quot;id&quot;: 35,
+        &quot;title&quot;: &quot;Artemis II捕捉壮观“地落”景象&quot;,
+        &quot;source_media&quot;: &quot;NASA&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:54:50+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nasa.gov/image-article/earthset/&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;宇航员飞越月球背面时拍下地球在月球地平线落下的壮观景象，极具视觉冲击力。&quot;,
+        &quot;brief_zh&quot;: &quot;Artemis II 宇航员拍摄到壮观的“地落”景象及月球背面地貌。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The Artemis II crew captured this view of Earth setting on April 6, 2026, as they flew around the Moon. As the astronauts flew over the Moon’s far side, the crew photographed and described terrain features including impact craters, ancient lava flows, and surface cracks and ridges formed as the Moon slowly evolved over time. […]&quot;,
+          &quot;candidate_rank&quot;: 10,
+          &quot;relevance_note&quot;: &quot;极佳的视觉素材，满足板块对图片内容的质量要求，能显著提升新闻吸引力。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 28,
+        &quot;title&quot;: &quot;Artemis II机组返航途中休整&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T01:39:55+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/science/artemis-2-moon-nasa-astronauts-crew.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;阿尔忒弥斯二号机组完成绕月飞行返航途中迎来休息日，任务进展顺利。&quot;,
+        &quot;brief_zh&quot;: &quot;阿尔忒弥斯二号机组返航途中休整，任务顺利。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The crew of the NASA mission had a quiet day as they flew home toward Earth.&quot;,
+          &quot;candidate_rank&quot;: 3,
+          &quot;relevance_note&quot;: &quot;重大航天任务进展，虽无配图但新闻价值高，符合&#x27;其他&#x27;板块对热点科技新闻的收录标准。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 29,
+        &quot;title&quot;: &quot;爱达荷州削减精神卫生服务致人死亡&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-08T00:20:43+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/health/idaho-mental-health-act-cuts.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;爱达荷州削减精神分裂症患者服务引发死亡事件，迫使当局紧急回撤政策。&quot;,
+        &quot;brief_zh&quot;: &quot;爱达荷州精神卫生削减政策致人死亡，政府紧急回调。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;Eliminating outreach to people with severe mental illness set off such a cascade of bad outcomes that Idaho has scrambled to reverse the cuts.&quot;,
+          &quot;candidate_rank&quot;: 4,
+          &quot;relevance_note&quot;: &quot;深度社会健康类报道，虽无配图但议题重要，适合作为&#x27;其他&#x27;板块的深度阅读补充。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 31,
+        &quot;title&quot;: &quot;新研究揭示迷幻药物影响大脑机制&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:45:48+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/07/health/psychedelic-medicine-brain.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;研究分析数百张大脑图像，揭示迷幻药物如何驱动大脑活动及潜在医疗用途。&quot;,
+        &quot;brief_zh&quot;: &quot;研究揭示迷幻药物对大脑的影响机制&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;An analysis of hundreds of images from several studies shows how hallucinogenic drugs drive activity in various regions of the brain.&quot;,
+          &quot;candidate_rank&quot;: 6,
+          &quot;relevance_note&quot;: &quot;前沿脑科学发现，公众关注度较高的健康科学话题，具备广泛读者吸引力。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 33,
+        &quot;title&quot;: &quot;灵长类学家Biruté Galdikas逝世&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:21:12+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/02/science/earth/birute-galdikas-dead.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;与珍·古道尔齐名的灵长类动物学家Biruté Galdikas辞世，毕生致力于红毛猩猩保护。&quot;,
+        &quot;brief_zh&quot;: &quot;著名灵长类学家 Biruté Galdikas 逝世&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;With Jane Goodall and Dian Fossey, she was one of three prominent researchers of great apes who were sometimes called the “trimates.”&quot;,
+          &quot;candidate_rank&quot;: 8,
+          &quot;relevance_note&quot;: &quot;科学界重要人物讣告，具有历史人文价值，适合作为板块内的深度人物素材。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 34,
+        &quot;title&quot;: &quot;Artemis II宇航员完成绕月飞行返航&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T20:10:33+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/science/space/nasa-artemis-moon-flyby.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;四名宇航员完成绕月飞行抵达距地球最远点，返程观测日食，总统特朗普通话致贺。&quot;,
+        &quot;brief_zh&quot;: &quot;Artemis II 宇航员完成绕月飞行返航，抵达人类最远距离。&quot;,
+        &quot;is_primary_candidate&quot;: true,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The NASA lunar flyby took the four crew members farther from Earth than any humans. They witnessed a solar eclipse and received praise in a call from President Trump.&quot;,
+          &quot;candidate_rank&quot;: 9,
+          &quot;relevance_note&quot;: &quot;重大科学突破与人类探索里程碑，符合“其他”板块对高关注度大事件的收录标准。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      },
+      {
+        &quot;id&quot;: 36,
+        &quot;title&quot;: &quot;Artemis II宇航员命名陨石坑致敬指令长亡妻&quot;,
+        &quot;source_media&quot;: &quot;NYT &gt; Science&quot;,
+        &quot;published_at&quot;: &quot;2026-04-07T18:26:11+00:00&quot;,
+        &quot;link&quot;: &quot;https://www.nytimes.com/2026/04/06/science/moon-crater-carroll-reid-wiseman.html&quot;,
+        &quot;images&quot;: [],
+        &quot;summary_zh&quot;: &quot;机组人员将月球陨石坑命名为指令长已故妻子之名，展现太空探索背后的人性光辉。&quot;,
+        &quot;brief_zh&quot;: &quot;宇航员将月球陨石坑命名为指令长已故妻子之名，展现人性光辉。&quot;,
+        &quot;is_primary_candidate&quot;: false,
+        &quot;metadata&quot;: {
+          &quot;summary_en&quot;: &quot;The crew shared an emotional moment with mission control and the family of Reid Wiseman, whose wife, Carroll, died in 2020, on the ground in Houston.&quot;,
+          &quot;candidate_rank&quot;: 11,
+          &quot;relevance_note&quot;: &quot;具有强情感共鸣的人文故事，丰富了硬核科技新闻的维度。&quot;,
+          &quot;generation_mode&quot;: &quot;llm&quot;,
+          &quot;generation_error&quot;: &quot;&quot;
+        }
+      }
+    ]
+  }
+}</pre></section></body>
+</html>

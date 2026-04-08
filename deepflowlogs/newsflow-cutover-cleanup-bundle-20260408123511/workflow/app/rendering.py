@@ -412,7 +412,8 @@ def render_materials_html(run_id: str) -> str:
     meta = get_run_meta(run_id)
     rows = fetch_all(
         """
-        SELECT section, id, task_id, title, source_media, published_at, link, jsonb_array_length(images), created_at
+        SELECT section, id, task_id, title, source_media, published_at, link, jsonb_array_length(images),
+               COALESCE(summary_zh, ''), COALESCE(brief_zh, ''), COALESCE(metadata->>'relevance_note', ''), created_at
         FROM materials
         WHERE run_id=%s
         ORDER BY section, published_at DESC, id DESC
@@ -425,12 +426,12 @@ def render_materials_html(run_id: str) -> str:
     sections = []
     for section, items in groups.items():
         cards = []
-        for _, material_id, task_id, title, source_media, published_at, link, image_count, created_at in items:
+        for _, material_id, task_id, title, source_media, published_at, link, image_count, summary_zh, brief_zh, relevance_note, created_at in items:
             cards.append(
                 f"""
                 <article class="review">
                   <header><strong>{escape(title)}</strong><span>{escape(source_media)}</span><span>images={image_count}</span><time>{escape(_fmt_ts(published_at))}</time></header>
-                  <div class="body">material_id={material_id} | task_id={escape(task_id)}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
+                  <div class="body">material_id={material_id} | task_id={escape(task_id)}<br>{escape(summary_zh).replace(chr(10), '<br>')}<br><br>brief={escape(brief_zh)}<br>why_selected={escape(relevance_note)}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
                 </article>
                 """
             )
@@ -442,7 +443,8 @@ def render_material_review_html(run_id: str) -> str:
     meta = get_run_meta(run_id)
     rows = fetch_all(
         """
-        SELECT i.section, i.review_task_id, i.material_id, m.title, m.source_media, m.link, i.verdict, i.reason, i.created_at
+        SELECT i.section, i.review_task_id, i.material_id, m.title, m.source_media, m.link,
+               COALESCE(m.summary_zh, ''), COALESCE(m.metadata->>'relevance_note', ''), i.verdict, i.reason, i.created_at
         FROM material_review_items i
         JOIN materials m ON m.id=i.material_id
         WHERE i.run_id=%s
@@ -456,13 +458,13 @@ def render_material_review_html(run_id: str) -> str:
     sections = []
     for section, items in groups.items():
         cards = []
-        for _, review_task_id, material_id, title, source_media, link, verdict, reason, created_at in items:
+        for _, review_task_id, material_id, title, source_media, link, summary_zh, relevance_note, verdict, reason, created_at in items:
             css = "approved" if verdict == "approved" else "rejected"
             cards.append(
                 f"""
                 <article class="review {css}">
                   <header><strong>{escape(title)}</strong><span>{escape(verdict)}</span><span>{escape(source_media)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
-                  <div class="body">review_task_id={escape(review_task_id)} | material_id={material_id}<br>{escape(reason)}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
+                  <div class="body">review_task_id={escape(review_task_id)} | material_id={material_id}<br>{escape(summary_zh).replace(chr(10), '<br>')}<br><br>candidate_note={escape(relevance_note)}<br>review={escape(reason).replace(chr(10), '<br>')}<br><a href="{escape(link)}" target="_blank">{escape(link)}</a></div>
                 </article>
                 """
             )

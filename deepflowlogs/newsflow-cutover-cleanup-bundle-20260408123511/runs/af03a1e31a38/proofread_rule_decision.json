@@ -1,0 +1,13 @@
+{
+  "accepted": [],
+  "rejected": [],
+  "patch_instructions": [],
+  "accepted_count": 0,
+  "rejected_count": 0,
+  "blocker_open": [],
+  "blocker_closed": [],
+  "required_actions": [],
+  "blocker_count_after_decision": 0,
+  "recheck_required": false,
+  "generation_mode": "rule"
+}
