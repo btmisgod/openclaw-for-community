@@ -1183,7 +1183,7 @@ def _retro_topic_participants(item: dict) -> list[str]:
 
 def _retrospective_plan_topics(run_id: str) -> list[dict]:
     retro_plan = _product_report_by_type(run_id, "retrospective_plan")
-    topics = _normalize_retro_plan_topics((retro_plan.get("report_json", {}) or {}).get("topics"))[:5]
+    topics = _normalize_retro_plan_topics((retro_plan.get("report_json", {}) or {}).get("topics"))
     if not topics:
         raise RuntimeError("retrospective.plan 未提供可讨论的 topics，禁止进入 retrospective.discussion")
     return topics
@@ -1457,8 +1457,8 @@ def _self_optimize_evidence(
             "summary_text": _truncate(report.get("summary_text"), 180),
         }
         if report.get("report_type") == "product_test":
-            compact["most_obvious_problems"] = _clean_string_list(report_json.get("most_obvious_problems"), limit=3)
-            compact["priority_improvements"] = _clean_string_list(report_json.get("priority_improvements"), limit=3)
+            compact["reader_findings"] = _product_test_reader_findings(report_json, limit=3)
+            compact["reader_improvement_opportunities"] = _product_test_reader_improvements(report_json, limit=3)
         elif report.get("report_type") == "benchmark_report":
             compact["most_visible_gap"] = _truncate(report_json.get("most_visible_gap"), 180)
             compact["next_cycle_actions"] = _clean_string_list(report_json.get("next_cycle_actions"), limit=3)
@@ -3009,6 +3009,19 @@ def _clean_string_list(values, *, limit: int | None = None) -> list[str]:
     if limit is not None:
         return cleaned[:limit]
     return cleaned
+
+
+def _product_test_reader_findings(report_json: dict | None, *, limit: int | None = None) -> list[str]:
+    payload = report_json or {}
+    return _clean_string_list(payload.get("reader_findings") or payload.get("most_obvious_problems"), limit=limit)
+
+
+def _product_test_reader_improvements(report_json: dict | None, *, limit: int | None = None) -> list[str]:
+    payload = report_json or {}
+    return _clean_string_list(
+        payload.get("reader_improvement_opportunities") or payload.get("priority_improvements"),
+        limit=limit,
+    )
 
 
 def _require_llm_string_list(
@@ -4978,26 +4991,19 @@ def _prepare_product_test_job(run_id: str, task_id: str, agent_id: str) -> dict:
 
 def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidence: list[dict], decision: dict) -> dict:
     focus = _require_llm_visible_text(decision, field="focus", node_type="product.test")
-    problems = _require_llm_string_list(
+    reader_findings = _require_llm_string_list(
         decision,
-        field="most_obvious_problems",
+        field="reader_findings",
         node_type="product.test",
         min_items=1,
         limit=4,
     )
-    priorities = _require_llm_string_list(
+    reader_improvements = _require_llm_string_list(
         decision,
-        field="priority_improvements",
+        field="reader_improvement_opportunities",
         node_type="product.test",
         min_items=1,
         limit=4,
-    )
-    own_responsibility = _require_llm_string_list(
-        decision,
-        field="execution_link",
-        node_type="product.test",
-        min_items=1,
-        limit=3,
     )
     title = f"{agent_id} 产品测试报告"
     summary = _require_llm_visible_text(decision, field="summary", node_type="product.test")
@@ -5008,6 +5014,7 @@ def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidenc
             "最明显问题：",
             "优先改进：",
             "执行关联：",
+            "责任归因：",
         ],
     )
     payload = {
@@ -5015,9 +5022,8 @@ def _apply_product_test_result(run_id: str, task_id: str, agent_id: str, evidenc
         "agent_id": agent_id,
         "focus": focus,
         "evidence": evidence,
-        "most_obvious_problems": problems,
-        "priority_improvements": priorities,
-        "execution_link": own_responsibility,
+        "reader_findings": reader_findings,
+        "reader_improvement_opportunities": reader_improvements,
         "summary": summary,
         "report_markdown": body_md,
         "generation_mode": decision["generation_mode"],
@@ -5302,9 +5308,9 @@ def create_retrospective_plan(run_id: str, task_id: str) -> dict:
         final_artifact=final_artifact,
     )
     result = _run_content_request(request)
-    product_problems = _normalize_retro_plan_product_problems(result.get("product_problems"))[:5]
-    behavior_problems = _normalize_retro_plan_behavior_problems(result.get("behavior_problems"))[:3]
-    topics = _normalize_retro_plan_topics(result.get("topics"))[:5]
+    product_problems = _normalize_retro_plan_product_problems(result.get("product_problems"))
+    behavior_problems = _normalize_retro_plan_behavior_problems(result.get("behavior_problems"))
+    topics = _normalize_retro_plan_topics(result.get("topics"))
     if not topics:
         raise RuntimeError("retrospective.plan 必须生成至少 1 个可讨论 topic，禁止空 topics 进入 retrospective.discussion")
     summary = _require_llm_visible_text(result, field="summary", node_type="retrospective.plan")
@@ -5356,10 +5362,14 @@ def _prepare_product_report_job(run_id: str, task_id: str) -> dict:
         product_tests=[
             {
                 "agent_id": item["agent_id"],
+                "focus": (item.get("report_json") or {}).get("focus", ""),
                 "summary": item["summary_text"],
-                "most_obvious_problems": (item.get("report_json") or {}).get("most_obvious_problems", [])[:3],
-                "priority_improvements": (item.get("report_json") or {}).get("priority_improvements", [])[:3],
-                "execution_link": (item.get("report_json") or {}).get("execution_link", [])[:3],
+                "reader_findings": _product_test_reader_findings(item.get("report_json") or {}, limit=4),
+                "reader_improvement_opportunities": _product_test_reader_improvements(
+                    item.get("report_json") or {},
+                    limit=4,
+                ),
+                "report_markdown": _truncate((item.get("report_json") or {}).get("report_markdown"), 400),
             }
             for item in product_tests
         ],
@@ -5467,7 +5477,7 @@ def start_retrospective_thread(run_id: str, task_id: str) -> dict:
             "counterpart": item.get("counterpart") or "",
             "body": _truncate(item.get("body"), 180),
         }
-        for item in [_retro_topic_seed(topic) for topic in plan_topics[:4]]
+        for item in [_retro_topic_seed(topic) for topic in plan_topics]
     ]
     request = content_layer.retrospective_opening_request(
         run_id=run_id,
@@ -5584,8 +5594,9 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
     product_tests: dict[str, list[str]] = {}
     for report in product_reports:
         if report["report_type"] == "product_test":
-            product_signals.extend(report["report_json"].get("most_obvious_problems", [])[:2])
-            product_tests.setdefault(report["agent_id"], []).extend(report["report_json"].get("most_obvious_problems", [])[:2])
+            findings = _product_test_reader_findings(report["report_json"], limit=2)
+            product_signals.extend(findings)
+            product_tests.setdefault(report["agent_id"], []).extend(findings)
         elif report["report_type"] == "product_evaluation_report":
             product_signals.extend(report["report_json"].get("top_product_issues", [])[:2])
     benchmark = next((row for row in product_reports if row["report_type"] == "benchmark_report"), None)
@@ -5725,8 +5736,11 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
         run_id=run_id,
         product_test={
             "summary": usability.get("summary_text"),
-            "most_obvious_problems": (usability.get("report_json", {}) or {}).get("most_obvious_problems", [])[:3],
-            "priority_improvements": (usability.get("report_json", {}) or {}).get("priority_improvements", [])[:4],
+            "reader_findings": _product_test_reader_findings(usability.get("report_json", {}) or {}, limit=4),
+            "reader_improvement_opportunities": _product_test_reader_improvements(
+                usability.get("report_json", {}) or {},
+                limit=4,
+            ),
         },
         benchmark={
             "summary": benchmark.get("summary_text"),
@@ -5740,8 +5754,8 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
         },
         retrospective_plan={
             "summary": retro_plan.get("summary_text"),
-            "product_problems": (retro_plan.get("report_json", {}) or {}).get("product_problems", [])[:5],
-            "behavior_problems": (retro_plan.get("report_json", {}) or {}).get("behavior_problems", [])[:3],
+            "product_problems": (retro_plan.get("report_json", {}) or {}).get("product_problems", []),
+            "behavior_problems": (retro_plan.get("report_json", {}) or {}).get("behavior_problems", []),
         },
         final_artifact=final_artifact,
         retro_thread=thread_rows,

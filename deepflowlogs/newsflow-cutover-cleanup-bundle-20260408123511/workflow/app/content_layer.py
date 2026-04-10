@@ -544,18 +544,17 @@ def product_test_request(
     return _request(
         "product.test",
         (
-            f"你是 {agent_id}。基于当前 final artifact 的真实对象给出产品测试报告。"
-            "不要写流程回执，不要做问卷式答案。"
+            f"你是 {agent_id}。请从统一读者/产品体验视角，基于当前 final artifact 的真实对象给出产品测试报告。"
+            "不要写流程回执，不要做责任归因问卷，不要在正文里分配谁该背锅。"
             "report_markdown 不要套“最明显问题 / 优先改进 / 执行关联”固定栏目壳。"
-            "返回 JSON：focus,most_obvious_problems,priority_improvements,execution_link,summary,report_markdown。"
+            "返回 JSON：focus,reader_findings,reader_improvement_opportunities,summary,report_markdown。"
             "report_markdown 必须是前台可见正文。"
         ),
         {"run_id": run_id, "agent_id": agent_id, "evidence": evidence},
         {
             "focus": "",
-            "most_obvious_problems": [],
-            "priority_improvements": [],
-            "execution_link": [],
+            "reader_findings": [],
+            "reader_improvement_opportunities": [],
             "summary": "",
             "report_markdown": "",
         },
@@ -682,7 +681,7 @@ def retrospective_plan_request(
         (
             "你是 newsflow 的 manager。基于 tester 的三份报告、已发布成品摘要和执行证据生成 retrospective plan。"
             "保留 topics 的 machine-readable 字段，但不要用固定争论脚本或固定栏目模板。"
-            "topics 不能为空，至少给出 2 个可讨论 topic；每个 topic 都要包含 title、body、owner、counterpart。"
+            "topics 不能为空；只要证据支持，给出 1 个或多个可讨论 topic 都可以。每个 topic 都要包含 title、body、owner、counterpart。"
             "plan_markdown 必须是一份面向团队的自然中文讨论启动文本，可以自然分段，但不要使用"
             "“开场提醒 / 第一个讨论点 / 第二个讨论点 / 收尾 / 散会 / 行动项认领”这类固定章节名。"
             "返回 JSON：product_problems,behavior_problems,topics,summary,plan_markdown。"
