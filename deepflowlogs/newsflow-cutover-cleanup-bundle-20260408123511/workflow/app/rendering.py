@@ -12,7 +12,28 @@ from .db import fetch_all, fetch_one
 
 SETTINGS = load_settings()
 OUTPUT_ROOT = ROOT / "output"
-MANAGER_AGENT_ID = "33"
+DEFAULT_MANAGER_AGENT_ID = "neko"
+PUBLIC_CONVERSATION_TASK_PHASES = {
+    "cycle.start",
+    "material.collect",
+    "material.submit",
+    "material.review.decision",
+    "draft.compose",
+    "draft.proofread",
+    "proofread.decision.explanation",
+    "draft.revise",
+    "draft.recheck",
+    "publish.decision",
+    "report.publish",
+    "product.test",
+    "product.benchmark",
+    "product.cross_cycle_compare",
+    "pre-retro.review",
+    "retrospective.plan",
+    "retrospective.summary",
+    "agent.optimization",
+}
+MANAGER_AGENT_ID = DEFAULT_MANAGER_AGENT_ID
 
 
 def parse_trace_id(traceparent: str | None) -> str:
@@ -83,16 +104,78 @@ def _task_body(task: dict) -> str:
     result = task["result"]
     if str(result.get("status") or "").strip().lower() == "obsolete":
         return ""
-    return str(result.get("message_body") or "").strip()
+    for key in ("message_body", "reason", "summary", "decision_summary"):
+        value = str(result.get(key) or "").strip()
+        if value:
+            return value
+    if task["phase"] == "cycle.start":
+        files = result.get("cycle_task_plan_files") or {}
+        plan_markdown = _read_text(files.get("markdown_path"))
+        if plan_markdown.strip():
+            return plan_markdown.strip()
+    if task["status"] == "failed":
+        return str(task.get("error_message") or "").strip()
+    return ""
+
+
+def _task_fact_pairs(task: dict) -> list[tuple[str, str]]:
+    result = task["result"]
+    phase = task["phase"]
+    facts: list[tuple[str, str]] = []
+    for key in {
+        "cycle.start": ("status", "cycle_no", "active_rule_count"),
+        "material.collect": ("status", "source_count", "target_count"),
+        "material.submit": ("status",),
+        "material.review.decision": ("status",),
+        "draft.compose": ("status", "draft_len"),
+        "draft.proofread": ("status", "issue_count", "accepted_count", "blocker_count_after_decision", "recheck_required"),
+        "draft.recheck": ("status", "issue_count", "resolved_count", "remaining_count", "blocker_count"),
+        "publish.decision": ("status", "approved"),
+        "report.publish": ("status",),
+        "product.test": ("status",),
+        "product.benchmark": ("status",),
+        "product.cross_cycle_compare": ("status",),
+        "pre-retro.review": ("status", "approved"),
+        "retrospective.plan": ("status",),
+        "retrospective.summary": ("status",),
+        "agent.optimization": ("status",),
+    }.get(phase, ()):
+        value = result.get(key)
+        if value in (None, "", [], {}):
+            continue
+        facts.append((key, str(value)))
+    return facts
+
+
+def _task_target(task: dict, manager_agent_id: str, section_owners: dict[str, str]) -> str:
+    phase = task["phase"]
+    if phase == "material.collect":
+        return manager_agent_id
+    if phase == "material.submit":
+        return "tester"
+    if phase == "material.review.decision":
+        return section_owners.get(task["section"], "all")
+    if phase == "draft.review.comment":
+        return manager_agent_id
+    return "all"
 
 
 def _task_artifact_url(task: dict) -> str:
     result = task["result"]
     phase = task["phase"]
-    if phase in {"draft.compose", "proofread.decision", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan"}:
+    if phase == "cycle.start":
+        files = result.get("cycle_task_plan_files") or {}
+        return str(files.get("html_path") or "").strip()
+    if phase in {"material.collect", "material.submit"}:
+        return str(result.get("detail_url") or f"/newsflow/runs/{task['run_id']}/materials.html").strip()
+    if phase == "material.review.decision":
+        return f"/newsflow/runs/{task['run_id']}/material-review.html"
+    if phase in {"draft.compose", "proofread.decision.explanation", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan", "retrospective.summary", "agent.optimization"}:
         return str(result.get("html_path") or "").strip()
     if phase in {"draft.proofread", "draft.recheck"}:
         return str(result.get("detail_url") or result.get("html_path") or "").strip()
+    if phase == "pre-retro.review":
+        return f"/newsflow/runs/{task['run_id']}/product.html"
     return ""
 
 
@@ -100,12 +183,15 @@ def build_conversation_entries(run_id: str) -> list[dict]:
     task_rows = fetch_all(
         """
         SELECT task_id, parent_task_id, agent_id, agent_role, section, phase, retry_count,
-               status, payload::text, result::text, created_at, finished_at
+               status, payload::text, result::text, error_message, created_at, finished_at
         FROM tasks WHERE run_id=%s ORDER BY created_at
         """,
         (run_id,),
     )
     entries: list[dict] = []
+    tasks: list[dict] = []
+    manager_agent_id = DEFAULT_MANAGER_AGENT_ID
+    section_owners: dict[str, str] = {}
     for row in task_rows:
         task = {
             "task_id": row[0],
@@ -118,27 +204,40 @@ def build_conversation_entries(run_id: str) -> list[dict]:
             "status": row[7],
             "payload": _load_json(row[8]),
             "result": _load_json(row[9]),
-            "created_at": row[10],
-            "finished_at": row[11],
+            "error_message": row[10],
+            "created_at": row[11],
+            "finished_at": row[12],
             "run_id": run_id,
         }
-        if task["status"] != "completed":
+        tasks.append(task)
+        if task["phase"] == "cycle.start" and task["agent_id"]:
+            manager_agent_id = task["agent_id"]
+        if task["phase"] == "material.collect" and task["section"] and task["section"] != "全局" and task["agent_id"]:
+            section_owners[task["section"]] = task["agent_id"]
+
+    for task in tasks:
+        if task["status"] not in {"completed", "failed"}:
             continue
-        if task["phase"] in {"draft.compose", "draft.proofread", "proofread.decision", "draft.revise", "report.publish", "product.test", "product.benchmark", "product.cross_cycle_compare", "retrospective.plan", "retrospective.summary", "agent.optimization"}:
-            body = _task_body(task)
-            if body:
-                entries.append(
-                    {
-                        "time": task["finished_at"] or task["created_at"],
-                        "speaker": task["agent_id"],
-                        "target": MANAGER_AGENT_ID if task["phase"] == "material.submit" else "all",
-                        "phase": task["phase"],
-                        "section": task["section"],
-                        "kind": "message",
-                        "body": body,
-                        "artifact_url": _task_artifact_url(task),
-                    }
-                )
+        if task["phase"] not in PUBLIC_CONVERSATION_TASK_PHASES:
+            continue
+        body = _task_body(task)
+        facts = _task_fact_pairs(task)
+        artifact_url = _task_artifact_url(task)
+        if not body and not facts and not artifact_url:
+            continue
+        entries.append(
+            {
+                "time": task["finished_at"] or task["created_at"],
+                "speaker": task["agent_id"],
+                "target": _task_target(task, manager_agent_id, section_owners),
+                "phase": task["phase"],
+                "section": task["section"],
+                "kind": "reject" if task["status"] == "failed" else "message",
+                "body": body,
+                "facts": facts,
+                "artifact_url": artifact_url,
+            }
+        )
 
     review_rows = fetch_all(
         """
@@ -161,6 +260,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                 "section": section,
                 "kind": "review" if approved else "reject",
                 "body": reason,
+                "facts": [],
                 "artifact_url": "",
             }
         )
@@ -177,11 +277,12 @@ def build_conversation_entries(run_id: str) -> list[dict]:
             {
                 "time": created_at,
                 "speaker": agent_id,
-                "target": MANAGER_AGENT_ID,
+                "target": manager_agent_id,
                 "phase": "draft.review.comment",
                 "section": section_scope,
                 "kind": "discussion",
                 "body": review_text,
+                "facts": [],
                 "artifact_url": "",
             }
         )
@@ -205,6 +306,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                 "section": f"全局 | {topic}",
                 "kind": "discussion",
                 "body": comment_text,
+                "facts": [],
                 "artifact_url": "",
             }
         )
@@ -221,11 +323,22 @@ def _render_feed(entries: list[dict], title: str) -> str:
         phase = escape(entry["phase"])
         section = escape(entry["section"])
         body = _render_body_html(entry["body"])
+        facts = entry.get("facts") or []
         kind = escape(entry["kind"])
         artifact_url = escape(entry.get("artifact_url") or "")
         artifact_link = (
             f'<a class="artifact-link" href="{artifact_url}" target="_blank">查看产物</a>'
             if artifact_url
+            else ""
+        )
+        facts_html = (
+            "<div class=\"facts\">"
+            + "".join(
+                f'<span class="fact"><strong>{escape(label)}:</strong> {escape(value)}</span>'
+                for label, value in facts
+            )
+            + "</div>"
+            if facts
             else ""
         )
         chunks.append(
@@ -240,6 +353,7 @@ def _render_feed(entries: list[dict], title: str) -> str:
                 <time>{escape(_fmt_ts(entry["time"]))}</time>
                 {artifact_link}
               </div>
+              {facts_html}
               <div class="body">{body}</div>
             </article>
             """
@@ -795,6 +909,8 @@ def _page(title: str, body: str) -> str:
     .msg.reject {{ border-left: 6px solid var(--danger); }}
     .msg.discussion {{ border-left: 6px solid #7a4ea3; }}
     .meta {{ color: var(--muted); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }}
+    .facts {{ display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }}
+    .fact {{ color: var(--muted); font-size: 13px; background: #f4f0e6; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }}
     .speaker {{ font-weight: 700; color: var(--ink); }}
     .phase, .section {{ background: #eef3f7; border-radius: 999px; padding: 2px 8px; }}
     .body {{ white-space: normal; }}
