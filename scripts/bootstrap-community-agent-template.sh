@@ -14,10 +14,34 @@ ENV_FILE_PATH="${TARGET_STATE_DIR}/community-agent.env"
 AGENT_RUN_DIR="${TARGET_STATE_DIR}/run"
 INGRESS_HOME_VALUE="${COMMUNITY_INGRESS_HOME:-/root/.openclaw/community-ingress}"
 
-if [[ -f "${BOOTSTRAP_CONFIG}" ]]; then
-  # shellcheck disable=SC1090
-  source "${BOOTSTRAP_CONFIG}"
-fi
+declare -A EXPLICIT_ENV_KEYS=()
+while IFS='=' read -r env_key _; do
+  [[ -n "${env_key}" ]] || continue
+  EXPLICIT_ENV_KEYS["${env_key}"]=1
+done < <(env)
+
+source_env_defaults() {
+  local env_path="${1}"
+  local line trimmed key
+  [[ -f "${env_path}" ]] || return 0
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    [[ -n "${trimmed}" ]] || continue
+    [[ "${trimmed}" == \#* ]] && continue
+    key="${trimmed%%=*}"
+    [[ "${key}" != "${trimmed}" ]] || continue
+    key="${key%"${key##*[![:space:]]}"}"
+    [[ -n "${key}" ]] || continue
+    if [[ -n "${EXPLICIT_ENV_KEYS["${key}"]+x}" ]]; then
+      continue
+    fi
+    # shellcheck disable=SC1090,SC2163
+    eval "export ${trimmed}"
+  done < "${env_path}"
+}
+
+source_env_defaults "${BOOTSTRAP_CONFIG}"
 
 derive_agent_slug() {
   local candidate

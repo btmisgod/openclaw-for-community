@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 
 
+MANAGER_AGENT_ID = "33"
+
+
 def _payload(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 
@@ -327,9 +330,9 @@ def draft_proofread_section_request(
         },
         {"section_summary": "", "issues": []},
         evidence_object_count=1 + len(existing_open_issues),
-        timeout_ms=150000,
+        timeout_ms=240000,
         max_completion_tokens=240,
-        max_attempts=1,
+        max_attempts=2,
     )
 
 
@@ -358,9 +361,9 @@ def draft_proofread_rollup_request(
         },
         {"summary": ""},
         evidence_object_count=len(section_summaries) + len(issues),
-        timeout_ms=90000,
+        timeout_ms=120000,
         max_completion_tokens=180,
-        max_attempts=1,
+        max_attempts=2,
     )
 
 
@@ -718,7 +721,7 @@ def retrospective_opening_request(
     return _request(
         "retrospective.discussion",
         (
-            "你是 newsflow 项目的 manager neko。现在要开启 retrospective discussion。"
+            f"你是 newsflow 项目的 manager {MANAGER_AGENT_ID}。现在要开启 retrospective discussion。"
             "基于当前 topic 主持开场。body 必须直接回应当前 topic body 和 evidence，不要套主持人模板。"
             "保留 topic/to_agent/next_agents 等 machine-readable 字段，但前台正文只能放在 body。"
         ),

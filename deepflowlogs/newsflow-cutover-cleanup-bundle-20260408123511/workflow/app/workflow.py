@@ -34,26 +34,31 @@ WORKFLOW_ID = "intl-news-hotspots"
 RUN_OUTPUT_DIR = ROOT / "output"
 PROJECT_OUTPUT_DIR = ROOT / "projects"
 TRANSLATOR = GoogleTranslator(source="auto", target="zh-CN")
+MANAGER_AGENT_ID = "33"
+EDITOR_AGENT_ID = "editor"
+TESTER_AGENT_ID = "tester"
+WORKER_33_AGENT_ID = "worker-33"
+WORKER_XHS_AGENT_ID = "worker-xhs"
 AGENT_SECTIONS = {
-    "tester": ["政治经济", "科技", "体育娱乐", "其他"],
-    "33": ["政治经济", "科技"],
-    "xhs": ["体育娱乐", "其他"],
+    TESTER_AGENT_ID: ["政治经济", "科技", "体育娱乐", "其他"],
+    WORKER_33_AGENT_ID: ["政治经济", "科技"],
+    WORKER_XHS_AGENT_ID: ["体育娱乐", "其他"],
 }
 AGENT_ROLES = {
-    "neko": "manager",
-    "editor": "editor",
-    "tester": "tester",
-    "33": "worker-33",
-    "xhs": "worker-xhs",
+    MANAGER_AGENT_ID: "manager",
+    EDITOR_AGENT_ID: "editor",
+    TESTER_AGENT_ID: "tester",
+    WORKER_33_AGENT_ID: "worker-33",
+    WORKER_XHS_AGENT_ID: "worker-xhs",
 }
-ALL_AGENT_IDS = ["neko", "editor", "tester", "33", "xhs"]
+ALL_AGENT_IDS = [MANAGER_AGENT_ID, EDITOR_AGENT_ID, TESTER_AGENT_ID, WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID]
 ALL_SECTION_ASSIGNMENTS = [
-    ("政治经济", "33"),
-    ("科技", "33"),
-    ("体育娱乐", "xhs"),
-    ("其他", "xhs"),
+    ("政治经济", WORKER_33_AGENT_ID),
+    ("科技", WORKER_33_AGENT_ID),
+    ("体育娱乐", WORKER_XHS_AGENT_ID),
+    ("其他", WORKER_XHS_AGENT_ID),
 ]
-RETRO_PARTICIPANTS = ["editor", "33", "xhs", "tester"]
+RETRO_PARTICIPANTS = [EDITOR_AGENT_ID, WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID, TESTER_AGENT_ID]
 BENCHMARK_URLS = [
     ("BBC News", "https://www.bbc.com/news"),
     ("Reuters World", "https://www.reuters.com/world/"),
@@ -62,10 +67,10 @@ BENCHMARK_URLS = [
 
 LLM_NODE_CONFIG = {
     "material.collect.enrichment": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
-    "material.review": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1100},
+    "material.review": {"timeout_ms": 180000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1100},
     "draft.compose.translation": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
-    "draft.render": {"timeout_ms": 150000, "max_attempts": 2, "backoff_ms": 4000, "critical": True, "max_completion_tokens": 1400},
-    "draft.proofread": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1200},
+    "draft.render": {"timeout_ms": 300000, "max_attempts": 2, "backoff_ms": 4000, "critical": True, "max_completion_tokens": 2200},
+    "draft.proofread": {"timeout_ms": 240000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1200},
     "proofread.decision.explanation": {"timeout_ms": 60000, "max_attempts": 2, "backoff_ms": 5000, "critical": False, "max_completion_tokens": 260},
     "draft.revise": {"timeout_ms": 150000, "max_attempts": 2, "backoff_ms": 12000, "critical": True, "max_completion_tokens": 450},
     "draft.recheck": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
@@ -278,15 +283,15 @@ def _phase_context(phase: str, agent_id: str) -> dict:
         return {}
     role_identity = base.get("role_identity", "")
     if phase == "retrospective.discussion":
-        if agent_id == "neko":
+        if agent_id == MANAGER_AGENT_ID:
             role_identity = "manager_moderator"
-        elif agent_id == "editor":
+        elif agent_id == EDITOR_AGENT_ID:
             role_identity = "editor_participant"
-        elif agent_id == "tester":
+        elif agent_id == TESTER_AGENT_ID:
             role_identity = "tester_participant"
-        elif agent_id == "33":
+        elif agent_id == WORKER_33_AGENT_ID:
             role_identity = "worker_33_participant"
-        elif agent_id == "xhs":
+        elif agent_id == WORKER_XHS_AGENT_ID:
             role_identity = "worker_xhs_participant"
     base["role_identity"] = role_identity
     return base
@@ -403,7 +408,7 @@ def _manager_control_event(
     run_id: str,
     stage_name: str,
     signal_type: str,
-    created_by: str = "neko",
+    created_by: str = MANAGER_AGENT_ID,
     section: str = "全局",
     payload: dict | None = None,
 ) -> dict:
@@ -478,7 +483,7 @@ def _section_requirement(run_id: str, section: str) -> dict:
         "candidate_target": int(requirements.get("candidate_target") or 12),
         "min_approved": int(requirements.get("min_approved") or 10),
         "min_with_images": int(requirements.get("min_with_images") or 3),
-        "owner": requirements.get("owner") or ("33" if section in {"政治经济", "科技"} else "xhs"),
+        "owner": requirements.get("owner") or (WORKER_33_AGENT_ID if section in {"政治经济", "科技"} else WORKER_XHS_AGENT_ID),
     }
 
 
@@ -1197,7 +1202,7 @@ def _retro_topic_seed(item: dict) -> dict:
         "title": title,
         "topic": title,
         "body": body,
-        "owner": str(item.get("owner") or "neko").strip() or "neko",
+        "owner": str(item.get("owner") or MANAGER_AGENT_ID).strip() or MANAGER_AGENT_ID,
         "counterpart": str(item.get("counterpart") or ",".join(next_agents)).strip() or ",".join(next_agents),
         "next_agents": next_agents,
         "to_agent": ",".join(next_agents),
@@ -1311,7 +1316,7 @@ def _local_retro_comment(agent_id: str, payload: dict, relevant_context: dict) -
 
 def _retro_route_defaults(payload: dict, topic_row: dict | None) -> dict:
     current_topic = str(payload.get("topic") or (topic_row or {}).get("title") or "复盘讨论").strip() or "复盘讨论"
-    to_agent = str(payload.get("to_agent") or "neko").strip() or "neko"
+    to_agent = str(payload.get("to_agent") or MANAGER_AGENT_ID).strip() or MANAGER_AGENT_ID
     next_agents = [
         agent
         for agent in (
@@ -1334,7 +1339,7 @@ def _retro_route_defaults(payload: dict, topic_row: dict | None) -> dict:
 
 def _agent_role_scope(agent_id: str) -> dict:
     scope_map = {
-        "neko": {
+        MANAGER_AGENT_ID: {
             "role": "manager",
             "owned_sections": ["全局"],
             "owned_stages": [
@@ -1347,12 +1352,12 @@ def _agent_role_scope(agent_id: str) -> dict:
                 "agent.optimization",
             ],
         },
-        "editor": {
+        EDITOR_AGENT_ID: {
             "role": "editor",
             "owned_sections": ["全局"],
             "owned_stages": ["draft.compose", "draft.revise", "report.publish"],
         },
-        "tester": {
+        TESTER_AGENT_ID: {
             "role": "tester",
             "owned_sections": ["全局"],
             "owned_stages": [
@@ -1364,12 +1369,12 @@ def _agent_role_scope(agent_id: str) -> dict:
                 "product.cross_cycle_compare",
             ],
         },
-        "33": {
+        WORKER_33_AGENT_ID: {
             "role": "worker-33",
             "owned_sections": ["政治经济", "科技"],
             "owned_stages": ["material.collect"],
         },
-        "xhs": {
+        WORKER_XHS_AGENT_ID: {
             "role": "worker-xhs",
             "owned_sections": ["体育娱乐", "其他"],
             "owned_stages": ["material.collect"],
@@ -1777,7 +1782,7 @@ def _insert_retrospective_message(
 
 
 def _task_requires_ack(phase: str, agent_id: str) -> bool:
-    return agent_id != "neko" and phase in PHASES_REQUIRING_ACK
+    return agent_id != MANAGER_AGENT_ID and phase in PHASES_REQUIRING_ACK
 
 
 def _evaluate_agent_ack(task: dict) -> dict:
@@ -2255,8 +2260,8 @@ def new_run(
         dispatch_task(
             run_id=run_id,
             parent_task_id=None,
-            agent_id="neko",
-            agent_role=AGENT_ROLES["neko"],
+            agent_id=MANAGER_AGENT_ID,
+            agent_role=AGENT_ROLES[MANAGER_AGENT_ID],
             section="全局",
             phase="cycle.start",
             retry_count=0,
@@ -2436,6 +2441,40 @@ def _enrich_collected_materials(
                 "generation_mode": result.get("generation_mode", ""),
                 "generation_error": result.get("generation_error", ""),
             }
+    missing_indexes = [idx for idx in range(len(prompt_items)) if idx not in generated]
+    for idx in missing_indexes:
+        request = content_layer.material_collect_request(
+            section=section,
+            target_count=target_count,
+            quality_requirements=quality_requirements or {},
+            manager_watchpoints=manager_watchpoints or [],
+            memory_summary=memory_summary,
+            optimization_hints=optimization_hints,
+            items=[prompt_items[idx]],
+        )
+        result = _run_content_request(request)
+        if result.get("generation_mode") != "llm":
+            raise RuntimeError(
+                "material.collect.enrichment requires llm-generated candidate content; "
+                f"error={result.get('generation_error') or ''}"
+            )
+        recovered = None
+        for item in result.get("items") or []:
+            try:
+                source_index = int(item.get("source_index"))
+            except Exception:
+                continue
+            if source_index == idx:
+                recovered = item
+                break
+        if recovered is None and (result.get("items") or []):
+            recovered = (result.get("items") or [None])[0]
+        if recovered is not None:
+            generated[idx] = recovered
+            generation_meta[idx] = {
+                "generation_mode": result.get("generation_mode", ""),
+                "generation_error": result.get("generation_error", ""),
+            }
     enriched = []
     for idx, item in enumerate(items):
         extra = generated.get(idx, {})
@@ -2586,16 +2625,16 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
             "source_media": material["source_media"],
             "published_at": material["published_at"],
             "image_count": len(material.get("images") or []),
-            "summary_zh": material.get("summary_zh", ""),
-            "brief_zh": material.get("brief_zh", ""),
-            "relevance_note": (material.get("metadata") or {}).get("relevance_note", ""),
+            "summary_zh": str(material.get("summary_zh", ""))[:220],
+            "brief_zh": str(material.get("brief_zh", ""))[:80],
+            "relevance_note": str((material.get("metadata") or {}).get("relevance_note", ""))[:120],
         }
         for material in materials
     ]
     review_map = {}
     selected_rank = {}
     batch_summaries = []
-    batch_size = 1
+    batch_size = 3
     for batch_start in range(0, len(prompt_materials), batch_size):
         batch_index = batch_start // batch_size
         batch_materials = prompt_materials[batch_start : batch_start + batch_size]
@@ -2804,33 +2843,52 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
                 "candidate_brief": compact.get("brief_zh", ""),
             }
         )
-    request = content_layer.compose_translation_request(
-        section=section,
-        guidance=guidance or {},
-        brief_limit=brief_limit,
-        items=prompt_items,
-    )
-    result = _run_content_request(request)
-    if result.get("generation_mode") != "llm":
-        raise RuntimeError(
-            "draft.compose.translation requires llm-generated titles and summaries; "
-            f"error={result.get('generation_error') or ''}"
-        )
     translated = {}
-    for item in result.get("items") or []:
-        try:
-            source_index = int(item.get("source_index"))
-        except Exception:
-            continue
-        title_zh = str(item.get("title_zh") or "").strip()
-        summary_zh = str(item.get("summary_zh") or "").strip()
-        if not title_zh or not summary_zh:
-            raise RuntimeError(f"draft.compose.translation missing llm content for section={section} source_index={source_index}")
-        translated[source_index] = {
-            "source_index": source_index,
-            "title_zh": title_zh,
-            "summary_zh": summary_zh,
-        }
+    batch_size = 4
+
+    def _merge_translation_result(result: dict):
+        if result.get("generation_mode") != "llm":
+            raise RuntimeError(
+                "draft.compose.translation requires llm-generated titles and summaries; "
+                f"error={result.get('generation_error') or ''}"
+            )
+        for item in result.get("items") or []:
+            try:
+                source_index = int(item.get("source_index"))
+            except Exception:
+                continue
+            title_zh = str(item.get("title_zh") or "").strip()
+            summary_zh = str(item.get("summary_zh") or "").strip()
+            if not title_zh or not summary_zh:
+                raise RuntimeError(f"draft.compose.translation missing llm content for section={section} source_index={source_index}")
+            translated[source_index] = {
+                "source_index": source_index,
+                "title_zh": title_zh,
+                "summary_zh": summary_zh,
+            }
+
+    for offset in range(0, len(prompt_items), batch_size):
+        request = content_layer.compose_translation_request(
+            section=section,
+            guidance=guidance or {},
+            brief_limit=brief_limit,
+            items=prompt_items[offset : offset + batch_size],
+        )
+        _merge_translation_result(_run_content_request(request))
+
+    missing_indexes = [idx for idx in range(len(prompt_items)) if idx not in translated]
+    for idx in missing_indexes:
+        request = content_layer.compose_translation_request(
+            section=section,
+            guidance=guidance or {},
+            brief_limit=brief_limit,
+            items=[prompt_items[idx]],
+        )
+        _merge_translation_result(_run_content_request(request))
+
+    for idx in range(len(prompt_items)):
+        if idx not in translated:
+            raise RuntimeError(f"draft.compose.translation missing active output for section={section} source_index={idx}")
     return translated
 
 
@@ -3253,7 +3311,7 @@ def _normalize_retro_plan_topics(items) -> list[dict]:
             body = str(item.get("body") or item.get("problem") or item.get("details") or title).strip()
             if not body:
                 continue
-            owner = str(item.get("owner") or item.get("to_agent") or "neko").strip() or "neko"
+            owner = str(item.get("owner") or item.get("to_agent") or MANAGER_AGENT_ID).strip() or MANAGER_AGENT_ID
             counterpart_agents = [
                 agent
                 for agent in (
@@ -3261,14 +3319,14 @@ def _normalize_retro_plan_topics(items) -> list[dict]:
                     if isinstance(item.get("counterpart"), list)
                     else _parse_agents(item.get("counterpart") or item.get("next_agents") or "")
                 )
-                if agent in {"33", "xhs", "editor", "tester"}
+                if agent in {WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID, EDITOR_AGENT_ID, TESTER_AGENT_ID}
             ]
             normalized.append(
                 {
                     "title": title or _truncate(body, 36),
                     "body": body,
                     "owner": owner,
-                    "counterpart": ",".join(counterpart_agents) or "33,xhs,editor,tester",
+                    "counterpart": ",".join(counterpart_agents) or ",".join(RETRO_PARTICIPANTS),
                 }
             )
             continue
@@ -3278,8 +3336,8 @@ def _normalize_retro_plan_topics(items) -> list[dict]:
                 {
                     "title": _truncate(text, 36),
                     "body": text,
-                    "owner": "neko",
-                    "counterpart": "33,xhs,editor,tester",
+                    "owner": MANAGER_AGENT_ID,
+                    "counterpart": ",".join(RETRO_PARTICIPANTS),
                 }
             )
     return normalized
@@ -3485,7 +3543,7 @@ def _prepare_retro_decision_job(
     topic_id: str,
     title: str,
     thread: list[dict],
-    owner_agent: str = "neko",
+    owner_agent: str = MANAGER_AGENT_ID,
 ) -> dict:
     evidence = [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread[:6]]
     project_id, cycle_no = get_run_project_context(run_id)
@@ -3520,7 +3578,7 @@ def _apply_retro_decision_result(
     title: str,
     thread: list[dict],
     decision: dict,
-    owner_agent: str = "neko",
+    owner_agent: str = MANAGER_AGENT_ID,
 ) -> dict:
     decision_id = f"rtd-{uuid.uuid4().hex[:10]}"
     summary = _require_llm_visible_text(decision, field="summary", node_type="retro_decision")
@@ -3547,7 +3605,7 @@ def _record_retro_decision(
     topic_id: str,
     title: str,
     thread: list[dict],
-    owner_agent: str = "neko",
+    owner_agent: str = MANAGER_AGENT_ID,
 ) -> dict:
     prepared = _prepare_retro_decision_job(run_id, topic_id=topic_id, title=title, thread=thread, owner_agent=owner_agent)
     decision = _run_content_request(prepared)
@@ -3568,8 +3626,8 @@ def _next_retro_topic_candidate(run_id: str) -> dict:
 def compose_draft(run_id: str) -> dict:
     run_info = _run_row(run_id)
     project_id, cycle_no = run_info[0], run_info[1]
-    neko_optimization = get_effective_optimization_log(project_id, "neko", cycle_no or 0)
-    writer_guidance = _writer_guidance_settings(neko_optimization)
+    manager_optimization = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)
+    writer_guidance = _writer_guidance_settings(manager_optimization)
     sections = ["政治经济", "科技", "体育娱乐", "其他"]
     assembled = {}
     for section in sections:
@@ -3584,7 +3642,7 @@ def compose_draft(run_id: str) -> dict:
         selected = json.loads(review[0])
         materials = [m for m in get_materials(run_id, section) if m["id"] in selected][:10]
         assembled[section] = generate_section_content(section, materials, guidance=writer_guidance)
-    assembled = _apply_writer_guidance(assembled, neko_optimization)
+    assembled = _apply_writer_guidance(assembled, manager_optimization)
     next_version_no = _next_draft_version_no(run_id)
     draft_render = _render_draft_markdown_via_llm(
         run_id,
@@ -3724,7 +3782,7 @@ def start_proofread(run_id: str, task_id: str) -> dict:
 
 def start_cycle(run_id: str, task_id: str) -> dict:
     project_id, cycle_no = get_run_project_context(run_id)
-    optimization = get_effective_optimization_log(project_id, "neko", cycle_no or 0)
+    optimization = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)
     active_rules = optimization.get("compiled_rules") or []
     previous_run = fetch_one(
         "SELECT run_id FROM workflow_runs WHERE project_id=%s AND cycle_no=%s",
@@ -3797,11 +3855,11 @@ def start_cycle(run_id: str, task_id: str) -> dict:
     execute(
         """
         INSERT INTO cycle_task_plans(project_id, cycle_no, run_id, created_by, summary_text, plan_json)
-        VALUES (%s,%s,%s,'neko',%s,%s::jsonb)
+        VALUES (%s,%s,%s,%s,%s,%s::jsonb)
         ON CONFLICT (project_id, cycle_no) DO UPDATE
         SET run_id=EXCLUDED.run_id, summary_text=EXCLUDED.summary_text, plan_json=EXCLUDED.plan_json
         """,
-        (project_id, cycle_no, run_id, f"cycle {cycle_no or 1} task plan 已生成。", jdump(plan_json | files)),
+        (project_id, cycle_no, run_id, MANAGER_AGENT_ID, f"cycle {cycle_no or 1} task plan 已生成。", jdump(plan_json | files)),
     )
     execute(
         """
@@ -4192,12 +4250,13 @@ def _apply_proofread_rule_decision(run_id: str, task_id: str, decision_data: dic
         execute(
             """
             INSERT INTO proofread_decisions(decision_id, run_id, issue_id, decided_by, decision_type, rationale, decision_json)
-            VALUES (%s,%s,%s,'neko',%s,%s,%s::jsonb)
+            VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb)
             """,
             (
                 decision_id,
                 run_id,
                 issue["issue_id"],
+                MANAGER_AGENT_ID,
                 decision_type,
                 rationale,
                 jdump({"draft_version_no": draft.get("version_no"), **issue_decision}),
@@ -4211,9 +4270,19 @@ def _apply_proofread_rule_decision(run_id: str, task_id: str, decision_data: dic
                 INSERT INTO revision_patches(
                     patch_id, run_id, decision_id, issue_id, target_section, patch_instruction, patch_payload, applied_by, source_task_id
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb,'neko',%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s)
                 """,
-                (patch_id, run_id, decision_id, issue["issue_id"], issue["section"], patch_instruction, jdump({"issue_type": issue["issue_type"], "required_actions": issue_decision["required_actions"]}), task_id),
+                (
+                    patch_id,
+                    run_id,
+                    decision_id,
+                    issue["issue_id"],
+                    issue["section"],
+                    patch_instruction,
+                    jdump({"issue_type": issue["issue_type"], "required_actions": issue_decision["required_actions"]}),
+                    MANAGER_AGENT_ID,
+                    task_id,
+                ),
             )
             execute(
                 "UPDATE proofread_issues SET status='accepted', updated_at=NOW(), resolution_note=%s WHERE issue_id=%s",
@@ -4659,7 +4728,7 @@ def _prepare_draft_revise_job(run_id: str) -> dict:
     request = content_layer.draft_revise_request(
         run_id=run_id,
         draft_version_no=latest.get("version_no"),
-        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, "neko", cycle_no or 0)),
+        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)),
         current_draft_sections=[
             {"section": section, "draft": sections_payload.get(section) or {}}
             for section in touched_sections
@@ -4749,14 +4818,14 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
             "UPDATE proofread_issues SET status='fixed', updated_at=NOW(), closed_at=NULL, resolution_note='' WHERE issue_id=%s",
             (issue["issue_id"],),
         )
-    sections_payload = _apply_writer_guidance(sections_payload, get_effective_optimization_log(project_id, "neko", cycle_no or 0))
+    sections_payload = _apply_writer_guidance(sections_payload, get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0))
     revision_plan = _require_llm_visible_text(revise_data, field="revision_plan", node_type="draft.revise")
     render_data = _render_draft_markdown_via_llm(
         run_id=run_id,
         stage_name="draft.revise",
         draft_version_no=(latest.get("version_no") or 0) + 1,
         sections_payload=sections_payload,
-        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, "neko", cycle_no or 0)),
+        writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)),
         revision_context=[
             {
                 "issue_id": issue["issue_id"],
@@ -5461,7 +5530,7 @@ def create_retrospective_plan(run_id: str, task_id: str) -> dict:
         cycle_no=cycle_no,
         run_id=run_id,
         task_id=task_id,
-        agent_id="neko",
+        agent_id=MANAGER_AGENT_ID,
         report_type="retrospective_plan",
         title=title,
         summary_text=summary,
@@ -5558,7 +5627,7 @@ def _apply_product_report_result(run_id: str, task_id: str, decision: dict) -> d
         cycle_no=cycle_no,
         run_id=run_id,
         task_id=task_id,
-        agent_id="neko",
+        agent_id=MANAGER_AGENT_ID,
         report_type="product_evaluation_report",
         title=title,
         summary_text=summary,
@@ -5584,7 +5653,7 @@ def start_retrospective_thread(run_id: str, task_id: str) -> dict:
         project_id=project_id,
         cycle_no=cycle_no,
         title=topic_title,
-        opened_by="neko",
+        opened_by=MANAGER_AGENT_ID,
         evidence_refs=[{"body": topic_body, "owner": first_topic.get("owner"), "counterpart": first_topic.get("counterpart")}],
     )
     topic_evidence = [
@@ -5622,7 +5691,7 @@ def start_retrospective_thread(run_id: str, task_id: str) -> dict:
         "topic_id": topic_id,
         "message_id": task_id,
         "reply_to_message_id": None,
-        "from_agent": "neko",
+        "from_agent": MANAGER_AGENT_ID,
         "to_agent": opening.get("to_agent") or request["fallback_payload"]["to_agent"],
         "target_type": opening.get("target_type") or request["fallback_payload"]["target_type"],
         "topic": _topic_label(opening.get("topic") or topic_title),
@@ -5644,7 +5713,7 @@ def start_retrospective_thread(run_id: str, task_id: str) -> dict:
         run_id=run_id,
         task_id=task_id,
         topic_id=topic_id,
-        agent_id="neko",
+        agent_id=MANAGER_AGENT_ID,
         message_id=task_id,
         reply_to_message_id=None,
         to_agent=result["to_agent"],
@@ -5704,7 +5773,7 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
     reply_text = ""
     if reply_row:
         reply_text = reply_row[4]
-    peer_agent = "xhs" if agent_id == "33" else "33"
+    peer_agent = WORKER_XHS_AGENT_ID if agent_id == WORKER_33_AGENT_ID else WORKER_33_AGENT_ID
     peer_msg = next((msg for msg in reversed(thread) if msg["from_agent"] == peer_agent), None)
     product_reports = _product_report_rows(run_id)
     product_signals = []
@@ -5833,7 +5902,7 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
     benchmark = _product_report_by_type(run_id, "benchmark_report")
     cross_cycle = _product_report_by_type(run_id, "cross_cycle_compare_report")
     retro_plan = _product_report_by_type(run_id, "retrospective_plan")
-    applied_rules = get_effective_optimization_log(project_id, "neko", (cycle_no or 0) + 1).get("compiled_rules") or []
+    applied_rules = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, (cycle_no or 0) + 1).get("compiled_rules") or []
     thread_rows = _retro_thread_for_prompt(run_id, limit=8, body_limit=170)
     final_json = (_load_output_bundle(run_id).get("final_json") or {})
     final_artifact = []
@@ -6123,7 +6192,7 @@ def self_optimize_agent(run_id: str, agent_id: str) -> dict:
                 "根据本轮复盘与产品评估，下一轮过滤低质量来源。",
             )
         )
-    if agent_id in {"33", "xhs"}:
+    if agent_id in {WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID}:
         rule_specs.append(
             (
                 "image_availability_threshold",
@@ -6138,7 +6207,7 @@ def self_optimize_agent(run_id: str, agent_id: str) -> dict:
                 "短讯继续压缩，优先保留结果、时间与影响范围。",
             )
         )
-    if agent_id == "neko":
+    if agent_id == MANAGER_AGENT_ID:
         rule_specs.append(
             (
                 "lead_sentence_rule",
@@ -6199,15 +6268,9 @@ def _sync_project_files(project_id: str, cycle_no: int, run_id: str):
         "final_report.html",
         "final_report.md",
         "final_report.json",
-        "product_test_neko.html",
-        "product_test_neko.md",
-        "product_test_neko.json",
-        "product_test_33.html",
-        "product_test_33.md",
-        "product_test_33.json",
-        "product_test_xhs.html",
-        "product_test_xhs.md",
-        "product_test_xhs.json",
+        "product_test_tester.html",
+        "product_test_tester.md",
+        "product_test_tester.json",
         "benchmark_report.html",
         "benchmark_report.md",
         "benchmark_report.json",
@@ -6774,7 +6837,7 @@ def _retro_messages_by_round(run_id: str, round_no: int) -> list[dict]:
 
 
 def _parse_agents(value: str | None) -> list[str]:
-    return [agent.strip() for agent in str(value or "").split(",") if agent.strip() in {"33", "xhs", "neko", "editor", "tester"}]
+    return [agent.strip() for agent in str(value or "").split(",") if agent.strip() in ALL_AGENT_IDS]
 
 
 def _retro_has_new_information(messages: list[dict]) -> bool:
@@ -6796,14 +6859,14 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
     pending_comments = fetch_one(
         """
         SELECT COUNT(*) FROM tasks
-        WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id!='neko' AND status IN ('pending', 'running')
+        WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id!=%s AND status IN ('pending', 'running')
         """,
-        (run_id,),
+        (run_id, MANAGER_AGENT_ID),
     )[0]
     if pending_comments:
         return
-    non_manager = [msg for msg in topic_messages if msg["from_agent"] in {"33", "xhs", "editor", "tester"}]
-    manager_msgs = [msg for msg in topic_messages if msg["from_agent"] == "neko"]
+    non_manager = [msg for msg in topic_messages if msg["from_agent"] in RETRO_PARTICIPANTS]
+    manager_msgs = [msg for msg in topic_messages if msg["from_agent"] == MANAGER_AGENT_ID]
     if current_topic["status"] == "open" and manager_msgs and not non_manager:
         opener = manager_msgs[-1]
         target_agents = [agent for agent in _parse_agents(opener.get("to_agent")) if agent in RETRO_PARTICIPANTS] or RETRO_PARTICIPANTS[:]
@@ -6818,21 +6881,21 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
             topic_id=topic_id,
             topic=topic_title,
             target_type="agent",
-            to_agent="neko",
+            to_agent=MANAGER_AGENT_ID,
             intent="critique",
         )
         return
     if current_topic["status"] == "open" and non_manager:
         _set_retro_topic_status(topic_id, "debating")
         opener = non_manager[-1]
-        target_agents = sorted({msg["from_agent"] for msg in non_manager if msg["from_agent"] in {"33", "xhs", "editor", "tester"}}) or RETRO_PARTICIPANTS[:]
+        target_agents = sorted({msg["from_agent"] for msg in non_manager if msg["from_agent"] in RETRO_PARTICIPANTS}) or RETRO_PARTICIPANTS[:]
         _dispatch_retro_comment_tasks(
             run_id,
             project_id,
             cycle_no,
             trace_ctx,
             round_no=max(msg["round_no"] for msg in topic_messages) + 1,
-            agents=["neko"],
+            agents=[MANAGER_AGENT_ID],
             reply_to_message_id=opener["message_id"],
             topic_id=topic_id,
             topic=topic_title,
@@ -6844,10 +6907,10 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
             """
             UPDATE tasks
             SET payload=jsonb_set(payload,'{mode}',to_jsonb(%s::text),true)
-            WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id='neko' AND status='pending'
+            WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id=%s AND status='pending'
               AND COALESCE((payload->>'topic_id')::text, '')=%s
             """,
-            ("moderator_followup", run_id, topic_id),
+            ("moderator_followup", run_id, MANAGER_AGENT_ID, topic_id),
         )
         return
     if current_topic["status"] == "debating" and manager_msgs:
@@ -6866,7 +6929,7 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
                 topic_id=topic_id,
                 topic=topic_title,
                 target_type="agent",
-                to_agent="neko",
+                to_agent=MANAGER_AGENT_ID,
                 intent="proposal",
             )
             execute(
@@ -6891,7 +6954,7 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
                 project_id=project_id,
                 cycle_no=cycle_no,
                 title=next_topic.get("title") or next_topic.get("topic") or "问题",
-                opened_by="neko",
+                opened_by=MANAGER_AGENT_ID,
                 evidence_refs=[next_topic],
             )
             next_agents = sorted(
@@ -6901,14 +6964,14 @@ def _maybe_advance_retro_topic(run_id: str, project_id: str, cycle_no: int, trac
                         next_topic.get("owner"),
                         *str(next_topic.get("counterpart") or "").split(","),
                     ]
-                    if agent in {"33", "xhs", "editor", "tester"}
+                    if agent in RETRO_PARTICIPANTS
                 }
             ) or RETRO_PARTICIPANTS[:]
             dispatch_task(
                 run_id,
                 None,
-                "neko",
-                "manager",
+                MANAGER_AGENT_ID,
+                AGENT_ROLES[MANAGER_AGENT_ID],
                 "全局",
                 "retrospective.discussion",
                 0,
@@ -7060,7 +7123,7 @@ def _progress_waiting_llm_tasks() -> None:
             complete_task(task["task_id"], {"status": "summarized", "message_body": result["summary"], **result})
 
 
-def _ensure_retro_decision_job(run_id: str, *, topic_id: str, title: str, thread: list[dict], owner_agent: str = "neko") -> dict:
+def _ensure_retro_decision_job(run_id: str, *, topic_id: str, title: str, thread: list[dict], owner_agent: str = MANAGER_AGENT_ID) -> dict:
     prepared = _prepare_retro_decision_job(run_id, topic_id=topic_id, title=title, thread=thread, owner_agent=owner_agent)
     config = _llm_node_config("retro_decision")
     return _create_llm_job(
@@ -7268,8 +7331,8 @@ def orchestrator_tick():
                     dispatch_task(
                         run_id,
                         latest_review_task[0],
-                        "neko",
-                        "manager",
+                        MANAGER_AGENT_ID,
+                        AGENT_ROLES[MANAGER_AGENT_ID],
                         section,
                         "material.review.decision",
                         0,
@@ -7389,7 +7452,7 @@ def orchestrator_tick():
                 dispatch_task(run_id, None, "editor", "editor", "全局", "draft.revise", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "draft.revise")
             if proofread_gate_settled and proofread_done > 0 and explanation_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "proofread.decision.explanation", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "proofread.decision.explanation", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
 
             revise_done = fetch_one(
                 """
@@ -7412,7 +7475,7 @@ def orchestrator_tick():
 
             publish_decision_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='publish.decision'", (run_id,))[0]
             if proofread_gate_settled and proofread_done > 0 and blocker_count == 0 and publish_decision_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "publish.decision", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "publish.decision", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "publish.decision")
 
             report_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='report.publish'", (run_id,))[0]
@@ -7468,7 +7531,7 @@ def orchestrator_tick():
                 (run_id,),
             )[0]
             if cross_cycle_done > 0 and pre_retro_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "pre-retro.review", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "pre-retro.review", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "pre-retro.review")
 
             pre_retro_signal = _latest_manager_signal(run_id, "pre-retro.review")
@@ -7477,7 +7540,7 @@ def orchestrator_tick():
                 (run_id,),
             )[0]
             if pre_retro_signal and pre_retro_signal["signal_type"] == "proceed" and retro_plan_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "retrospective.plan", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "retrospective.plan", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "retrospective.plan")
 
             retro_plan_done = fetch_one(
@@ -7485,8 +7548,8 @@ def orchestrator_tick():
                 (run_id,),
             )[0]
             retro_start_exists = fetch_one(
-                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id='neko'",
-                (run_id,),
+                "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id=%s",
+                (run_id, MANAGER_AGENT_ID),
             )[0]
             if retro_plan_done > 0 and retro_start_exists == 0:
                 if report_done == 0:
@@ -7495,8 +7558,8 @@ def orchestrator_tick():
                 dispatch_task(
                     run_id,
                     None,
-                    "neko",
-                    "manager",
+                    MANAGER_AGENT_ID,
+                    AGENT_ROLES[MANAGER_AGENT_ID],
                     "全局",
                     "retrospective.discussion",
                     0,
@@ -7521,8 +7584,8 @@ def orchestrator_tick():
                 dispatch_task(
                     run_id,
                     None,
-                    "neko",
-                    "manager",
+                    MANAGER_AGENT_ID,
+                    AGENT_ROLES[MANAGER_AGENT_ID],
                     "全局",
                     "discussion.start",
                     0,
@@ -7531,9 +7594,9 @@ def orchestrator_tick():
                     project_id,
                     cycle_no,
                 )
-                dispatch_task(run_id, None, "33", "collector", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
-                dispatch_task(run_id, None, "xhs", "collector", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
-                dispatch_task(run_id, None, "neko", "manager", "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, WORKER_33_AGENT_ID, AGENT_ROLES[WORKER_33_AGENT_ID], "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, WORKER_XHS_AGENT_ID, AGENT_ROLES[WORKER_XHS_AGENT_ID], "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "discussion.comment", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "discussion.start")
 
             discussion_started = fetch_one(
@@ -7554,33 +7617,33 @@ def orchestrator_tick():
                     (run_id,),
                 )[0]
                 if comments_done >= 3 and (datetime.now(started.tzinfo) - started).total_seconds() >= payload["discussion_seconds"]:
-                    dispatch_task(run_id, None, "neko", "manager", "全局", "discussion.summarize", 0, {}, trace_ctx, project_id, cycle_no)
+                    dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "discussion.summarize", 0, {}, trace_ctx, project_id, cycle_no)
                     _run_current_phase(run_id, "discussion.summarize")
 
             summarize_done = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='discussion.summarize' AND status='completed'", (run_id,))[0]
             revise_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.revise'", (run_id,))[0]
             if summarize_done > 0 and revise_exists == 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "draft.revise", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "draft.revise", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "draft.revise")
 
             revise_done = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.revise' AND status='completed'", (run_id,))[0]
             report_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='report.publish'", (run_id,))[0]
             if revise_done > 0 and report_exists == 0 and summarize_done > 0:
-                dispatch_task(run_id, None, "neko", "manager", "全局", "report.publish", 0, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "report.publish", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "report.publish")
 
         retro_started = fetch_one(
             """
             SELECT task_id, started_at, payload::text, result::text
             FROM tasks
-            WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id='neko' AND status='completed'
+            WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id=%s AND status='completed'
               AND (
                 COALESCE(payload->>'mode','')='start'
                 OR COALESCE(result->>'status','')='started'
               )
             ORDER BY started_at DESC LIMIT 1
             """,
-            (run_id,),
+            (run_id, MANAGER_AGENT_ID),
         )
         retro_summary_exists = fetch_one(
             "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.summary'",
@@ -7593,9 +7656,9 @@ def orchestrator_tick():
             pending_comments = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
-                WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id!='neko' AND status IN ('pending', 'running')
+                WHERE run_id=%s AND phase='retrospective.discussion' AND agent_id!=%s AND status IN ('pending', 'running')
                 """,
-                (run_id,),
+                (run_id, MANAGER_AGENT_ID),
             )[0]
             retro_thread = _retro_thread_rows(run_id)
             open_or_closing_topics = fetch_one(
@@ -7614,7 +7677,7 @@ def orchestrator_tick():
             )[0]
             if retro_summary_exists == 0 and pending_comments == 0 and open_or_closing_topics == 0 and len(retro_thread) > 0:
                 if (datetime.now(started.tzinfo) - started).total_seconds() >= payload["retrospective_seconds"]:
-                    dispatch_task(run_id, None, "neko", "manager", "全局", "retrospective.summary", 0, {}, trace_ctx, project_id, cycle_no)
+                    dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "retrospective.summary", 0, {}, trace_ctx, project_id, cycle_no)
                     _run_current_phase(run_id, "retrospective.summary")
 
         retro_summary_done = fetch_one(
@@ -7629,8 +7692,8 @@ def orchestrator_tick():
             dispatch_task(
                 run_id,
                 None,
-                "neko",
-                "manager",
+                MANAGER_AGENT_ID,
+                AGENT_ROLES[MANAGER_AGENT_ID],
                 "全局",
                 "agent.optimization",
                 0,
@@ -7838,7 +7901,7 @@ def run_worker(agent_id: str):
                     span.set_attribute("status", "planned")
                     complete_task(task["task_id"], result | {"status": "planned", "message_body": result["summary"]})
                 elif task["phase"] == "retrospective.discussion":
-                    if task["agent_id"] == "neko" and (task["payload"].get("mode") or "start") == "start":
+                    if task["agent_id"] == MANAGER_AGENT_ID and (task["payload"].get("mode") or "start") == "start":
                         seconds = task["payload"].get("retrospective_seconds", SETTINGS.project_retrospective_default_seconds)
                         kickoff = start_retrospective_thread(task["run_id"], task["task_id"])
                         project_id, cycle_no = get_run_project_context(task["run_id"])
@@ -7857,7 +7920,7 @@ def run_worker(agent_id: str):
                             topic_id=kickoff["topic_id"],
                             topic=kickoff["topic"],
                             target_type="agent",
-                            to_agent="neko",
+                            to_agent=MANAGER_AGENT_ID,
                             intent="critique",
                         )
                         span.set_attribute("status", "started")
@@ -7895,9 +7958,9 @@ def run_worker(agent_id: str):
                     kickoff = start_retrospective_thread(task["run_id"], task["task_id"])
                     project_id, cycle_no = get_run_project_context(task["run_id"])
                     trace_ctx = get_run_trace_context(task["run_id"])
-                    next_agents = [agent for agent in (kickoff.get("next_agents") or ["33", "xhs"]) if agent in {"33", "xhs"}]
+                    next_agents = [agent for agent in (kickoff.get("next_agents") or [WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID]) if agent in {WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID}]
                     if not next_agents:
-                        next_agents = ["33", "xhs"]
+                        next_agents = [WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID]
                     _dispatch_retro_comment_tasks(
                         task["run_id"],
                         project_id,
@@ -7909,7 +7972,7 @@ def run_worker(agent_id: str):
                         topic_id=kickoff["topic_id"],
                         topic=kickoff["topic"],
                         target_type="agent",
-                        to_agent="neko",
+                        to_agent=MANAGER_AGENT_ID,
                         intent="critique",
                     )
                     for agent in next_agents:

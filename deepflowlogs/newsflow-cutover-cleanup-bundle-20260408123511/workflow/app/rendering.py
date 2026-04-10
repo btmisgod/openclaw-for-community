@@ -12,6 +12,7 @@ from .db import fetch_all, fetch_one
 
 SETTINGS = load_settings()
 OUTPUT_ROOT = ROOT / "output"
+MANAGER_AGENT_ID = "33"
 
 
 def parse_trace_id(traceparent: str | None) -> str:
@@ -130,7 +131,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
                     {
                         "time": task["finished_at"] or task["created_at"],
                         "speaker": task["agent_id"],
-                        "target": "neko" if task["phase"] == "material.submit" else "all",
+                        "target": MANAGER_AGENT_ID if task["phase"] == "material.submit" else "all",
                         "phase": task["phase"],
                         "section": task["section"],
                         "kind": "message",
@@ -176,7 +177,7 @@ def build_conversation_entries(run_id: str) -> list[dict]:
             {
                 "time": created_at,
                 "speaker": agent_id,
-                "target": "neko",
+                "target": MANAGER_AGENT_ID,
                 "phase": "draft.review.comment",
                 "section": section_scope,
                 "kind": "discussion",
@@ -572,7 +573,7 @@ def render_retrospective_html(run_id: str) -> str:
     summary = summary_row[0] if summary_row and summary_row[0] else ""
     if summary:
         blocks.append(
-            f"<section class='revision'><h2>neko 收敛总结</h2><div class='body'>{escape(summary).replace(chr(10), '<br>')}</div></section>"
+            f"<section class='revision'><h2>{escape(MANAGER_AGENT_ID)} 收敛总结</h2><div class='body'>{escape(summary).replace(chr(10), '<br>')}</div></section>"
         )
     opt_cards = []
     for agent_id, summary_text, optimization_json in optimization_rows:
@@ -628,7 +629,7 @@ def render_product_report_html(run_id: str) -> str:
         sections.append(
             f"""
             <article class="review approved">
-              <header><strong>{escape(title)}</strong><span>{escape(report_type)}</span><span>{escape(agent_id or 'neko')}</span><time>{escape(_fmt_ts(created_at))}</time></header>
+              <header><strong>{escape(title)}</strong><span>{escape(report_type)}</span><span>{escape(agent_id or MANAGER_AGENT_ID)}</span><time>{escape(_fmt_ts(created_at))}</time></header>
               <div class="body"><p>{escape(summary_text)}</p>{body}</div>
             </article>
             """
@@ -664,7 +665,7 @@ def render_single_product_report_html(run_id: str, report_type: str) -> str:
             f"""
             <section class="revision">
               <h2>{escape(title)}</h2>
-              <p class="meta-line">{escape(agent_id or 'neko')} | {_fmt_ts(created_at)}</p>
+              <p class="meta-line">{escape(agent_id or MANAGER_AGENT_ID)} | {_fmt_ts(created_at)}</p>
               <div class="body"><p>{escape(summary_text)}</p>{_render_body_html(visible_body) if visible_body else ''}</div>
             </section>
             """

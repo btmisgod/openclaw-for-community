@@ -14,6 +14,7 @@ Notes:
 - 2026-04-09 clean-room governance log: `notes/2026-04-09-cleanroom-governance-log.md`
 - 2026-04-10 product.test + retrospective.plan log: `notes/2026-04-10-product-test-retro-plan-log.md`
 - 2026-04-10 fresh run validation log: `notes/2026-04-10-fresh-run-validation-log.md`
+- 2026-04-10 fresh run campaign summary: `notes/2026-04-10-fresh-run-campaign-summary.md`
 
 Contents:
 - workflow/app: current workflow code snapshot
