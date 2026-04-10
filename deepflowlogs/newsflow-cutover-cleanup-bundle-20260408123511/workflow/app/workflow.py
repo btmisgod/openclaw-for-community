@@ -1839,7 +1839,18 @@ def claim_ack_task(agent_id: str):
                 """
                 SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
                 FROM tasks
-                WHERE agent_id=%s AND status='awaiting_ack'
+                WHERE agent_id=%s
+                  AND status='awaiting_ack'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM workflow_runs wr
+                      WHERE wr.run_id=tasks.run_id AND wr.status='running'
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM projects p
+                      WHERE p.project_id=tasks.project_id AND p.status='stopped'
+                  )
                 ORDER BY created_at
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
@@ -1882,6 +1893,93 @@ def complete_agent_ack(task_id: str, ack_id: str, ack: dict):
         """,
         (next_status, error_message, ack_id, task_id),
     )
+
+
+def _recover_stalled_agent_acks(limit: int = 16) -> int:
+    recovered = 0
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
+                FROM tasks
+                WHERE status='awaiting_ack'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM workflow_runs wr
+                      WHERE wr.run_id=tasks.run_id AND wr.status='running'
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM projects p
+                      WHERE p.project_id=tasks.project_id AND p.status='stopped'
+                  )
+                  AND created_at <= NOW() - INTERVAL '5 seconds'
+                ORDER BY created_at
+                LIMIT %s
+                FOR UPDATE SKIP LOCKED
+                """,
+                (limit,),
+            )
+            rows = cur.fetchall()
+            if not rows:
+                conn.commit()
+                return 0
+            keys = [
+                "task_id",
+                "run_id",
+                "project_id",
+                "cycle_no",
+                "parent_task_id",
+                "agent_id",
+                "agent_role",
+                "section",
+                "phase",
+                "retry_count",
+                "payload",
+            ]
+            for row in rows:
+                task = dict(zip(keys, row))
+                task["payload"] = json.loads(task["payload"])
+                ack = _evaluate_agent_ack(task)
+                ack_id = f"ack-{uuid.uuid4().hex[:12]}"
+                cur.execute(
+                    """
+                    INSERT INTO agent_acks(
+                        ack_id, run_id, project_id, cycle_no, phase_name, section, agent_id, ack_status,
+                        understood_goal, known_dependencies, risk_note
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s)
+                    """,
+                    (
+                        ack_id,
+                        task["run_id"],
+                        task.get("project_id"),
+                        task.get("cycle_no"),
+                        task["phase"],
+                        task["section"],
+                        task["agent_id"],
+                        ack["ack_status"],
+                        ack.get("understood_goal") or "",
+                        jdump(ack.get("known_dependencies") or []),
+                        ack.get("risk_note") or "",
+                    ),
+                )
+                next_status = "pending" if ack["ack_status"] == "ready" else "failed"
+                error_message = None if next_status == "pending" else ack.get("risk_note") or ack["ack_status"]
+                cur.execute(
+                    """
+                    UPDATE tasks
+                    SET status=%s,
+                        error_message=%s,
+                        payload=jsonb_set(payload,'{ack_id}',to_jsonb(%s::text),true)
+                    WHERE task_id=%s
+                    """,
+                    (next_status, error_message, ack_id, task["task_id"]),
+                )
+                recovered += 1
+        conn.commit()
+    return recovered
 
 
 def _dispatch_dedupe_key(
@@ -2178,7 +2276,18 @@ def claim_task(agent_id: str):
                     """
                     SELECT task_id, run_id, project_id, cycle_no, parent_task_id, agent_id, agent_role, section, phase, retry_count, payload::text
                     FROM tasks
-                    WHERE agent_id=%s AND status='pending'
+                    WHERE agent_id=%s
+                      AND status='pending'
+                      AND EXISTS (
+                          SELECT 1
+                          FROM workflow_runs wr
+                          WHERE wr.run_id=tasks.run_id AND wr.status='running'
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM projects p
+                          WHERE p.project_id=tasks.project_id AND p.status='stopped'
+                      )
                     ORDER BY created_at
                     LIMIT 1
                     FOR UPDATE SKIP LOCKED
@@ -2275,6 +2384,14 @@ def _enrich_collected_materials(
 ) -> list[dict]:
     if not items:
         return []
+
+    def _safe_candidate_rank(value, default: int) -> int:
+        try:
+            rank = int(value)
+        except Exception:
+            rank = default
+        return rank if rank > 0 else default
+
     primary_cutoff = max(3, min(target_count, 5))
     batch_size = 4
     prompt_items = [
@@ -2337,7 +2454,7 @@ def _enrich_collected_materials(
                 "brief_zh": brief_zh,
                 "relevance_note": relevance_note,
                 "is_primary_candidate": bool(extra.get("is_primary_candidate")),
-                "candidate_rank": int(extra.get("candidate_rank") or idx + 1),
+                "candidate_rank": _safe_candidate_rank(extra.get("candidate_rank"), idx + 1),
                 "generation_mode": meta.get("generation_mode", "fallback"),
                 "generation_error": meta.get("generation_error", ""),
             }
@@ -7043,6 +7160,7 @@ def _run_current_phase(run_id: str, phase: str):
 def orchestrator_tick():
     _progress_waiting_llm_tasks()
     _progress_retro_decision_jobs()
+    _recover_stalled_agent_acks()
     runs = fetch_all(
         """
         SELECT run_id, project_id, cycle_no, status, discussion_seconds, current_phase, started_at

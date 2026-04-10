@@ -80,7 +80,7 @@ def _clean_title(title: str) -> str:
 def _extract_images(link: str) -> list[str]:
     images: list[str] = []
     try:
-        resp = HTTP.get(link, timeout=15)
+        resp = HTTP.get(link, timeout=5)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for selector in [
@@ -102,6 +102,39 @@ def _extract_images(link: str) -> list[str]:
         return dedup[:5]
     except Exception:
         return []
+
+
+def _append_image(images: list[str], link: str, value: str | None) -> None:
+    if not value:
+        return
+    resolved = urljoin(link, value)
+    if resolved.startswith("http") and resolved not in images:
+        images.append(resolved)
+
+
+def _entry_images(entry: Any, link: str) -> list[str]:
+    images: list[str] = []
+    for media in entry.get("media_content") or []:
+        if isinstance(media, dict):
+            _append_image(images, link, media.get("url"))
+    for media in entry.get("media_thumbnail") or []:
+        if isinstance(media, dict):
+            _append_image(images, link, media.get("url"))
+    for content in entry.get("content") or []:
+        if not isinstance(content, dict):
+            continue
+        raw_value = content.get("value")
+        if not raw_value:
+            continue
+        soup = BeautifulSoup(raw_value, "html.parser")
+        for tag in soup.select("img[src]"):
+            _append_image(images, link, tag.get("src"))
+    summary_html = entry.get("summary") or ""
+    if summary_html:
+        soup = BeautifulSoup(summary_html, "html.parser")
+        for tag in soup.select("img[src]"):
+            _append_image(images, link, tag.get("src"))
+    return images[:5]
 
 
 def collect_news(section: str, limit: int) -> list[dict[str, Any]]:
@@ -141,11 +174,16 @@ def collect_news(section: str, limit: int) -> list[dict[str, Any]]:
                     "published_at": published.isoformat(),
                     "link": link,
                     "summary_en": summary[:800],
-                    "images": _extract_images(link),
+                    "images": _entry_images(entry, link),
                 }
             )
     items.sort(key=lambda x: x["published_at"], reverse=True)
-    return items[:limit]
+    selected = items[:limit]
+    for item in selected:
+        if item.get("images") or not item.get("link"):
+            continue
+        item["images"] = _extract_images(item["link"])
+    return selected
 
 
 def search_benchmark_samples(query: str, limit: int = 4) -> list[dict[str, Any]]:

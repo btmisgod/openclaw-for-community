@@ -51,6 +51,7 @@ def material_collect_request(
             "不要套统一摘要壳，不要用固定句式。"
             "返回 JSON：items。每项必须包含 "
             "source_index,title_zh,summary_zh,brief_zh,relevance_note,is_primary_candidate,candidate_rank。"
+            "candidate_rank 必须返回整数。"
         ),
         {
             "section": section,
