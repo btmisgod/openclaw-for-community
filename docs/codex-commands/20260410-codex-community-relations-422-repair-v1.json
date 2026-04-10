@@ -1,0 +1,133 @@
+{
+  "command_id": "20260410-codex-community-relations-422-repair-v1",
+  "version": "1.0",
+  "created_at": "2026-04-10",
+  "title": "Repair Codex community integration so inbound webhook handling can send compliant messages without /messages 422",
+  "objective": "Fix the Codex-side community integration so that real inbound community webhook events can be processed and the resulting outbound community message passes /messages validation and completes one real receive-and-respond loop. Do not modify the community server. Keep port 8848 as the active listener. Continue repairing until the integration works correctly, unless there are 5 consecutive failed repair attempts.",
+  "hard_constraints": {
+    "listener_port": 8848,
+    "do_not_modify_community_backend": true,
+    "do_not_modify_community_protocol": true,
+    "do_not_modify_workflow_engine": true,
+    "do_not_modify_community_ui": true,
+    "max_consecutive_failed_repairs": 5
+  },
+  "known_root_cause_hypothesis": [
+    "Current evidence indicates the 422 is likely caused by Codex-side outbound message construction, not by the community server itself.",
+    "The most likely failure is that the Codex integration is forwarding non-UUID synthetic values into relations.thread_id and/or relations.parent_message_id.",
+    "The community server expects UUID values for those fields when present. Synthetic values such as m-test-001 or m-root-posted-... are invalid and should not be sent as canonical message relations."
+  ],
+  "must_start_with": [
+    {
+      "order": 1,
+      "path_or_url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/docs/codex-commands/20260410-codex-community-self-onboarding-port-8848-v1.json",
+      "why": "Use the fixed 8848 onboarding task as the authoritative identity/listener constraint."
+    },
+    {
+      "order": 2,
+      "path_or_url": "G:\\community agnts\\community agents\\codexlogs\\research-archive\\20260410-codex-community-self-onboarding-v2\\tmp-verify-webhook-result-success.json",
+      "why": "Read the exact failing verification evidence first."
+    },
+    {
+      "order": 3,
+      "path_or_url": "G:\\community agnts\\community agents\\community-skill\\tmp-verification\\webhook-server.out.log",
+      "why": "Inspect the exact outbound payload shape that caused the 422."
+    },
+    {
+      "order": 4,
+      "path_or_url": "G:\\community agnts\\community agents\\community-skill\\tmp-verification\\webhook-server.err.log",
+      "why": "Inspect the runtime failure trace."
+    },
+    {
+      "order": 5,
+      "path_or_url": "G:\\community agnts\\community agents\\community-skill\\assets\\community-runtime-v0.mjs",
+      "why": "Inspect how inbound event data is normalized and how relations are propagated."
+    },
+    {
+      "order": 6,
+      "path_or_url": "G:\\community agnts\\community agents\\community-skill\\scripts\\community_integration.mjs",
+      "why": "Inspect outbound message construction and /messages send behavior."
+    },
+    {
+      "order": 7,
+      "path_or_url": "G:\\community agnts\\community agents\\myproject\\app\\schemas\\messages.py",
+      "why": "Use only as a read-only schema reference to understand what /messages accepts. Do not modify it."
+    },
+    {
+      "order": 8,
+      "path_or_url": "G:\\community agnts\\community agents\\myproject\\app\\api\\v1\\endpoints\\messages.py",
+      "why": "Use only as a read-only endpoint contract reference. Do not modify it."
+    }
+  ],
+  "repair_direction": [
+    "Do not send relations.thread_id or relations.parent_message_id unless you have real community UUID values.",
+    "Strip or null out synthetic local identifiers before POST /messages.",
+    "Preserve the required skill channel contract when sending outbound messages.",
+    "Keep the active listener and registered webhook endpoint on 8848.",
+    "Re-test with a real inbound webhook-driven receive-and-respond loop after each repair."
+  ],
+  "allowed_work_areas": [
+    "Codex-side bridge/runtime files only",
+    "Local verification scripts and local evidence folder only",
+    "Local state/onboarding artifacts only insofar as needed to keep the active 8848 listener and identity correct"
+  ],
+  "forbidden_work_areas": [
+    "Community backend code",
+    "Community frontend/UI code",
+    "Protocol/workflow engine code",
+    "Any scope expansion into new features",
+    "Any attempt to solve the issue by loosening server validation"
+  ],
+  "required_work": [
+    {
+      "id": "phase1_reproduce_422_with_current_payload",
+      "description": "Reproduce the current 422 and capture the exact outbound payload shape that triggered it."
+    },
+    {
+      "id": "phase2_patch_codex_side_payload_normalization",
+      "description": "Fix the Codex-side outbound payload construction so invalid synthetic relations are not sent to /messages."
+    },
+    {
+      "id": "phase3_retest_real_receive_and_respond",
+      "description": "Run a real inbound webhook test and verify that the resulting outbound /messages call succeeds instead of returning 422."
+    },
+    {
+      "id": "phase4_iterate_until_success_or_five_failures",
+      "description": "If the repair still fails, continue repairing and retesting. Stop only when the integration works correctly or when there have been 5 consecutive failed repair attempts."
+    },
+    {
+      "id": "phase5_closeout",
+      "description": "Write a closeout stating the root cause, files changed, final outbound message shape rules, whether real receive/respond now works, and the final attempt count."
+    }
+  ],
+  "do_not": [
+    "Do not modify server code.",
+    "Do not claim success based only on healthz or local mock success.",
+    "Do not keep sending synthetic non-UUID relation ids into /messages.",
+    "Do not change the primary listener away from 8848.",
+    "Do not continue past 5 consecutive failed repair attempts."
+  ],
+  "acceptance": [
+    "A real inbound webhook reaches the Codex listener on 8848.",
+    "The resulting outbound /messages request succeeds and no longer returns 422.",
+    "One real receive-and-respond loop is completed.",
+    "No community server code was changed.",
+    "The final report clearly states success or the first blocker after 5 consecutive failed repair attempts."
+  ],
+  "result_format": {
+    "required_fields": [
+      "Status",
+      "BlockerType",
+      "Blocker",
+      "ConsecutiveFailedRepairAttempts",
+      "RootCauseConfirmed",
+      "CommunityCodeChanged",
+      "ListenerPort",
+      "ReceiveAndRespondProof",
+      "changed_files",
+      "evidence_paths",
+      "log_path",
+      "NextStep"
+    ]
+  }
+}
