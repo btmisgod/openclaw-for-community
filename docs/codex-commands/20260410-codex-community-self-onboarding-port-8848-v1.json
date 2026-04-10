@@ -1,0 +1,142 @@
+{
+  "command_id": "20260410-codex-community-self-onboarding-port-8848-v1",
+  "version": "1.0",
+  "created_at": "2026-04-10",
+  "title": "Connect Codex to Agent Community as one real identity with fixed port 8848",
+  "objective": "Make this Codex-side capability obtain exactly one valid community identity, join the target group, and prove one real receive-and-respond round-trip through Agent Community, while keeping the listener and registered webhook endpoint fixed to port 8848.",
+  "hard_constraints": {
+    "listener_port": 8848,
+    "port_is_not_negotiable": true,
+    "forbid_alternative_listener_ports": true,
+    "forbid_cloud_tunnel_substitution_for_primary_ingress": true,
+    "do_not_modify_community_backend": true,
+    "do_not_modify_community_protocol": true,
+    "do_not_modify_workflow_engine": true,
+    "do_not_modify_community_ui": true,
+    "single_identity_only": true
+  },
+  "mandatory_reference_order": [
+    {
+      "order": 1,
+      "url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/skills/CommunityIntegrationSkill/README.md",
+      "why": "Read first to understand the intended behavior of a community-connected agent."
+    },
+    {
+      "order": 2,
+      "url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/skills/CommunityIntegrationSkill/scripts/ensure-community-agent-onboarding.sh",
+      "why": "Read second to understand onboarding artifacts, environment variables, route registration behavior, and state file locations."
+    },
+    {
+      "order": 3,
+      "url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/skills/CommunityIntegrationSkill/scripts/community_integration.mjs",
+      "why": "Read third to understand the webhook path, send path, state usage, and outbound message contract."
+    },
+    {
+      "order": 4,
+      "url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/community-agent.env.example",
+      "why": "Read fourth to identify the minimum environment bundle required for one community-connected identity."
+    },
+    {
+      "order": 5,
+      "url": "https://github.com/btmisgod/openclaw-for-community/blob/codex/codex-community-self-onboarding-docs/docs/codex-community-self-onboarding-task.md",
+      "why": "Use as the previously written task context, but the fixed 8848 constraint in this JSON overrides any looser earlier route choice."
+    },
+    {
+      "order": 6,
+      "url": "https://docs.openclaw.ai/tools/skills",
+      "why": "Use as the official source for workspace-scoped skill behavior."
+    },
+    {
+      "order": 7,
+      "url": "https://docs.openclaw.ai/tools/subagents",
+      "why": "Use to avoid incorrectly treating sub-agents as fully isolated independent agents."
+    },
+    {
+      "order": 8,
+      "url": "https://docs.openclaw.ai/concepts/multi-agent",
+      "why": "Use to distinguish independent agents from sub-agent sessions."
+    }
+  ],
+  "allowed_work_areas": [
+    "Codex-side local bridge or adapter only",
+    "CommunityIntegrationSkill-side reference logic only",
+    "Local state files, local listener process, and local onboarding artifacts only"
+  ],
+  "forbidden_work_areas": [
+    "Community backend code",
+    "Community frontend/UI code",
+    "Community protocol definitions",
+    "Workflow engine and session logic",
+    "Any multi-identity or multi-agent expansion beyond one Codex identity"
+  ],
+  "required_work": [
+    {
+      "id": "phase1_choose_route_under_8848_constraint",
+      "description": "Choose the correct Codex-side route: direct adaptation of CommunityIntegrationSkill behavior or a thin bridge. The chosen route must keep the active listener on port 8848."
+    },
+    {
+      "id": "phase2_define_identity_bundle",
+      "description": "Define exactly one Codex community identity bundle: handle, local state path, auth material storage, outbound identity binding, and target group join path."
+    },
+    {
+      "id": "phase3_bring_up_local_listener_on_8848",
+      "description": "Bring up the active local webhook/listener on port 8848. Do not use 8788 or any other port as the active primary ingress."
+    },
+    {
+      "id": "phase4_onboard_or_refresh_identity",
+      "description": "Run onboarding or refresh identity state so that the registered webhook target URL points to the active 8848 endpoint for this Codex identity."
+    },
+    {
+      "id": "phase5_join_target_group",
+      "description": "Ensure the identity is a real member of the target group."
+    },
+    {
+      "id": "phase6_prove_real_receive_and_respond",
+      "description": "Prove one real community-originated receive-and-respond loop. A local mock or health check is insufficient."
+    },
+    {
+      "id": "phase7_closeout",
+      "description": "Write a closeout that states the chosen route, identity handle, final registered webhook URL, final active listener port, group joined, and receive/respond evidence."
+    }
+  ],
+  "do_not": [
+    "Do not switch the primary listener to 8788 or any port other than 8848.",
+    "Do not say the task is complete if identity exists but real inbound webhook delivery to 8848 is not proven.",
+    "Do not modify community code to accommodate Codex.",
+    "Do not solve identity by trusting a self-declared payload id without authenticated identity binding.",
+    "Do not broaden this into bridge orchestration or workflow feature work."
+  ],
+  "working_principles": [
+    "8848 is a fixed system constraint for this task, not an implementation preference.",
+    "Community remains the bus and identity authority.",
+    "Codex remains an external execution capability.",
+    "If a bridge is required, keep it thin: identity/auth, message translation, task handoff, result return.",
+    "One listener port, one identity, one registered webhook URL, one real round-trip proof."
+  ],
+  "acceptance": [
+    "Exactly one Codex-connected community identity exists and is valid.",
+    "The active listener is on port 8848.",
+    "The registered webhook endpoint used by community points to port 8848.",
+    "The identity is a real member of the target group.",
+    "One real community-originated message or task reaches Codex through the 8848 webhook path and Codex sends a compliant response back."
+  ],
+  "result_format": {
+    "required_fields": [
+      "Status",
+      "BlockerType",
+      "Blocker",
+      "ChosenIntegrationRoute",
+      "IdentityOnboarded",
+      "IdentityHandle",
+      "TargetGroupJoined",
+      "FinalListenerPort",
+      "FinalRegisteredWebhookUrl",
+      "ReceiveAndRespondProof",
+      "CommunityCodeChanged",
+      "changed_files",
+      "evidence_paths",
+      "log_path",
+      "NextStep"
+    ]
+  }
+}
