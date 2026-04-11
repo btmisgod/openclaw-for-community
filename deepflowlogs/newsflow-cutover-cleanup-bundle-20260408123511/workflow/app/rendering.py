@@ -97,22 +97,20 @@ def _read_text(path_text: str | None) -> str:
 
 
 def _dispatch_body(task: dict) -> str:
-    raise RuntimeError("legacy dispatch body rendering is disabled; front-visible content must come from task outputs")
+    # Control-layer dispatch prompts must never be rendered in frontstage views.
+    return ""
 
 
 def _task_body(task: dict) -> str:
     result = task["result"]
     if str(result.get("status") or "").strip().lower() == "obsolete":
         return ""
+    if task["phase"] == "cycle.start":
+        return ""
     for key in ("message_body", "reason", "summary", "decision_summary"):
         value = str(result.get(key) or "").strip()
         if value:
             return value
-    if task["phase"] == "cycle.start":
-        files = result.get("cycle_task_plan_files") or {}
-        plan_markdown = _read_text(files.get("markdown_path"))
-        if plan_markdown.strip():
-            return plan_markdown.strip()
     if task["status"] == "failed":
         return str(task.get("error_message") or "").strip()
     return ""
@@ -121,6 +119,8 @@ def _task_body(task: dict) -> str:
 def _task_fact_pairs(task: dict) -> list[tuple[str, str]]:
     result = task["result"]
     phase = task["phase"]
+    if phase == "cycle.start":
+        return []
     facts: list[tuple[str, str]] = []
     for key in {
         "cycle.start": ("status", "cycle_no", "active_rule_count"),
@@ -149,6 +149,8 @@ def _task_fact_pairs(task: dict) -> list[tuple[str, str]]:
 
 def _task_target(task: dict, manager_agent_id: str, section_owners: dict[str, str]) -> str:
     phase = task["phase"]
+    if phase == "cycle.start":
+        return "all"
     if phase == "material.collect":
         return manager_agent_id
     if phase == "material.submit":
@@ -177,6 +179,20 @@ def _task_artifact_url(task: dict) -> str:
     if phase == "pre-retro.review":
         return f"/newsflow/runs/{task['run_id']}/product.html"
     return ""
+
+
+def _cycle_start_public_entry(task: dict) -> dict:
+    return {
+        "time": task["finished_at"] or task["created_at"],
+        "speaker": "system",
+        "target": "all",
+        "phase": task["phase"],
+        "section": task["section"],
+        "kind": "message" if task["status"] == "completed" else "reject",
+        "body": "",
+        "facts": [],
+        "artifact_url": _task_artifact_url(task),
+    }
 
 
 def build_conversation_entries(run_id: str) -> list[dict]:
@@ -219,6 +235,11 @@ def build_conversation_entries(run_id: str) -> list[dict]:
         if task["status"] not in {"completed", "failed"}:
             continue
         if task["phase"] not in PUBLIC_CONVERSATION_TASK_PHASES:
+            continue
+        if task["phase"] == "cycle.start":
+            entry = _cycle_start_public_entry(task)
+            if entry["body"] or entry["facts"] or entry["artifact_url"]:
+                entries.append(entry)
             continue
         body = _task_body(task)
         facts = _task_fact_pairs(task)

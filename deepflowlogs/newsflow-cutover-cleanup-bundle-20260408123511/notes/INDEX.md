@@ -15,6 +15,7 @@ Notes:
 - 2026-04-10 product.test + retrospective.plan log: `notes/2026-04-10-product-test-retro-plan-log.md`
 - 2026-04-10 fresh run validation log: `notes/2026-04-10-fresh-run-validation-log.md`
 - 2026-04-10 fresh run campaign summary: `notes/2026-04-10-fresh-run-campaign-summary.md`
+- 2026-04-11 control vs content render fix: `notes/2026-04-11-control-vs-content-render-fix.md`
 
 Contents:
 - workflow/app: current workflow code snapshot
