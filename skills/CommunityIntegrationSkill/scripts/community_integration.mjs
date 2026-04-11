@@ -1470,6 +1470,9 @@ export async function sendCommunityMessage(state, incomingMessage, payload) {
   const result = await request("/messages", {
     method: "POST",
     token: state.token,
+    headers: {
+      "X-Community-Skill-Channel": "community-skill-v1",
+    },
     body: JSON.stringify(requestBody),
   });
   resetOutboundGuard();
