@@ -828,6 +828,62 @@ function resolveCurrentRole(state, runtimeContext) {
   return { group_role: "observer", assignment: "unknown" };
 }
 
+function appendChannelRole(entries, seen, agent, role) {
+  const agentValue = String(agent || "").trim();
+  const roleValue = String(role || "").trim();
+  if (!agentValue || !roleValue) {
+    return;
+  }
+  const key = `${agentValue.toLowerCase()}::${roleValue.toLowerCase()}`;
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+  entries.push({ agent: agentValue, role: roleValue });
+}
+
+function synthesizeChannelRoles(protocol, executionSpec, taskBrief, stageDefinition) {
+  const directRoles = normalizeList(protocol?.channel?.roles || protocol?.channel_roles || protocol?.members?.channel_roles);
+  const directEntries = [];
+  const directSeen = new Set();
+  for (const item of directRoles) {
+    const record = normalizeRecord(item);
+    appendChannelRole(
+      directEntries,
+      directSeen,
+      firstNonEmpty(record.agent, record.agent_id, record.handle, record.name),
+      firstNonEmpty(record.role, record.assignment, record.group_role),
+    );
+  }
+  if (directEntries.length) {
+    return directEntries;
+  }
+
+  const entries = [];
+  const seen = new Set();
+  const roleDirectory = normalizeRecord(executionSpec?.role_directory);
+  for (const managerAgent of normalizeList(roleDirectory.manager_agent_ids)) {
+    appendChannelRole(entries, seen, managerAgent, "manager");
+  }
+  for (const workerAgent of normalizeList(roleDirectory.worker_agent_ids)) {
+    appendChannelRole(entries, seen, workerAgent, "worker");
+  }
+
+  const roleAssignments = normalizeRecord(taskBrief?.role_assignments || protocol?.members?.role_assignments);
+  for (const [assignment, detail] of Object.entries(roleAssignments)) {
+    const record = normalizeRecord(detail);
+    const configuredAgent = firstNonEmpty(record.agent_id, record.agent, record.handle, record.name);
+    if (!configuredAgent) {
+      continue;
+    }
+    appendChannelRole(entries, seen, configuredAgent, assignment);
+    appendChannelRole(entries, seen, configuredAgent, firstNonEmpty(record.group_role, assignment === "manager" ? "manager" : "worker"));
+  }
+
+  appendChannelRole(entries, seen, stageDefinition?.worker_agent_id, "worker");
+  return entries;
+}
+
 function runtimeRuleCard(runtimeContext) {
   const transitionRules = normalizeRecord(runtimeContext?.transition_rules);
   const roleRules = normalizeRecord(runtimeContext?.role_rules);
@@ -937,27 +993,27 @@ function schemaCard(state, runtimeContext) {
 
 function buildRuntimeCardsText(runtimeContext, state) {
   const cards = [
-    ["???????", runtimeRuleCard(runtimeContext)],
-    ["?????", taskBriefCard(runtimeContext)],
-    ["????", stateCard(runtimeContext)],
-    ["???", roleCard(state, runtimeContext)],
-    ["?????", stageCard(state, runtimeContext)],
-    ["?? schema ?", schemaCard(state, runtimeContext)],
+    ["运行规则卡", runtimeRuleCard(runtimeContext)],
+    ["任务简报卡", taskBriefCard(runtimeContext)],
+    ["状态卡", stateCard(runtimeContext)],
+    ["角色卡", roleCard(state, runtimeContext)],
+    ["阶段卡", stageCard(state, runtimeContext)],
+    ["Schema 卡", schemaCard(state, runtimeContext)],
   ]
     .map(([title, payload]) => {
       const compactPayload = compactRecord(payload);
-      return Object.keys(compactPayload).length > 0 ? `?${title}?\n${JSON.stringify(compactPayload)}` : "";
+      return Object.keys(compactPayload).length > 0 ? `【${title}】\n${JSON.stringify(compactPayload)}` : "";
     })
     .filter(Boolean);
   if (!cards.length) {
-    return "????? Community ???????????????????????????????";
+    return "当前没有可用的社区运行卡，请仅根据入站消息做最小安全回应。";
   }
-  return ["????????????????????????????????????", ...cards].join("\n\n");
+  return ["以下是当前社区运行卡，请严格按这些约束执行：", ...cards].join("\n\n");
 }
 
 function runtimeInstructions(runtimeContext) {
   if (!runtimeContext || typeof runtimeContext !== "object") {
-    return "????? Community ???????????????????????????????";
+    return "当前没有可用的社区运行卡，请仅根据入站消息做最小安全回应。";
   }
   return buildRuntimeCardsText(runtimeContext, runtimeContext?.agent_state || {});
 }
@@ -994,13 +1050,13 @@ export function buildExecutionPrompt(message, state, runtimeContext) {
     {
       role: "system",
       content: [
-        `?? OpenClaw ???? agent?${state.profile?.display_name || state.agentName}?`,
-        "????? Agent Community ? webhook ?????????????",
-        "?????????????????????????????????",
-        "????????????????? Agent Community webhook?",
+        `你是 OpenClaw 社区协作 agent：${state.profile?.display_name || state.agentName}。`,
+        "你当前是被 Agent Community 的 webhook 推送触发的，不是主动轮询。",
+        "你只负责产出公开可回传到社区频道的执行结果，不要输出内部推理过程。",
+        "不要虚构消息来源。当前消息来源就是 Agent Community webhook。",
         agentProtocol,
         runtimeInstructions(runtimeContextWithState),
-        "??????????????",
+        "以下是你的身份和工作上下文：",
         identity,
         soul,
         user,
@@ -1010,7 +1066,7 @@ export function buildExecutionPrompt(message, state, runtimeContext) {
     },
     {
       role: "user",
-      content: `????????????????????????????????????????????\n\n????: ${message.message_type}\n????: ${JSON.stringify(message.content, null, 2)}`,
+      content: `请根据下面这条社区消息，生成一条适合公开回到同一讨论串里的中文结果正文，只输出结果正文。\n\n消息类型: ${message.message_type}\n消息内容: ${JSON.stringify(message.content, null, 2)}`,
     },
   ];
 }
@@ -1052,6 +1108,7 @@ export async function fetchRuntimeContext(groupId, state) {
   const currentStage = String(session.current_stage || executionSpec.initial_stage || "").trim();
   const stageDefinition = resolveStageDefinition(workflowDefinition, currentStage);
   const taskBrief = resolveTaskBrief(protocol, workflowDefinition);
+  const channelRoles = synthesizeChannelRoles(protocol, executionSpec, taskBrief, stageDefinition);
   return {
     protocol_version:
       session.protocol_version || protocolEnvelope.protocol_version || protocol?.protocol_meta?.protocol_version || protocol?.protocol_meta?.protocol_id || "unknown",
@@ -1068,6 +1125,7 @@ export async function fetchRuntimeContext(groupId, state) {
     group_session_version: String(session.group_session_version || "").trim(),
     role_directory: normalizeRecord(executionSpec.role_directory),
     role_assignments: normalizeRecord(taskBrief.role_assignments || protocol?.members?.role_assignments),
+    channel_roles: channelRoles,
     task_brief: compactRecord({
       task_goal: taskBrief.task_goal,
       time_scope: taskBrief.time_scope,
