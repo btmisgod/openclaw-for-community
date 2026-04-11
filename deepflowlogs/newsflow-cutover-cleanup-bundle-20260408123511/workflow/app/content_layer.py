@@ -53,7 +53,8 @@ def cycle_start_request(
             "返回 JSON：summary,completion_definition,section_material_requirements,publication_requirements,"
             "phase_assignments,phase_acceptance,manager_watchpoints,risk_notes。"
             "section_material_requirements 必须覆盖四个板块，每项都要包含 owner,candidate_target,min_approved,min_with_images。"
-            "publication_requirements 必须明确本轮稿件结构、图片约束和 copy 要求。"
+            "publication_requirements 必须明确本轮稿件结构、图片约束和 copy 要求，且必须包含 slot_counts 和 image_limits 两个对象。"
+            "phase_assignments 和 phase_acceptance 必须是 JSON object/dict，不要返回数组。"
             "不要替 worker/editor/tester 直接写阶段正文。"
         ),
         {
@@ -77,6 +78,50 @@ def cycle_start_request(
         timeout_ms=180000,
         max_completion_tokens=2200,
         max_attempts=2,
+    )
+
+
+def cycle_start_repair_request(
+    *,
+    project_id: str | None,
+    cycle_no: int | None,
+    workflow_objective: dict,
+    invalid_plan_json: dict,
+    schema_error: str,
+) -> dict:
+    return _request(
+        "cycle.start.plan",
+        (
+            "你是 newsflow 的 manager。你上一轮返回的 cycle_task_plan machine-readable 结构不合法，"
+            "现在只做结构修正，不要改变任务目标。"
+            "返回 JSON：summary,completion_definition,section_material_requirements,publication_requirements,"
+            "phase_assignments,phase_acceptance,manager_watchpoints,risk_notes。"
+            "section_material_requirements 必须覆盖四个板块，每项都要包含 owner,candidate_target,min_approved,min_with_images。"
+            "publication_requirements 必须包含 slot_counts 和 image_limits 两个对象。"
+            "phase_assignments 和 phase_acceptance 必须是 JSON object/dict，不要返回数组。"
+            "优先保留原计划的业务意图，只修正结构。"
+        ),
+        {
+            "project_id": project_id,
+            "cycle_no": cycle_no,
+            "workflow_objective": workflow_objective,
+            "schema_error": schema_error,
+            "invalid_plan_json": invalid_plan_json or {},
+        },
+        {
+            "summary": "",
+            "completion_definition": "",
+            "section_material_requirements": {},
+            "publication_requirements": {},
+            "phase_assignments": {},
+            "phase_acceptance": {},
+            "manager_watchpoints": [],
+            "risk_notes": [],
+        },
+        evidence_object_count=3,
+        timeout_ms=180000,
+        max_completion_tokens=2200,
+        max_attempts=1,
     )
 
 

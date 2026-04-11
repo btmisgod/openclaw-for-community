@@ -808,15 +808,72 @@ def _normalize_cycle_task_plan(plan_json: dict, *, workflow_objective: dict) -> 
         plan_json.get("publication_requirements") or {},
         workflow_objective,
     )
+    phase_assignments = plan_json.get("phase_assignments")
+    if not isinstance(phase_assignments, dict):
+        phase_assignments = {}
+    phase_acceptance = plan_json.get("phase_acceptance")
+    if not isinstance(phase_acceptance, dict):
+        phase_acceptance = {}
     return {
         "summary": str(plan_json.get("summary") or "").strip(),
         "completion_definition": str(plan_json.get("completion_definition") or "").strip(),
         "section_material_requirements": section_requirements,
         "publication_requirements": publication_requirements,
-        "phase_assignments": plan_json.get("phase_assignments") or {},
-        "phase_acceptance": plan_json.get("phase_acceptance") or {},
+        "phase_assignments": phase_assignments,
+        "phase_acceptance": phase_acceptance,
         "manager_watchpoints": _clean_string_list(plan_json.get("manager_watchpoints")),
         "risk_notes": _clean_string_list(plan_json.get("risk_notes")),
+    }
+
+
+def _validate_cycle_task_plan_schema(plan_json: dict) -> None:
+    if not isinstance(plan_json, dict):
+        raise RuntimeError("cycle.start.plan returned invalid plan_json")
+    raw_sections = plan_json.get("section_material_requirements")
+    if not isinstance(raw_sections, dict):
+        raise RuntimeError("cycle.start.plan section_material_requirements must be a dict")
+    expected_sections = [section for section, _ in ALL_SECTION_ASSIGNMENTS]
+    for section in expected_sections:
+        item = raw_sections.get(section)
+        if not isinstance(item, dict):
+            raise RuntimeError(f"cycle.start.plan missing section requirement for section={section}")
+        owner = str(item.get("owner") or "").strip()
+        candidate_target = _coerce_plan_int(item.get("candidate_target"))
+        min_approved = _coerce_plan_int(item.get("min_approved"))
+        min_with_images = _coerce_plan_int(item.get("min_with_images"))
+        if not owner or candidate_target <= 0 or min_approved <= 0 or min_with_images < 0:
+            raise RuntimeError(f"cycle.start.plan missing section thresholds for section={section}")
+    publication = plan_json.get("publication_requirements")
+    if not isinstance(publication, dict):
+        raise RuntimeError("cycle.start.plan publication_requirements must be a dict")
+    slot_counts = publication.get("slot_counts")
+    image_limits = publication.get("image_limits")
+    if not isinstance(slot_counts, dict) or not isinstance(image_limits, dict):
+        raise RuntimeError("cycle.start.plan publication_requirements must include dict slot_counts and image_limits")
+    phase_assignments = plan_json.get("phase_assignments")
+    if not isinstance(phase_assignments, dict):
+        raise RuntimeError("cycle.start.plan phase_assignments must be a dict")
+    phase_acceptance = plan_json.get("phase_acceptance")
+    if not isinstance(phase_acceptance, dict):
+        raise RuntimeError("cycle.start.plan phase_acceptance must be a dict")
+
+
+def _cycle_start_plan_candidate(result: dict) -> dict:
+    summary = _require_llm_visible_text(result, field="summary", node_type="cycle.start.plan")
+    return {
+        "summary": summary,
+        "completion_definition": _require_llm_visible_text(
+            result,
+            field="completion_definition",
+            node_type="cycle.start.plan",
+            aliases=("summary",),
+        ),
+        "section_material_requirements": result.get("section_material_requirements") or {},
+        "publication_requirements": result.get("publication_requirements") or {},
+        "phase_assignments": result.get("phase_assignments") or {},
+        "phase_acceptance": result.get("phase_acceptance") or {},
+        "manager_watchpoints": result.get("manager_watchpoints") or [],
+        "risk_notes": result.get("risk_notes") or [],
     }
 
 
@@ -4598,25 +4655,41 @@ def start_cycle(run_id: str, task_id: str) -> dict:
         },
     )
     result = _run_content_request(prepared)
-    summary = _require_llm_visible_text(result, field="summary", node_type="cycle.start.plan")
-    plan_json = _normalize_cycle_task_plan(
-        {
-            "summary": summary,
-            "completion_definition": _require_llm_visible_text(
-                result,
-                field="completion_definition",
-                node_type="cycle.start.plan",
-                aliases=("summary",),
-            ),
-            "section_material_requirements": result.get("section_material_requirements") or {},
-            "publication_requirements": result.get("publication_requirements") or {},
-            "phase_assignments": result.get("phase_assignments") or {},
-            "phase_acceptance": result.get("phase_acceptance") or {},
-            "manager_watchpoints": result.get("manager_watchpoints") or [],
-            "risk_notes": result.get("risk_notes") or [],
-        },
-        workflow_objective=workflow_objective,
-    )
+    plan_candidate = _cycle_start_plan_candidate(result)
+    last_schema_error = ""
+    for repair_round in range(2):
+        try:
+            _validate_cycle_task_plan_schema(plan_candidate)
+            plan_json = _normalize_cycle_task_plan(
+                plan_candidate,
+                workflow_objective=workflow_objective,
+            )
+            _validate_cycle_task_plan_schema(plan_json)
+            break
+        except Exception as exc:
+            last_schema_error = f"{exc.__class__.__name__}: {exc}"
+            if repair_round >= 1:
+                raise
+            LOGGER.warning(
+                "cycle.start.plan.schema_repair run_id=%s round=%s error=%s",
+                run_id,
+                repair_round + 1,
+                last_schema_error,
+            )
+            repair_request = content_layer.cycle_start_repair_request(
+                project_id=project_id,
+                cycle_no=cycle_no,
+                workflow_objective=workflow_objective,
+                invalid_plan_json=plan_candidate,
+                schema_error=last_schema_error,
+            )
+            result = _run_content_request(repair_request)
+            plan_candidate = _cycle_start_plan_candidate(result)
+    else:
+        raise RuntimeError(
+            f"cycle.start.plan failed schema repair after retry: {last_schema_error}"
+        )
+    summary = str(plan_json.get("summary") or "").strip()
     files = _write_cycle_task_plan_files(run_id, summary, plan_json)
     execute(
         """
