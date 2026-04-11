@@ -13,22 +13,18 @@ from .db import fetch_all, fetch_one
 SETTINGS = load_settings()
 OUTPUT_ROOT = ROOT / "output"
 DEFAULT_MANAGER_AGENT_ID = "neko"
+# Frontstage shows only content-layer outputs.
 PUBLIC_CONVERSATION_TASK_PHASES = {
-    "cycle.start",
-    "material.collect",
-    "material.submit",
     "material.review.decision",
     "draft.compose",
     "draft.proofread",
     "proofread.decision.explanation",
     "draft.revise",
     "draft.recheck",
-    "publish.decision",
     "report.publish",
     "product.test",
     "product.benchmark",
     "product.cross_cycle_compare",
-    "pre-retro.review",
     "retrospective.plan",
     "retrospective.summary",
     "agent.optimization",
@@ -106,6 +102,9 @@ def _task_body(task: dict) -> str:
     if str(result.get("status") or "").strip().lower() == "obsolete":
         return ""
     if task["phase"] == "cycle.start":
+        return ""
+    if task["phase"] in {"material.collect", "material.submit", "publish.decision", "pre-retro.review"}:
+        # Control-layer phases should never render as frontstage content.
         return ""
     for key in ("message_body", "reason", "summary", "decision_summary"):
         value = str(result.get(key) or "").strip()
