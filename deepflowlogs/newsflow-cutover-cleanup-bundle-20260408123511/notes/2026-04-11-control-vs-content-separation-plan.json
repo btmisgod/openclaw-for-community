@@ -1,0 +1,70 @@
+{
+  "title": "Control-vs-Content Separation Plan",
+  "version": "1.0",
+  "date": "2026-04-11",
+  "goal": "Ensure control-layer prompts (dispatch instructions) never render as frontstage content; only LLM-generated content is displayed.",
+  "context": {
+    "design_baseline": "@docs/design/newsflow-agentic-workflow-spec.md",
+    "current_risk": "rendering.py::_dispatch_body() contains multi-phase templates and is called by build_conversation_entries() for cycle.start, enabling template contamination of the public feed."
+  },
+  "principles": [
+    "Control-layer communications and content-layer outputs are different channels and must be consumed separately.",
+    "Frontstage rendering may only display content-layer outputs or artifacts produced by LLM execution.",
+    "No local template text should appear in frontstage rendering."
+  ],
+  "scope": {
+    "in_scope_files": [
+      "@deepflowlogs/newsflow-cutover-cleanup-bundle-20260408123511/workflow/app/rendering.py",
+      "@deepflowlogs/newsflow-cutover-cleanup-bundle-20260408123511/workflow/app/workflow.py"
+    ],
+    "out_of_scope": [
+      "Content-layer prompt design changes",
+      "LLM provider timeout tuning"
+    ]
+  },
+  "changes": [
+    {
+      "id": "R1",
+      "file": "@deepflowlogs/newsflow-cutover-cleanup-bundle-20260408123511/workflow/app/rendering.py",
+      "description": "Remove control-layer dispatch text from frontstage feed.",
+      "details": [
+        "Stop calling _dispatch_body() from build_conversation_entries() for cycle.start.",
+        "Replace the cycle.start entry with a neutral system entry that only links to cycle_task_plan artifacts (if present) and contains no templated instruction text.",
+        "Mark any future control-layer entries as hidden-by-default; do not render in public feed."
+      ]
+    },
+    {
+      "id": "R2",
+      "file": "@deepflowlogs/newsflow-cutover-cleanup-bundle-20260408123511/workflow/app/rendering.py",
+      "description": "Demote _dispatch_body() to internal-only helper or return empty for frontstage usage.",
+      "details": [
+        "Add explicit comment: control-layer prompt text must not be rendered in frontstage.",
+        "If _dispatch_body() remains, ensure any caller is non-public or internal logs only."
+      ]
+    },
+    {
+      "id": "R3",
+      "file": "@deepflowlogs/newsflow-cutover-cleanup-bundle-20260408123511/workflow/app/workflow.py",
+      "description": "Ensure control-layer payloads remain stored for orchestration but are not rendered.",
+      "details": [
+        "No schema changes required; keep payloads for server decisions.",
+        "Do not add new frontstage paths for control-layer payload visibility."
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "Frontstage conversation feed contains only LLM-generated content or artifact links.",
+    "No templated dispatch text appears in any rendered HTML pages (conversation/material/review/proofread/recheck).",
+    "Control-layer payloads remain available for orchestration but are not exposed in public views."
+  ],
+  "validation": [
+    "Search rendered HTML for known dispatch phrases (e.g., \"请审\", \"请提交\", \"请以 manager 身份\"). Expect zero hits.",
+    "Open conversation.html and confirm cycle.start entry is a neutral system note or artifact link.",
+    "Run grep for _dispatch_body() usage; ensure no public rendering path uses it."
+  ],
+  "risk_notes": [
+    "If cycle.start becomes empty without a replacement, users may lose visibility of run start; use artifact links as a neutral replacement.",
+    "Avoid adding new templated content elsewhere to compensate for removed dispatch text."
+  ],
+  "server_prompt_hint": "Implement strict separation: control-layer prompts are for orchestration only, never for frontstage rendering; only content-layer LLM outputs should be visible to users."
+}
