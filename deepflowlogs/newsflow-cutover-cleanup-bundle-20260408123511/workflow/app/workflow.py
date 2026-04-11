@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 import time
@@ -30,6 +31,7 @@ from .telemetry import extract_context, inject_current_context, workflow_span
 
 
 SETTINGS = load_settings()
+LOGGER = logging.getLogger("newsflow.workflow")
 WORKFLOW_ID = "intl-news-hotspots"
 RUN_OUTPUT_DIR = ROOT / "output"
 PROJECT_OUTPUT_DIR = ROOT / "projects"
@@ -65,15 +67,59 @@ BENCHMARK_URLS = [
     ("Google News", "https://news.google.com/topstories?hl=en-US&gl=US&ceid=US:en"),
 ]
 
+TASK_INITIALIZATION_OBJECTIVE = {
+    "workflow_objective": {
+        "name": "近24小时国际新闻热点工作流",
+        "audience": "中文读者",
+        "goal": "围绕近24小时国际热点产出一份可发布的中文新闻成品，并在发布后完成产品评估、复盘与下一轮优化。",
+    },
+    "delivery_requirements": {
+        "publication_requirements": {
+            "section_order": ["政治经济", "科技", "体育娱乐", "其他"],
+            "slot_counts": {"main": 1, "secondary": 2, "brief": 7},
+            "image_limits": {"main": 3, "secondary": 1, "brief": 0},
+        },
+        "material_copy_requirements": {
+            "required_fields": ["title_zh", "summary_zh", "brief_zh", "relevance_note"],
+            "length_guidance": {
+                "title_zh": {"max_chars": 22},
+                "summary_zh": {"min_chars": 32, "max_chars": 48},
+                "brief_zh": {"min_chars": 14, "max_chars": 22},
+                "relevance_note": {"max_chars": 14},
+            },
+        },
+        "retrospective_requirements": {
+            "minimum_product_problems": 5,
+            "minimum_behavior_problems": 2,
+        },
+    },
+    "agent_assignment_constraints": {
+        "manager": MANAGER_AGENT_ID,
+        "editor": EDITOR_AGENT_ID,
+        "tester": TESTER_AGENT_ID,
+        "section_owners": {
+            "政治经济": WORKER_33_AGENT_ID,
+            "科技": WORKER_33_AGENT_ID,
+            "体育娱乐": WORKER_XHS_AGENT_ID,
+            "其他": WORKER_XHS_AGENT_ID,
+        },
+    },
+    "control_contract": {
+        "manager_signals": ["proceed", "partial_pass", "redo", "forced_proceed", "pause", "publish_approved", "fail", "resume"],
+        "server_responsibility": ["phase dispatch", "gate", "timeout/retry/recovery", "machine-readable parsing"],
+    },
+}
+
 LLM_NODE_CONFIG = {
-    "material.collect.enrichment": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
-    "material.review": {"timeout_ms": 180000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1100},
+    "cycle.start.plan": {"timeout_ms": 180000, "max_attempts": 2, "backoff_ms": 4000, "critical": True, "max_completion_tokens": 2200},
+    "material.collect.enrichment": {"timeout_ms": 300000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 2600},
+    "material.review": {"timeout_ms": 300000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 2400},
     "draft.compose.translation": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
     "draft.render": {"timeout_ms": 300000, "max_attempts": 2, "backoff_ms": 4000, "critical": True, "max_completion_tokens": 2200},
-    "draft.proofread": {"timeout_ms": 240000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1200},
+    "draft.proofread": {"timeout_ms": 360000, "max_attempts": 4, "backoff_ms": 12000, "critical": False, "max_completion_tokens": 3200},
     "proofread.decision.explanation": {"timeout_ms": 60000, "max_attempts": 2, "backoff_ms": 5000, "critical": False, "max_completion_tokens": 260},
-    "draft.revise": {"timeout_ms": 150000, "max_attempts": 2, "backoff_ms": 12000, "critical": True, "max_completion_tokens": 450},
-    "draft.recheck": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 900},
+    "draft.revise": {"timeout_ms": 300000, "max_attempts": 2, "backoff_ms": 12000, "critical": True, "max_completion_tokens": 450},
+    "draft.recheck": {"timeout_ms": 210000, "max_attempts": 2, "backoff_ms": 6000, "critical": False, "max_completion_tokens": 1800},
     "product.test": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 10000, "critical": False, "max_completion_tokens": 380},
     "product.benchmark": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1200},
     "product.cross_cycle_compare": {"timeout_ms": 120000, "max_attempts": 2, "backoff_ms": 4000, "critical": False, "max_completion_tokens": 1000},
@@ -103,6 +149,26 @@ PHASES_REQUIRING_ACK = {
     "retrospective.discussion",
 }
 
+STALE_RUNNING_PHASE_TIMEOUTS = {
+    "material.review.decision": 180,
+    "publish.decision": 180,
+    "report.publish": 180,
+    "product.benchmark": 900,
+    "product.cross_cycle_compare": 900,
+    "retrospective.plan": 900,
+    "retrospective.discussion": 600,
+    "agent.optimization": 1800,
+}
+
+MAX_DRAFT_AUDIT_FAILURES_BEFORE_REDO = 3
+MAX_AUDIT_PARTIAL_PASS_BEFORE_REDO = 3
+MAX_AUDIT_REDO_BEFORE_FORCE_PROCEED = 2
+
+AUDIT_PROCEED = "proceed"
+AUDIT_PARTIAL_PASS = "partial_pass"
+AUDIT_REDO = "redo"
+AUDIT_FORCED_PROCEED = "forced_proceed"
+
 PHASE_ROLE_CONTEXT = {
     "cycle.start": {
         "role_identity": "manager",
@@ -111,7 +177,7 @@ PHASE_ROLE_CONTEXT = {
         "allowed_actions": ["set priorities", "inject standards", "assign section owners"],
         "forbidden_actions": ["draft authoring", "proofread execution", "product test authoring"],
         "decision_authority": "final standards and cycle kickoff",
-        "output_contract": ["cycle goal", "section assignment", "delivery standard", "previous optimization context"],
+        "output_contract": ["cycle task plan", "section requirements", "publication requirements", "previous optimization context"],
     },
     "material.collect": {
         "role_identity": "section worker",
@@ -133,12 +199,12 @@ PHASE_ROLE_CONTEXT = {
     },
     "material.review.decision": {
         "role_identity": "manager",
-        "phase_goal": "基于 tester 的全量审核结果做最小业务验收，决定 proceed 或 redo",
+        "phase_goal": "基于 tester 的全量审核结果做最小业务验收，决定 proceed / partial_pass / redo，必要时 forced_proceed",
         "artifact_scope": "material review result",
-        "allowed_actions": ["proceed", "request redo", "pause"],
+        "allowed_actions": ["proceed", "partial_pass", "request redo", "forced proceed", "pause"],
         "forbidden_actions": ["rewrite tester review", "compose draft"],
-        "decision_authority": "manager_requests_redo / proceed",
-        "output_contract": ["signal_type", "reason", "required_rework"],
+        "decision_authority": "partial_pass / redo / forced_proceed / proceed",
+        "output_contract": ["signal_type", "reason", "required_rework", "forced_progress_issue"],
     },
     "draft.compose": {
         "role_identity": "editor",
@@ -223,12 +289,12 @@ PHASE_ROLE_CONTEXT = {
     },
     "pre-retro.review": {
         "role_identity": "manager",
-        "phase_goal": "对 tester 的三份报告做最小验收，决定是否进入 retrospective",
+        "phase_goal": "对 tester 的三份报告做最小验收，决定 proceed / partial_pass / redo，必要时 forced_proceed 进入 retrospective",
         "artifact_scope": "product.test / benchmark / cross_cycle_compare",
-        "allowed_actions": ["proceed", "request redo", "pause"],
+        "allowed_actions": ["proceed", "partial_pass", "request redo", "forced proceed", "pause"],
         "forbidden_actions": ["rewrite tester reports"],
-        "decision_authority": "pre-retro proceed gate",
-        "output_contract": ["signal_type", "reason"],
+        "decision_authority": "pre-retro tri-state gate",
+        "output_contract": ["signal_type", "reason", "forced_progress_issue"],
     },
     "retrospective.plan": {
         "role_identity": "manager",
@@ -237,7 +303,7 @@ PHASE_ROLE_CONTEXT = {
         "allowed_actions": ["aggregate evidence", "prioritize issues", "open topics"],
         "forbidden_actions": ["invent unsupported issues"],
         "decision_authority": "retrospective plan",
-        "output_contract": ["at_least_5_product_problems", "at_least_2_agent_behavior_problems", "priority"],
+        "output_contract": ["product problems", "behavior problems", "topics", "priority"],
     },
     "retrospective.discussion": {
         "role_identity": "manager_or_participant_by_payload_mode",
@@ -309,13 +375,6 @@ def _read_json(path: Path, fallback):
 
 def create_db_if_needed():
     init_schema()
-    execute(
-        """
-        UPDATE tasks
-        SET status='pending', started_at=NULL
-        WHERE status='running'
-        """
-    )
     execute(
         """
         UPDATE retrospectives
@@ -456,6 +515,129 @@ def _latest_manager_signal(run_id: str, stage_name: str, section: str = "全局"
     }
 
 
+def _manager_signal_history(run_id: str, stage_name: str, section: str = "全局") -> list[dict]:
+    rows = fetch_all(
+        """
+        SELECT event_id, signal_type, payload::text, created_at
+        FROM manager_control_events
+        WHERE run_id=%s AND stage_name=%s AND section=%s
+        ORDER BY created_at DESC
+        """,
+        (run_id, stage_name, section),
+    )
+    return [
+        {
+            "event_id": row[0],
+            "signal_type": row[1],
+            "payload": _load_json(row[2]),
+            "created_at": row[3].isoformat() if row[3] else None,
+        }
+        for row in rows
+    ]
+
+
+def _consecutive_manager_signal_count(
+    run_id: str,
+    stage_name: str,
+    *,
+    section: str = "全局",
+    signal_types: tuple[str, ...] | list[str] | set[str],
+) -> int:
+    wanted = {str(item).strip() for item in signal_types if str(item).strip()}
+    if not wanted:
+        return 0
+    count = 0
+    for row in _manager_signal_history(run_id, stage_name, section):
+        if row["signal_type"] in wanted:
+            count += 1
+            continue
+        break
+    return count
+
+
+def _redo_signal_count_since_progress(run_id: str, stage_name: str, *, section: str = "全局") -> int:
+    count = 0
+    for row in _manager_signal_history(run_id, stage_name, section):
+        signal_type = row["signal_type"]
+        if signal_type in {AUDIT_PROCEED, AUDIT_FORCED_PROCEED}:
+            break
+        if signal_type == AUDIT_REDO:
+            count += 1
+    return count
+
+
+def _workflow_notes(run_id: str) -> dict:
+    row = fetch_one("SELECT notes::text FROM workflow_runs WHERE run_id=%s", (run_id,))
+    return _load_json(row[0]) if row and row[0] else {}
+
+
+def _update_workflow_notes(run_id: str, notes: dict) -> None:
+    execute("UPDATE workflow_runs SET notes=%s::jsonb WHERE run_id=%s", (jdump(notes), run_id))
+
+
+def _forced_progress_issues(run_id: str) -> list[dict]:
+    notes = _workflow_notes(run_id)
+    issues = notes.get("forced_progress_issues") or []
+    return issues if isinstance(issues, list) else []
+
+
+def _record_forced_progress_issue(
+    run_id: str,
+    *,
+    stage_name: str,
+    section: str,
+    title: str,
+    reason: str,
+    payload: dict,
+) -> dict:
+    notes = _workflow_notes(run_id)
+    issues = notes.get("forced_progress_issues") or []
+    if not isinstance(issues, list):
+        issues = []
+    issue = {
+        "stage_name": stage_name,
+        "section": section,
+        "title": title,
+        "reason": reason,
+        "payload": payload,
+        "mandatory_retrospective_optimization": True,
+        "recorded_at": now_iso(),
+    }
+    signature = json.dumps(
+        {
+            "stage_name": stage_name,
+            "section": section,
+            "title": title,
+            "anchor": payload.get("review_task_id")
+            or payload.get("draft_version_no")
+            or payload.get("proofread_round")
+            or payload.get("cycle_no"),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    for existing in issues:
+        existing_signature = json.dumps(
+            {
+                "stage_name": existing.get("stage_name"),
+                "section": existing.get("section"),
+                "title": existing.get("title"),
+                "anchor": ((existing.get("payload") or {}).get("review_task_id"))
+                or ((existing.get("payload") or {}).get("draft_version_no"))
+                or ((existing.get("payload") or {}).get("proofread_round"))
+                or ((existing.get("payload") or {}).get("cycle_no")),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        if existing_signature == signature:
+            return existing
+    issues.append(issue)
+    notes["forced_progress_issues"] = issues
+    _update_workflow_notes(run_id, notes)
+    return issue
+
+
 def _cycle_task_plan_row(run_id: str) -> dict | None:
     row = fetch_one(
         """
@@ -476,14 +658,211 @@ def _cycle_task_plan_row(run_id: str) -> dict | None:
     }
 
 
-def _section_requirement(run_id: str, section: str) -> dict:
-    plan = _cycle_task_plan_row(run_id) or {}
-    requirements = ((plan.get("plan_json") or {}).get("section_material_requirements") or {}).get(section) or {}
+def _cycle_task_plan_json(run_id: str) -> dict:
+    return (_cycle_task_plan_row(run_id) or {}).get("plan_json") or {}
+
+
+def _task_initialization_objective(project_id: str | None, cycle_no: int | None) -> dict:
+    previous_cycle_summary = ""
+    if project_id and cycle_no and cycle_no > 1:
+        row = fetch_one(
+            "SELECT retrospective_summary FROM project_cycles WHERE project_id=%s AND cycle_no=%s",
+            (project_id, cycle_no - 1),
+        )
+        if row and row[0]:
+            previous_cycle_summary = row[0]
+    return TASK_INITIALIZATION_OBJECTIVE | {
+        "project_id": project_id,
+        "cycle_no": cycle_no,
+        "previous_cycle_summary": previous_cycle_summary,
+    }
+
+
+def _candidate_owner(section: str) -> str:
+    return WORKER_33_AGENT_ID if section in {"政治经济", "科技"} else WORKER_XHS_AGENT_ID
+
+
+def _normalize_section_requirement_payload(raw_sections) -> dict:
+    if isinstance(raw_sections, dict):
+        return raw_sections
+    normalized = {}
+    for item in raw_sections or []:
+        if not isinstance(item, dict):
+            continue
+        section = str(
+            item.get("section")
+            or item.get("section_name")
+            or item.get("name")
+            or item.get("title")
+            or ""
+        ).strip()
+        if not section:
+            continue
+        normalized[section] = item
+    return normalized
+
+
+def _coerce_plan_int(value, default: int = 0) -> int:
+    parsed = _safe_int(value, default)
+    if parsed != default or value in {0, "0"}:
+        return parsed
+    match = re.search(r"\d+", str(value or ""))
+    return int(match.group(0)) if match else default
+
+
+def _count_slot_tokens(slot_allocation: dict, token: str) -> int:
+    count = 0
+    for slots in (slot_allocation or {}).values():
+        if not isinstance(slots, list):
+            continue
+        for item in slots:
+            name = str(item or "").strip().lower()
+            if name.startswith(token):
+                count += 1
+    return count
+
+
+def _normalize_publication_requirements_payload(publication: dict, workflow_objective: dict) -> dict:
+    objective_publication = (workflow_objective.get("delivery_requirements") or {}).get("publication_requirements") or {}
+    objective_copy_requirements = (workflow_objective.get("delivery_requirements") or {}).get("material_copy_requirements") or {}
+    publication = publication if isinstance(publication, dict) else {}
+    copy_requirements = publication.get("copy_requirements") if isinstance(publication.get("copy_requirements"), dict) else {}
+    slot_counts = publication.get("slot_counts") if isinstance(publication.get("slot_counts"), dict) else {}
+    slot_allocation = copy_requirements.get("slot_allocation") or publication.get("slot_allocation") or {}
+    image_limits = publication.get("image_limits") if isinstance(publication.get("image_limits"), dict) else {}
+    image_constraints = publication.get("image_constraints") if isinstance(publication.get("image_constraints"), dict) else {}
+    main_slots = _coerce_plan_int(slot_counts.get("main"))
+    secondary_slots = _coerce_plan_int(slot_counts.get("secondary"))
+    brief_slots = _coerce_plan_int(slot_counts.get("brief"))
+    if main_slots <= 0 and slot_allocation:
+        main_slots = _count_slot_tokens(slot_allocation, "main")
+    if secondary_slots < 0 or (secondary_slots == 0 and slot_allocation):
+        secondary_slots = _count_slot_tokens(slot_allocation, "secondary")
+    if brief_slots < 0 or (brief_slots == 0 and slot_allocation):
+        brief_slots = _count_slot_tokens(slot_allocation, "brief")
+    if main_slots <= 0:
+        main_slots = _coerce_plan_int((objective_publication.get("slot_counts") or {}).get("main"))
+    if secondary_slots < 0:
+        secondary_slots = _coerce_plan_int((objective_publication.get("slot_counts") or {}).get("secondary"))
+    if brief_slots < 0:
+        brief_slots = _coerce_plan_int((objective_publication.get("slot_counts") or {}).get("brief"))
+    if secondary_slots == 0 and not slot_counts and objective_publication.get("slot_counts"):
+        secondary_slots = _coerce_plan_int((objective_publication.get("slot_counts") or {}).get("secondary"))
+    if brief_slots == 0 and not slot_counts and objective_publication.get("slot_counts"):
+        brief_slots = _coerce_plan_int((objective_publication.get("slot_counts") or {}).get("brief"))
+    if main_slots <= 0 or secondary_slots < 0 or brief_slots < 0:
+        raise RuntimeError("cycle.start.plan missing publication slot_counts")
+    main_images = _coerce_plan_int(image_limits.get("main"))
+    secondary_images = _coerce_plan_int(image_limits.get("secondary"))
+    brief_images = _coerce_plan_int(image_limits.get("brief"))
+    if main_images == 0 and image_constraints:
+        main_images = _coerce_plan_int(image_constraints.get("主新闻配图"), _coerce_plan_int((objective_publication.get("image_limits") or {}).get("main")))
+    if secondary_images == 0 and image_constraints:
+        secondary_images = _coerce_plan_int(image_constraints.get("次新闻配图"), _coerce_plan_int((objective_publication.get("image_limits") or {}).get("secondary")))
+    if brief_images == 0 and image_constraints:
+        brief_images = _coerce_plan_int(image_constraints.get("简讯配图"), _coerce_plan_int((objective_publication.get("image_limits") or {}).get("brief")))
+    merged_copy_requirements = dict(objective_copy_requirements)
+    merged_copy_requirements.update(copy_requirements)
+    section_order = (
+        publication.get("section_order")
+        or merged_copy_requirements.get("section_order")
+        or objective_publication.get("section_order")
+        or [section for section, _ in ALL_SECTION_ASSIGNMENTS]
+    )
     return {
-        "candidate_target": int(requirements.get("candidate_target") or 12),
-        "min_approved": int(requirements.get("min_approved") or 10),
-        "min_with_images": int(requirements.get("min_with_images") or 3),
-        "owner": requirements.get("owner") or (WORKER_33_AGENT_ID if section in {"政治经济", "科技"} else WORKER_XHS_AGENT_ID),
+        "section_order": section_order,
+        "slot_counts": {"main": main_slots, "secondary": secondary_slots, "brief": brief_slots},
+        "image_limits": {
+            "main": max(0, main_images),
+            "secondary": max(0, secondary_images),
+            "brief": max(0, brief_images),
+        },
+        "copy_requirements": merged_copy_requirements,
+    }
+
+
+def _normalize_cycle_task_plan(plan_json: dict, *, workflow_objective: dict) -> dict:
+    if not isinstance(plan_json, dict):
+        raise RuntimeError("cycle.start.plan returned invalid plan_json")
+    section_requirements = {}
+    raw_sections = _normalize_section_requirement_payload(plan_json.get("section_material_requirements") or {})
+    for section, default_owner in ALL_SECTION_ASSIGNMENTS:
+        item = raw_sections.get(section) or {}
+        owner = str(item.get("owner") or default_owner).strip() or default_owner
+        if owner not in {WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID}:
+            raise RuntimeError(f"cycle.start.plan produced invalid owner for section={section}: {owner}")
+        candidate_target = _coerce_plan_int(item.get("candidate_target"))
+        min_approved = _coerce_plan_int(item.get("min_approved"))
+        min_with_images = _coerce_plan_int(item.get("min_with_images"))
+        if candidate_target <= 0 or min_approved <= 0 or min_with_images < 0:
+            raise RuntimeError(f"cycle.start.plan missing section thresholds for section={section}")
+        section_requirements[section] = {
+            "owner": owner,
+            "candidate_target": candidate_target,
+            "min_approved": min_approved,
+            "min_with_images": min_with_images,
+            "collection_goal": str(item.get("collection_goal") or "").strip(),
+            "review_focus": _clean_string_list(item.get("review_focus")),
+        }
+    publication_requirements = _normalize_publication_requirements_payload(
+        plan_json.get("publication_requirements") or {},
+        workflow_objective,
+    )
+    return {
+        "summary": str(plan_json.get("summary") or "").strip(),
+        "completion_definition": str(plan_json.get("completion_definition") or "").strip(),
+        "section_material_requirements": section_requirements,
+        "publication_requirements": publication_requirements,
+        "phase_assignments": plan_json.get("phase_assignments") or {},
+        "phase_acceptance": plan_json.get("phase_acceptance") or {},
+        "manager_watchpoints": _clean_string_list(plan_json.get("manager_watchpoints")),
+        "risk_notes": _clean_string_list(plan_json.get("risk_notes")),
+    }
+
+
+def _section_requirement(run_id: str, section: str) -> dict:
+    requirements = (_cycle_task_plan_json(run_id).get("section_material_requirements") or {}).get(section) or {}
+    if not requirements:
+        raise RuntimeError(f"cycle task plan missing section requirement for section={section}")
+    candidate_target = _safe_int(requirements.get("candidate_target"))
+    min_approved = _safe_int(requirements.get("min_approved"))
+    min_with_images = _safe_int(requirements.get("min_with_images"))
+    if candidate_target <= 0 or min_approved <= 0 or min_with_images < 0:
+        raise RuntimeError(f"cycle task plan contains invalid thresholds for section={section}")
+    return {
+        "candidate_target": candidate_target,
+        "min_approved": min_approved,
+        "min_with_images": min_with_images,
+        "owner": str(requirements.get("owner") or _candidate_owner(section)).strip() or _candidate_owner(section),
+        "collection_goal": str(requirements.get("collection_goal") or "").strip(),
+        "review_focus": _clean_string_list(requirements.get("review_focus")),
+    }
+
+
+def _publication_requirements(run_id: str) -> dict:
+    requirements = _cycle_task_plan_json(run_id).get("publication_requirements") or {}
+    if not requirements:
+        raise RuntimeError("cycle task plan missing publication_requirements")
+    slot_counts = requirements.get("slot_counts") or {}
+    image_limits = requirements.get("image_limits") or {}
+    main_slots = max(0, _safe_int(slot_counts.get("main")))
+    secondary_slots = max(0, _safe_int(slot_counts.get("secondary")))
+    brief_slots = max(0, _safe_int(slot_counts.get("brief")))
+    if main_slots <= 0:
+        raise RuntimeError("cycle task plan publication_requirements missing positive main slot count")
+    return {
+        "section_order": requirements.get("section_order") or [section for section, _ in ALL_SECTION_ASSIGNMENTS],
+        "slot_counts": {
+            "main": main_slots,
+            "secondary": secondary_slots,
+            "brief": brief_slots,
+        },
+        "image_limits": {
+            "main": max(0, _safe_int(image_limits.get("main"))),
+            "secondary": max(0, _safe_int(image_limits.get("secondary"))),
+            "brief": max(0, _safe_int(image_limits.get("brief"))),
+        },
+        "copy_requirements": requirements.get("copy_requirements") or {},
     }
 
 
@@ -669,6 +1048,8 @@ def _stage_chat_json(
             }
         except Exception as exc:
             last_error = f"{exc.__class__.__name__}: {exc}"
+            error_kind = getattr(exc, "error_kind", "technical_failure")
+            raw_excerpt = getattr(exc, "raw_excerpt", "")
             if attempt >= effective_attempts:
                 break
             if effective_backoff_ms > 0:
@@ -676,8 +1057,10 @@ def _stage_chat_json(
     finished = now_local()
     return {
         **fallback,
-        "generation_mode": "fallback",
+        "generation_mode": "technical_failure",
         "generation_error": last_error,
+        "technical_error_kind": error_kind,
+        "raw_response_excerpt": raw_excerpt,
         "timeout_ms": effective_timeout_ms,
         "prompt_size": len(system) + len(user),
         "input_size": len(system) + len(user),
@@ -689,6 +1072,15 @@ def _stage_chat_json(
 
 
 def _run_content_request(request: dict) -> dict:
+    LOGGER.info(
+        "content.request.start node_type=%s evidence_object_count=%s timeout_ms=%s max_attempts=%s max_completion_tokens=%s prompt_size=%s",
+        request["node_type"],
+        request.get("evidence_object_count"),
+        request.get("timeout_ms"),
+        request.get("max_attempts"),
+        request.get("max_completion_tokens"),
+        len(request.get("prompt_system") or "") + len(request.get("prompt_user") or ""),
+    )
     result = _stage_chat_json(
         request["node_type"],
         request["prompt_system"],
@@ -699,6 +1091,17 @@ def _run_content_request(request: dict) -> dict:
         max_attempts=request.get("max_attempts"),
     )
     result["evidence_object_count"] = request.get("evidence_object_count")
+    log_method = LOGGER.warning if result.get("generation_mode") != "llm" else LOGGER.info
+    log_method(
+        "content.request.finish node_type=%s generation_mode=%s attempt_count=%s max_attempts=%s evidence_object_count=%s prompt_size=%s generation_error=%s",
+        request["node_type"],
+        result.get("generation_mode"),
+        result.get("attempt_count"),
+        result.get("max_attempts"),
+        request.get("evidence_object_count"),
+        result.get("prompt_size"),
+        result.get("generation_error", ""),
+    )
     return result
 
 
@@ -980,7 +1383,7 @@ def _recover_stale_llm_jobs(*, startup_only: bool = False) -> int:
             )
         else:
             config = _llm_node_config(node_type)
-            terminal_status = "failed" if config["critical"] else "fallback"
+            terminal_status = "failed"
             execute(
                 """
                 UPDATE llm_jobs
@@ -992,7 +1395,7 @@ def _recover_stale_llm_jobs(*, startup_only: bool = False) -> int:
                     result_json=jsonb_set(COALESCE(result_json, '{}'::jsonb), '{generation_error}', to_jsonb(%s::text), true)
                 WHERE job_id=%s
                 """,
-                (terminal_status, terminal_status, error_text, elapsed_ms, error_text, job_id),
+                (terminal_status, "technical_failure", error_text, elapsed_ms, error_text, job_id),
             )
         recovered += 1
     return recovered
@@ -1038,6 +1441,8 @@ def process_llm_jobs() -> None:
     except Exception as exc:
         finished = now_local()
         error_text = f"{exc.__class__.__name__}: {exc}"
+        error_kind = getattr(exc, "error_kind", "technical_failure")
+        raw_excerpt = getattr(exc, "raw_excerpt", "")
         model_latency_ms = int((finished - started).total_seconds() * 1000)
         if job["attempt_count"] < job["max_attempts"]:
             _retry_llm_job(job, generation_error=error_text, model_latency_ms=model_latency_ms, finished_at=finished)
@@ -1047,12 +1452,14 @@ def process_llm_jobs() -> None:
             _complete_llm_job(
                 job["job_id"],
                 status="failed",
-                generation_mode="failed",
+                generation_mode="technical_failure",
                 generation_error=error_text,
                 result_json={
                     **job["fallback_payload"],
-                    "generation_mode": "failed",
+                    "generation_mode": "technical_failure",
                     "generation_error": error_text,
+                    "technical_error_kind": error_kind,
+                    "raw_response_excerpt": raw_excerpt,
                     "timeout_ms": job["timeout_ms"],
                     "prompt_size": job["prompt_size"],
                     "input_size": job["input_size"],
@@ -1067,13 +1474,15 @@ def process_llm_jobs() -> None:
         else:
             _complete_llm_job(
                 job["job_id"],
-                status="fallback",
-                generation_mode="fallback",
+                status="failed",
+                generation_mode="technical_failure",
                 generation_error=error_text,
                 result_json={
                     **job["fallback_payload"],
-                    "generation_mode": "fallback",
+                    "generation_mode": "technical_failure",
                     "generation_error": error_text,
+                    "technical_error_kind": error_kind,
+                    "raw_response_excerpt": raw_excerpt,
                     "timeout_ms": job["timeout_ms"],
                     "prompt_size": job["prompt_size"],
                     "input_size": job["input_size"],
@@ -1245,9 +1654,9 @@ def _retro_thread_rows(run_id: str) -> list[dict]:
     ]
 
 
-def _retro_thread_for_prompt(run_id: str, *, limit: int = 8, body_limit: int = 160) -> list[dict]:
+def _retro_thread_for_prompt(run_id: str, *, limit: int | None = None, body_limit: int = 160) -> list[dict]:
     rows = _retro_thread_rows(run_id)
-    excerpt = rows[-limit:] if limit > 0 else rows
+    excerpt = rows[-limit:] if limit and limit > 0 else rows
     return [
         {
             "topic_id": msg.get("topic_id"),
@@ -1402,7 +1811,7 @@ def _agent_memory_seed(agent_id: str, cycle_no: int, summary: str, previous: dic
         if previous.get(key):
             seed[key] = previous.get(key)
     active_rules = []
-    for item in (optimization_log.get("compiled_rules") or [])[:6]:
+    for item in (optimization_log.get("compiled_rules") or []):
         active_rules.append(
             {
                 "rule_type": item.get("rule_type"),
@@ -1444,14 +1853,14 @@ def _self_optimize_evidence(
                     "title": _truncate(item.get("title"), 100),
                     "summary_zh": _truncate(item.get("summary_zh"), 120),
                 }
-                for item in secondary[:1]
+                for item in secondary
             ],
             "briefs": [
                 {
                     "title": _truncate(item.get("title"), 90),
                     "summary_zh": _truncate(item.get("summary_zh"), 90),
                 }
-                for item in briefs[:2]
+                for item in briefs
             ],
         }
     product_reports = []
@@ -1462,21 +1871,20 @@ def _self_optimize_evidence(
             "summary_text": _truncate(report.get("summary_text"), 180),
         }
         if report.get("report_type") == "product_test":
-            compact["reader_findings"] = _product_test_reader_findings(report_json, limit=3)
-            compact["reader_improvement_opportunities"] = _product_test_reader_improvements(report_json, limit=3)
+            compact["reader_findings"] = _product_test_reader_findings(report_json)
+            compact["reader_improvement_opportunities"] = _product_test_reader_improvements(report_json)
         elif report.get("report_type") == "benchmark_report":
             compact["most_visible_gap"] = _truncate(report_json.get("most_visible_gap"), 180)
-            compact["next_cycle_actions"] = _clean_string_list(report_json.get("next_cycle_actions"), limit=3)
+            compact["next_cycle_actions"] = _clean_string_list(report_json.get("next_cycle_actions"))
         elif report.get("report_type") == "product_evaluation_report":
-            compact["top_product_issues"] = _clean_string_list(report_json.get("top_product_issues"), limit=3)
-            compact["next_cycle_recommendations"] = _clean_string_list(report_json.get("next_cycle_recommendations"), limit=3)
+            compact["top_product_issues"] = _clean_string_list(report_json.get("top_product_issues"))
+            compact["next_cycle_recommendations"] = _clean_string_list(report_json.get("next_cycle_recommendations"))
         elif report.get("report_type") == "cross_cycle_compare_report":
-            compact["improved_issues"] = _clean_string_list(report_json.get("improved_issues"), limit=3)
-            compact["unimproved_issues"] = _clean_string_list(report_json.get("unimproved_issues"), limit=3)
-            compact["regressed_areas"] = _clean_string_list(report_json.get("regressed_areas"), limit=3)
+            compact["improved_issues"] = _clean_string_list(report_json.get("improved_issues"))
+            compact["unimproved_issues"] = _clean_string_list(report_json.get("unimproved_issues"))
+            compact["regressed_areas"] = _clean_string_list(report_json.get("regressed_areas"))
             compact["unimplemented_previous_optimization_suggestions"] = _clean_string_list(
                 report_json.get("unimplemented_previous_optimization_suggestions"),
-                limit=3,
             )
         product_reports.append(compact)
     return {
@@ -1490,17 +1898,16 @@ def _self_optimize_evidence(
                 "intent": msg.get("intent"),
                 "body": _truncate(msg.get("body"), 180),
             }
-            for msg in relevant[-6:]
+            for msg in relevant
         ],
         "product_reports": product_reports,
         "final_sections": final_sections,
         "previous_memory": {
             "summary": _truncate(previous.get("summary"), 180),
-            "exposed_issues": _clean_string_list(previous.get("exposed_issues"), limit=3),
-            "next_cycle_strategy": _clean_string_list(previous.get("next_cycle_strategy") or previous.get("execution_strategy"), limit=4),
+            "exposed_issues": _clean_string_list(previous.get("exposed_issues")),
+            "next_cycle_strategy": _clean_string_list(previous.get("next_cycle_strategy") or previous.get("execution_strategy")),
             "next_cycle_quality_checks": _clean_string_list(
                 previous.get("next_cycle_quality_checks") or previous.get("quality_checks"),
-                limit=4,
             ),
             "role_improvement_plan": _truncate(previous.get("role_improvement_plan"), 180),
         },
@@ -1512,7 +1919,7 @@ def _self_optimize_evidence(
                 "rationale": _truncate(item.get("rationale"), 120),
                 "rule_payload": item.get("rule_payload") or {},
             }
-            for item in (optimization_log.get("compiled_rules") or [])[:6]
+            for item in (optimization_log.get("compiled_rules") or [])
         ],
         "recent_guidance": [
             {
@@ -1520,7 +1927,7 @@ def _self_optimize_evidence(
                 "category": item.get("category"),
                 "body": _truncate(item.get("body"), 140),
             }
-            for item in (optimization_log.get("combined") or [])[:4]
+            for item in (optimization_log.get("combined") or [])
             if item.get("body")
         ],
         "current_memory_state": {
@@ -1528,6 +1935,7 @@ def _self_optimize_evidence(
             "source_blacklist": memory_seed.get("source_blacklist", []),
             "review_standards": memory_seed.get("review_standards", []),
         },
+        "forced_progress_issues": _forced_progress_issues(run_id),
     }
 
 
@@ -1576,7 +1984,7 @@ def _final_report_excerpt(run_id: str) -> str:
         main = section_data.get("main") or {}
         secondary = section_data.get("secondary") or []
         lines.append(f"{section} 主推：{main.get('title', '')}")
-        for item in secondary[:2]:
+        for item in secondary:
             lines.append(f"{section} 副推：{item.get('title', '')}")
     return "\n".join(lines)
 
@@ -1640,9 +2048,7 @@ def _write_cycle_task_plan_files(run_id: str, summary: str, plan_json: dict) -> 
         "",
         f"- run_id: {run_id}",
         f"- completion_definition: {plan_json.get('completion_definition', '')}",
-        "",
-        "## top_priorities",
-        *[f"- {item}" for item in (plan_json.get("top_priorities") or [])],
+        f"- summary: {summary}",
         "",
         "## section_material_requirements",
     ]
@@ -1650,8 +2056,18 @@ def _write_cycle_task_plan_files(run_id: str, summary: str, plan_json: dict) -> 
         lines.append(
             f"- {section}: owner={item.get('owner')} candidate_target={item.get('candidate_target')} min_approved={item.get('min_approved')} min_with_images={item.get('min_with_images')}"
         )
+        if item.get("collection_goal"):
+            lines.append(f"  collection_goal={item.get('collection_goal')}")
+        review_focus = item.get("review_focus") or []
+        if review_focus:
+            lines.append(f"  review_focus={json.dumps(review_focus, ensure_ascii=False)}")
     lines.extend(
         [
+            "",
+            "## publication_requirements",
+            "```json",
+            json.dumps(plan_json.get("publication_requirements") or {}, ensure_ascii=False, indent=2),
+            "```",
             "",
             "## phase_assignments",
             *[f"- {phase}: {agent}" for phase, agent in (plan_json.get("phase_assignments") or {}).items()],
@@ -1664,8 +2080,6 @@ def _write_cycle_task_plan_files(run_id: str, summary: str, plan_json: dict) -> 
             "",
             "## risk_notes",
             *[f"- {item}" for item in (plan_json.get("risk_notes") or [])],
-            "",
-            f"摘要：{summary}",
         ]
     )
     return _write_aux_report_files(run_id, "cycle_task_plan", "Cycle Task Plan", "\n".join(lines), {"summary": summary, "plan": plan_json})
@@ -1987,6 +2401,75 @@ def _recover_stalled_agent_acks(limit: int = 16) -> int:
     return recovered
 
 
+def _recover_stale_running_tasks(limit: int = 8) -> int:
+    recovered = 0
+    phases = list(STALE_RUNNING_PHASE_TIMEOUTS.keys())
+    if not phases:
+        return 0
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT task_id, phase, started_at
+                FROM tasks
+                WHERE status='running'
+                  AND phase = ANY(%s)
+                  AND started_at IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1
+                      FROM workflow_runs wr
+                      WHERE wr.run_id=tasks.run_id AND wr.status='running'
+                  )
+                ORDER BY started_at
+                LIMIT %s
+                FOR UPDATE SKIP LOCKED
+                """,
+                (phases, limit),
+            )
+            rows = cur.fetchall()
+            if not rows:
+                conn.commit()
+                return 0
+            for task_id, phase, started_at in rows:
+                timeout_seconds = int(STALE_RUNNING_PHASE_TIMEOUTS.get(phase) or 0)
+                if timeout_seconds <= 0 or not started_at:
+                    continue
+                age_seconds = (datetime.now(started_at.tzinfo) - started_at).total_seconds()
+                if age_seconds < timeout_seconds:
+                    continue
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM llm_jobs
+                    WHERE task_id=%s
+                      AND status IN ('pending','running','retrying')
+                    """,
+                    (task_id,),
+                )
+                active_jobs = int(cur.fetchone()[0] or 0)
+                if active_jobs > 0:
+                    continue
+                cur.execute(
+                    """
+                    UPDATE tasks
+                    SET status='pending',
+                        started_at=NULL,
+                        finished_at=NULL,
+                        error_message=NULL,
+                        result=CASE
+                            WHEN result ? 'llm_job_id' THEN result - 'llm_job_id'
+                            ELSE result
+                        END
+                    WHERE task_id=%s
+                      AND status='running'
+                    """,
+                    (task_id,),
+                )
+                recovered += 1
+        conn.commit()
+    return recovered
+
+
 def _dispatch_dedupe_key(
     run_id: str,
     *,
@@ -2118,23 +2601,22 @@ def dispatch_task(
         if "message_body" not in enriched_payload:
             if phase == "cycle.start":
                 enriched_payload["message_body"] = (
-                    "请启动新 cycle，明确本轮目标、板块分工、交付标准、优先级以及上一轮优化建议。"
+                    "请以 manager 身份启动新 cycle，读取 server 注入的任务目标与推进规范，生成本轮 cycle_task_plan。"
                 )
             elif phase == "material.collect" and retry_count == 0:
                 enriched_payload["message_body"] = (
-                    f"请采集【{section}】板块近24小时国际热点，提交不少于 {payload.get('target_count', 12)} 条候选素材，"
-                    "并保留图片、来源、发布时间、原文链接。"
+                    f"请按 manager 的 cycle_task_plan 执行【{section}】板块素材采集，提交可交接的候选素材包。"
                 )
             elif phase == "material.collect" and retry_count > 0:
                 enriched_payload["message_body"] = (
-                    f"请重做【{section}】板块采集，重点修复：{payload.get('rework_reason', '补强热点与图片质量')}。"
+                    f"请按 manager 的返工要求重做【{section}】板块素材包。重点修复：{payload.get('rework_reason', '根据审核意见调整素材包')}。"
                 )
             elif phase == "material.review":
                 enriched_payload["message_body"] = (
                     f"请审核【{section}】板块候选素材，核对时效、真实性、图文一致性、来源和可用性。"
                 )
             elif phase == "material.review.decision":
-                enriched_payload["message_body"] = "请以 manager 身份基于 tester 的全量审核结果做最小验收，只能决定 proceed 或正式 redo。"
+                enriched_payload["message_body"] = "请以 manager 身份基于 tester 的全量审核结果做最小验收，明确决定 proceed、partial_pass、redo，必要时 forced_proceed。"
             elif phase == "draft.proofread":
                 enriched_payload["message_body"] = (
                     "请以 tester 身份对 draft 做 correctness proofread，检查素材一致性、字段正确性、图片、归位和重复问题。"
@@ -2144,9 +2626,9 @@ def dispatch_task(
             elif phase == "proofread.decision.explanation":
                 enriched_payload["message_body"] = "请输出一份面向 manager 的 proofread 决策解释，说明为什么这些问题需要修或可关闭。"
             elif phase == "draft.compose":
-                enriched_payload["message_body"] = "请以 editor 身份把所有已通过素材整合为 draft_v1，决定主推/副推/简讯层级。"
+                enriched_payload["message_body"] = "请以 editor 身份把所有已通过素材按 manager 给定的交付要求整合为 draft。"
             elif phase == "draft.revise":
-                enriched_payload["message_body"] = "请以 editor 身份根据 proofread blocker 和 required actions 修订 draft。"
+                enriched_payload["message_body"] = "请以 editor 身份根据 proofread issue 和 manager 给定的交付要求修订 draft。"
             elif phase == "draft.recheck":
                 enriched_payload["message_body"] = "请以 tester 身份逐项复查上一轮 proofread issue 是否真正解决。"
             elif phase == "publish.decision":
@@ -2156,11 +2638,11 @@ def dispatch_task(
             elif phase == "product.test":
                 enriched_payload["message_body"] = "请以 tester 身份从统一读者/产品体验视角测试本轮 final artifact。"
             elif phase == "product.benchmark":
-                enriched_payload["message_body"] = "请以 tester 身份联网对标 2-4 个相近产品，提炼最重要差距和可执行建议。"
+                enriched_payload["message_body"] = "请以 tester 身份联网对标相近产品，提炼最重要差距和可执行建议。"
             elif phase == "product.cross_cycle_compare":
                 enriched_payload["message_body"] = "请以 tester 身份对比本轮与上一轮 final artifact 以及上一轮复盘建议，指出改善、未改善和退步。"
             elif phase == "pre-retro.review":
-                enriched_payload["message_body"] = "请以 manager 身份对 tester 的三份报告做最小验收，只决定 proceed 或 redo。"
+                enriched_payload["message_body"] = "请以 manager 身份对 tester 的三份报告做最小验收，明确决定 proceed、partial_pass、redo，必要时 forced_proceed。"
             elif phase == "retrospective.plan":
                 enriched_payload["message_body"] = "请以 manager 身份基于 tester 的三份报告和执行证据，生成本轮 retrospective plan。"
             elif phase == "retrospective.discussion":
@@ -2178,14 +2660,15 @@ def dispatch_task(
             enriched_payload["optimization_log_snapshot"] = get_effective_optimization_log(project_id, agent_id, cycle_no or 0)
         if phase == "material.collect":
             requirement = _section_requirement(run_id, section)
-            plan_row = _cycle_task_plan_row(run_id) or {}
+            plan_json = _cycle_task_plan_json(run_id)
             enriched_payload["section_target"] = requirement
             enriched_payload["target_count"] = int(enriched_payload.get("target_count") or requirement["candidate_target"])
             enriched_payload["quality_requirements"] = {
                 "min_approved": requirement["min_approved"],
                 "min_with_images": requirement["min_with_images"],
             }
-            enriched_payload["manager_watchpoints"] = (plan_row.get("plan_json") or {}).get("manager_watchpoints", [])
+            enriched_payload["manager_watchpoints"] = plan_json.get("manager_watchpoints", [])
+            enriched_payload["copy_requirements"] = (_publication_requirements(run_id).get("copy_requirements") or {})
         initial_status = "awaiting_ack" if _task_requires_ack(phase, agent_id) else "pending"
         dispatch_key = _dispatch_dedupe_key(
             run_id,
@@ -2265,7 +2748,7 @@ def new_run(
             section="全局",
             phase="cycle.start",
             retry_count=0,
-            payload={"section_assignments": ALL_SECTION_ASSIGNMENTS},
+            payload={"task_initialization_objective": TASK_INITIALIZATION_OBJECTIVE},
             parent_trace=run_trace,
             project_id=project_id,
             cycle_no=cycle_no,
@@ -2384,97 +2867,82 @@ def _enrich_collected_materials(
     target_count: int,
     quality_requirements: dict | None = None,
     manager_watchpoints: list[str] | None = None,
+    copy_requirements: dict | None = None,
     memory_summary: str = "",
     optimization_log: dict | None = None,
 ) -> list[dict]:
     if not items:
         return []
 
-    def _safe_candidate_rank(value, default: int) -> int:
-        try:
-            rank = int(value)
-        except Exception:
-            rank = default
-        return rank if rank > 0 else default
-
     primary_cutoff = max(3, min(target_count, 5))
-    batch_size = 4
+    minimum_required = max(1, int((quality_requirements or {}).get("min_approved") or 0))
     prompt_items = [
         {
             "source_index": idx,
             "title": item.get("title", ""),
             "source_media": item.get("source_media", ""),
             "published_at": item.get("published_at", ""),
-            "link": item.get("link", ""),
             "image_count": len(item.get("images") or []),
-            "summary_en": (item.get("summary_en") or "")[:360],
+            "summary_en": (item.get("summary_en") or "")[:140],
         }
         for idx, item in enumerate(items)
     ]
-    optimization_hints = [entry.get("body", "") for entry in ((optimization_log or {}).get("combined") or [])[:3]]
+    prompt_memory_summary = _truncate(memory_summary, 32) if memory_summary else ""
+    optimization_hints = [
+        _truncate(entry.get("body", ""), 36)
+        for entry in ((optimization_log or {}).get("combined") or [])
+        if entry.get("body")
+    ]
+    request = content_layer.material_collect_request(
+        section=section,
+        target_count=target_count,
+        quality_requirements=quality_requirements or {},
+        manager_watchpoints=manager_watchpoints or [],
+        copy_requirements=copy_requirements or {},
+        memory_summary=prompt_memory_summary,
+        optimization_hints=optimization_hints,
+        items=prompt_items,
+    )
+    LOGGER.info(
+        "material.collect.enrichment.start section=%s item_count=%s target_count=%s min_required=%s watchpoint_count=%s optimization_hint_count=%s",
+        section,
+        len(prompt_items),
+        target_count,
+        minimum_required,
+        len(manager_watchpoints or []),
+        len(optimization_hints),
+    )
+    result = _run_content_request(request)
+    if result.get("generation_mode") != "llm":
+        raise RuntimeError(
+            f"material.collect.enrichment requires llm-generated content for section={section}"
+        )
     generated = {}
     generation_meta = {}
-    for offset in range(0, len(prompt_items), batch_size):
-        batch_items = prompt_items[offset : offset + batch_size]
-        request = content_layer.material_collect_request(
-            section=section,
-            target_count=target_count,
-            quality_requirements=quality_requirements or {},
-            manager_watchpoints=manager_watchpoints or [],
-            memory_summary=memory_summary,
-            optimization_hints=optimization_hints,
-            items=batch_items,
-        )
-        result = _run_content_request(request)
-        if result.get("generation_mode") != "llm":
-            raise RuntimeError(
-                "material.collect.enrichment requires llm-generated candidate content; "
-                f"error={result.get('generation_error') or ''}"
-            )
-        for item in result.get("items") or []:
-            try:
-                source_index = int(item.get("source_index"))
-            except Exception:
-                continue
-            generated[source_index] = item
-            generation_meta[source_index] = {
-                "generation_mode": result.get("generation_mode", ""),
-                "generation_error": result.get("generation_error", ""),
-            }
+    for item in result.get("items") or []:
+        try:
+            source_index = int(item.get("source_index"))
+        except Exception:
+            continue
+        generated[source_index] = item
+        generation_meta[source_index] = {
+            "generation_mode": result.get("generation_mode", ""),
+            "generation_error": result.get("generation_error", ""),
+        }
     missing_indexes = [idx for idx in range(len(prompt_items)) if idx not in generated]
-    for idx in missing_indexes:
-        request = content_layer.material_collect_request(
-            section=section,
-            target_count=target_count,
-            quality_requirements=quality_requirements or {},
-            manager_watchpoints=manager_watchpoints or [],
-            memory_summary=memory_summary,
-            optimization_hints=optimization_hints,
-            items=[prompt_items[idx]],
+    LOGGER.info(
+        "material.collect.enrichment.finish section=%s llm_item_count=%s missing_count=%s generation_mode=%s returned_source_indexes=%s missing_source_indexes=%s",
+        section,
+        len(generated),
+        len(missing_indexes),
+        result.get("generation_mode"),
+        sorted(generated.keys()),
+        missing_indexes,
+    )
+    if missing_indexes:
+        raise RuntimeError(
+            f"material.collect.enrichment missing llm outputs for section={section} source_indexes={missing_indexes}"
         )
-        result = _run_content_request(request)
-        if result.get("generation_mode") != "llm":
-            raise RuntimeError(
-                "material.collect.enrichment requires llm-generated candidate content; "
-                f"error={result.get('generation_error') or ''}"
-            )
-        recovered = None
-        for item in result.get("items") or []:
-            try:
-                source_index = int(item.get("source_index"))
-            except Exception:
-                continue
-            if source_index == idx:
-                recovered = item
-                break
-        if recovered is None and (result.get("items") or []):
-            recovered = (result.get("items") or [None])[0]
-        if recovered is not None:
-            generated[idx] = recovered
-            generation_meta[idx] = {
-                "generation_mode": result.get("generation_mode", ""),
-                "generation_error": result.get("generation_error", ""),
-            }
     enriched = []
     for idx, item in enumerate(items):
         extra = generated.get(idx, {})
@@ -2484,7 +2952,7 @@ def _enrich_collected_materials(
         brief_zh = str(extra.get("brief_zh") or "").strip()
         relevance_note = str(extra.get("relevance_note") or "").strip()
         if not all([title_zh, summary_zh, brief_zh, relevance_note]):
-            raise RuntimeError(f"material.collect.enrichment missing llm content for section={section} source_index={idx}")
+            continue
         enriched.append(
             item
             | {
@@ -2492,13 +2960,19 @@ def _enrich_collected_materials(
                 "summary_zh": summary_zh,
                 "brief_zh": brief_zh,
                 "relevance_note": relevance_note,
-                "is_primary_candidate": bool(extra.get("is_primary_candidate")),
-                "candidate_rank": _safe_candidate_rank(extra.get("candidate_rank"), idx + 1),
-                "generation_mode": meta.get("generation_mode", "fallback"),
+                "is_primary_candidate": idx < primary_cutoff,
+                "candidate_rank": idx + 1,
+                "generation_mode": meta.get("generation_mode", "llm"),
                 "generation_error": meta.get("generation_error", ""),
             }
         )
-    return sorted(enriched, key=lambda item: item.get("candidate_rank") or 999)
+    enriched = sorted(enriched, key=lambda item: item.get("candidate_rank") or 999)
+    if len(enriched) < minimum_required:
+        raise RuntimeError(
+            f"material.collect.enrichment only produced {len(enriched)} llm-enriched candidates "
+            f"for section={section}; minimum_required={minimum_required}"
+        )
+    return enriched[:target_count]
 
 
 def save_materials(run_id: str, task_id: str, section: str, source_agent: str, items: list[dict]):
@@ -2631,44 +3105,59 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
         }
         for material in materials
     ]
-    review_map = {}
-    selected_rank = {}
-    batch_summaries = []
-    batch_size = 3
-    for batch_start in range(0, len(prompt_materials), batch_size):
-        batch_index = batch_start // batch_size
-        batch_materials = prompt_materials[batch_start : batch_start + batch_size]
-        batch_request = content_layer.material_review_batch_request(
+    LOGGER.info(
+        "material.review.start run_id=%s section=%s material_count=%s min_approved=%s min_with_images=%s",
+        run_id,
+        section,
+        len(prompt_materials),
+        req.get("min_approved"),
+        req.get("min_with_images"),
+    )
+    review_result = _run_content_request(
+        content_layer.material_review_request(
             run_id=run_id,
             section=section,
             requirements=req,
-            batch_index=batch_index + 1,
-            batch_count=max(1, (len(prompt_materials) + batch_size - 1) // batch_size),
-            materials=batch_materials,
+            materials=prompt_materials,
         )
-        batch_result = _run_content_request(batch_request)
-        batch_summary = _require_llm_visible_text(
-            batch_result,
-            field="batch_summary",
-            node_type="material.review",
-        )
-        batch_summaries.append(
-            {
-                "batch_index": batch_index + 1,
-                "material_ids": [item["material_id"] for item in batch_materials],
-                "batch_summary": batch_summary,
-            }
-        )
-        for item in batch_result.get("items") or []:
-            try:
-                material_id = int(item.get("material_id"))
-            except Exception:
-                continue
-            review_map[material_id] = item
-            try:
-                selected_rank[material_id] = int(item.get("selection_priority") or 999)
-            except Exception:
-                selected_rank[material_id] = 999
+    )
+    LOGGER.info(
+        "material.review.result run_id=%s section=%s generation_mode=%s gate_decision_raw=%s reviewed_item_count=%s",
+        run_id,
+        section,
+        review_result.get("generation_mode"),
+        review_result.get("gate_decision"),
+        len(review_result.get("items") or []),
+    )
+    review_summary = _require_llm_visible_text(
+        review_result,
+        field="review_summary",
+        node_type="material.review",
+    )
+    llm_gate_reason = _require_llm_visible_text(
+        review_result,
+        field="gate_reason",
+        node_type="material.review",
+        aliases=("review_summary",),
+    )
+    gate_decision = _require_llm_choice(
+        review_result,
+        field="gate_decision",
+        node_type="material.review",
+        allowed=(AUDIT_PROCEED, AUDIT_PARTIAL_PASS, AUDIT_REDO),
+    )
+    review_map = {}
+    selected_rank = {}
+    for item in review_result.get("items") or []:
+        try:
+            material_id = int(item.get("material_id"))
+        except Exception:
+            continue
+        review_map[material_id] = item
+        try:
+            selected_rank[material_id] = int(item.get("selection_priority") or 999)
+        except Exception:
+            selected_rank[material_id] = 999
     review_items = []
     approved_pool = []
     returned_issues = []
@@ -2702,63 +3191,18 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
             approved_pool.append(material)
         else:
             returned_issues.append({"material_id": material["id"], "title": material["title"], "reason": reason})
-    approved_pool.sort(
-        key=lambda material: (
-            selected_rank.get(material["id"], 999),
-            -len(material.get("images") or []),
-            material.get("published_at", ""),
-        )
-    )
-    selected_ids = [material["id"] for material in approved_pool[: req["min_approved"]]]
-    if len(selected_ids) < len(approved_pool):
-        selected_ids = list(dict.fromkeys(selected_ids))
-    selected = [material for material in approved_pool if material["id"] in selected_ids][: max(req["min_approved"], len(selected_ids))]
+    approved_by_id = {material["id"]: material for material in approved_pool}
+    selected_ids = []
+    for raw_id in review_result.get("selected_material_ids") or []:
+        try:
+            material_id = int(raw_id)
+        except Exception:
+            continue
+        if material_id not in approved_by_id or material_id in selected_ids:
+            continue
+        selected_ids.append(material_id)
+    selected = [approved_by_id[material_id] for material_id in selected_ids]
     with_images = [m for m in selected if len(m.get("images") or []) >= 1]
-    if len(with_images) < req["min_with_images"]:
-        for material in approved_pool:
-            if material["id"] in selected_ids or len(material.get("images") or []) < 1:
-                continue
-            selected_ids.append(material["id"])
-            selected.append(material)
-            with_images.append(material)
-            if len(with_images) >= req["min_with_images"]:
-                break
-    rollup_request = content_layer.material_review_rollup_request(
-        run_id=run_id,
-        section=section,
-        requirements=req,
-        batch_summaries=batch_summaries,
-        review_items=[
-            {
-                "material_id": item["material_id"],
-                "title": item["title"],
-                "source_media": item["source_media"],
-                "image_count": item["image_count"],
-                "verdict": item["verdict"],
-                "reason": item["reason"][:220],
-                "recommended_slot": item.get("recommended_slot") or "",
-                "selection_priority": item.get("selection_priority") or 999,
-            }
-            for item in review_items
-        ],
-        approved_count=len(approved_pool),
-        rejected_count=max(0, len(review_items) - len(approved_pool)),
-        selected_material_ids=selected_ids,
-    )
-    review_result = _run_content_request(rollup_request)
-    review_summary = _require_llm_visible_text(review_result, field="review_summary", node_type="material.review")
-    llm_gate_reason = _require_llm_visible_text(
-        review_result,
-        field="gate_reason",
-        node_type="material.review",
-        aliases=("review_summary",),
-    )
-    gate_decision = _require_llm_choice(
-        review_result,
-        field="gate_decision",
-        node_type="material.review",
-        allowed=("proceed", "redo"),
-    )
     thresholds_met = len(selected) >= req["min_approved"] and len(with_images) >= req["min_with_images"]
     approved = thresholds_met and gate_decision == "proceed"
     gate_deficits = []
@@ -2819,6 +3263,8 @@ def review_section(run_id: str, section: str, task_id: str) -> dict:
         "required_approved": req["min_approved"],
         "required_with_images": req["min_with_images"],
         "gate_decision": gate_decision,
+        "audit_decision": gate_decision,
+        "thresholds_met": thresholds_met,
         "review_gate_deficits": gate_deficits,
         "generation_mode": review_result.get("generation_mode", ""),
         "generation_error": review_result.get("generation_error", ""),
@@ -2829,7 +3275,7 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
     brief_limit = int((guidance or {}).get("brief_limit") or 50)
     prompt_items = []
     for idx, item in enumerate(items):
-        slot = "main" if idx == 0 else "secondary" if idx in {1, 2} else "brief"
+        slot = str(item.get("_slot") or ("main" if idx == 0 else "secondary" if idx in {1, 2} else "brief"))
         compact = _compact_prompt_object(item, title_limit=96, summary_limit=120, note_limit=70)
         prompt_items.append(
             {
@@ -2844,7 +3290,6 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
             }
         )
     translated = {}
-    batch_size = 4
 
     def _merge_translation_result(result: dict):
         if result.get("generation_mode") != "llm":
@@ -2867,24 +3312,13 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
                 "summary_zh": summary_zh,
             }
 
-    for offset in range(0, len(prompt_items), batch_size):
-        request = content_layer.compose_translation_request(
-            section=section,
-            guidance=guidance or {},
-            brief_limit=brief_limit,
-            items=prompt_items[offset : offset + batch_size],
-        )
-        _merge_translation_result(_run_content_request(request))
-
-    missing_indexes = [idx for idx in range(len(prompt_items)) if idx not in translated]
-    for idx in missing_indexes:
-        request = content_layer.compose_translation_request(
-            section=section,
-            guidance=guidance or {},
-            brief_limit=brief_limit,
-            items=[prompt_items[idx]],
-        )
-        _merge_translation_result(_run_content_request(request))
+    request = content_layer.compose_translation_request(
+        section=section,
+        guidance=guidance or {},
+        brief_limit=brief_limit,
+        items=prompt_items,
+    )
+    _merge_translation_result(_run_content_request(request))
 
     for idx in range(len(prompt_items)):
         if idx not in translated:
@@ -2892,14 +3326,39 @@ def _translate_ranked_items(section: str, items: list[dict], guidance: dict | No
     return translated
 
 
-def generate_section_content(section: str, items: list[dict], *, guidance: dict | None = None) -> dict:
-    ranked = sorted(items[:10], key=lambda item: (len(item.get("images", [])), item["published_at"]), reverse=True)
-    main = ranked[0]
-    secondaries = ranked[1:3]
-    briefs = ranked[3:10]
-    translated = _translate_ranked_items(section, ranked, guidance=guidance)
+def generate_section_content(
+    section: str,
+    items: list[dict],
+    *,
+    guidance: dict | None = None,
+    publication_requirements: dict,
+) -> dict:
+    slot_counts = (publication_requirements.get("slot_counts") or {})
+    image_limits = (publication_requirements.get("image_limits") or {})
+    main_slots = max(1, _safe_int(slot_counts.get("main"), 1))
+    secondary_slots = max(0, _safe_int(slot_counts.get("secondary"), 0))
+    brief_slots = max(0, _safe_int(slot_counts.get("brief"), 0))
+    if main_slots != 1:
+        raise RuntimeError(f"draft.compose currently requires exactly one main slot; got main_slots={main_slots}")
+    total_slots = main_slots + secondary_slots + brief_slots
+    ranked = sorted(items[:total_slots], key=lambda item: (len(item.get("images", [])), item["published_at"]), reverse=True)
+    if len(ranked) < main_slots:
+        raise RuntimeError(f"draft.compose requires at least {main_slots} approved materials for section={section}")
+    slotted = []
+    for idx, item in enumerate(ranked):
+        if idx < main_slots:
+            slot = "main"
+        elif idx < main_slots + secondary_slots:
+            slot = "secondary"
+        else:
+            slot = "brief"
+        slotted.append(item | {"_slot": slot})
+    mains = slotted[:main_slots]
+    secondaries = slotted[main_slots : main_slots + secondary_slots]
+    briefs = slotted[main_slots + secondary_slots : main_slots + secondary_slots + brief_slots]
+    translated = _translate_ranked_items(section, slotted, guidance=guidance)
 
-    def enrich(item: dict, idx: int, max_len: int, image_limit: int) -> dict:
+    def enrich(item: dict, idx: int, image_limit: int) -> dict:
         translated_item = translated.get(idx, {})
         title_zh = str(translated_item.get("title_zh") or "").strip()
         summary_zh = str(translated_item.get("summary_zh") or "").replace("\n", " ").strip()
@@ -2907,10 +3366,17 @@ def generate_section_content(section: str, items: list[dict], *, guidance: dict 
             raise RuntimeError(f"draft.compose.translation missing active output for section={section} source_index={idx}")
         return item | {"title": title_zh, "summary_zh": summary_zh, "images": item.get("images", [])[:image_limit]}
 
+    main_payload = enrich(mains[0], 0, max(0, _safe_int(image_limits.get("main"), 0)))
     return {
-        "main": enrich(main, 0, 200, 3),
-        "secondary": [enrich(item, idx + 1, 100, 1) for idx, item in enumerate(secondaries)],
-        "briefs": [enrich(item, idx + 3, 50, 0) for idx, item in enumerate(briefs)],
+        "main": main_payload,
+        "secondary": [
+            enrich(item, idx + main_slots, max(0, _safe_int(image_limits.get("secondary"), 0)))
+            for idx, item in enumerate(secondaries)
+        ],
+        "briefs": [
+            enrich(item, idx + main_slots + secondary_slots, max(0, _safe_int(image_limits.get("brief"), 0)))
+            for idx, item in enumerate(briefs)
+        ],
     }
 
 
@@ -2928,21 +3394,22 @@ def _publication_item_for_prompt(item: dict, *, image_limit: int) -> dict:
     }
 
 
-def _publication_sections_for_prompt(sections_payload: dict) -> list[dict]:
+def _publication_sections_for_prompt(sections_payload: dict, publication_requirements: dict) -> list[dict]:
+    image_limits = publication_requirements.get("image_limits") or {}
     blocks = []
-    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+    for section in publication_requirements.get("section_order") or ["政治经济", "科技", "体育娱乐", "其他"]:
         data = sections_payload.get(section) or {}
         blocks.append(
             {
                 "section": section,
-                "main": _publication_item_for_prompt(data.get("main") or {}, image_limit=3),
+                "main": _publication_item_for_prompt(data.get("main") or {}, image_limit=max(0, _safe_int(image_limits.get("main"), 0))),
                 "secondary": [
-                    _publication_item_for_prompt(item, image_limit=1)
-                    for item in (data.get("secondary") or [])[:2]
+                    _publication_item_for_prompt(item, image_limit=max(0, _safe_int(image_limits.get("secondary"), 0)))
+                    for item in (data.get("secondary") or [])
                 ],
                 "briefs": [
-                    _publication_item_for_prompt(item, image_limit=0)
-                    for item in (data.get("briefs") or [])[:7]
+                    _publication_item_for_prompt(item, image_limit=max(0, _safe_int(image_limits.get("brief"), 0)))
+                    for item in (data.get("briefs") or [])
                 ],
             }
         )
@@ -2964,7 +3431,7 @@ def _render_draft_markdown_via_llm(
         draft_version_no=draft_version_no,
         writer_guidance=writer_guidance or {},
         revision_context=revision_context or [],
-        sections=_publication_sections_for_prompt(sections_payload),
+        sections=_publication_sections_for_prompt(sections_payload, _publication_requirements(run_id)),
     )
     result = _run_content_request(request)
     summary = _require_llm_visible_text(result, field="summary", node_type="draft.render")
@@ -3035,20 +3502,66 @@ def _latest_draft_version(run_id: str) -> dict:
     }
 
 
+def _latest_compose_draft_version_no(run_id: str) -> int:
+    row = fetch_one(
+        """
+        SELECT COALESCE(MAX((result->>'draft_version_no')::int), 0)
+        FROM tasks
+        WHERE run_id=%s AND phase='draft.compose' AND status='completed'
+        """,
+        (run_id,),
+    )
+    return _safe_int(row[0] if row else 0)
+
+
+def _safe_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _task_payload_json(task_id: str) -> dict:
+    row = fetch_one("SELECT payload::text FROM tasks WHERE task_id=%s", (task_id,))
+    return _load_json(row[0]) if row and row[0] else {}
+
+
+def _payload_int(payload: dict | None, key: str, default: int = 0) -> int:
+    if not isinstance(payload, dict):
+        return default
+    return _safe_int(payload.get(key), default)
+
+
+def _draft_version_mismatch_result(
+    *,
+    latest_version_no: int,
+    expected_version_no: int,
+    version_field: str,
+) -> dict:
+    return {
+        "status": "obsolete",
+        "message_body": "",
+        "generation_mode": "obsolete",
+        "generation_error": "",
+        version_field: latest_version_no,
+        f"expected_{version_field}": expected_version_no,
+    }
+
+
 def _draft_sections_for_prompt(run_id: str, sections: list[str] | None = None) -> dict:
     latest = _latest_draft_version(run_id)
     draft_payload = latest.get("report_json") or (_load_output_bundle(run_id).get("final_json") or {})
-    target_sections = sections or ["政治经济", "科技", "体育娱乐", "其他"]
+    target_sections = sections or (_publication_requirements(run_id).get("section_order") or ["政治经济", "科技", "体育娱乐", "其他"])
     return {
         section: {
             "main": _compact_prompt_object(((draft_payload.get(section) or {}).get("main") or {}), summary_limit=110),
             "secondary": [
                 _compact_prompt_object(item, summary_limit=90)
-                for item in (((draft_payload.get(section) or {}).get("secondary") or [])[:2])
+                for item in (((draft_payload.get(section) or {}).get("secondary") or []))
             ],
             "briefs": [
                 _compact_prompt_object(item, summary_limit=70)
-                for item in (((draft_payload.get(section) or {}).get("briefs") or [])[:2])
+                for item in (((draft_payload.get(section) or {}).get("briefs") or []))
             ],
         }
         for section in target_sections
@@ -3069,7 +3582,7 @@ def _approved_materials_for_prompt(run_id: str, sections: list[str]) -> dict:
             (run_id, section),
         )
         selected_ids = set(json.loads(review[0])) if review and review[0] else set()
-        rows = [item for item in get_materials(run_id, section) if not selected_ids or item["id"] in selected_ids][:4]
+        rows = [item for item in get_materials(run_id, section) if not selected_ids or item["id"] in selected_ids]
         approved[section] = [_compact_prompt_object(item, summary_limit=100) for item in rows]
     return approved
 
@@ -3100,14 +3613,16 @@ def _compact_draft_section_for_proofread(section: str, draft_section: dict, appr
                 **_compact_material_for_proofread(main),
             }
         )
-    for idx, item in enumerate(((draft_section or {}).get("secondary") or [])[:2], 1):
+    secondary_items = (draft_section or {}).get("secondary") or []
+    brief_items = (draft_section or {}).get("briefs") or []
+    for idx, item in enumerate(secondary_items, 1):
         draft_items.append(
             {
                 "item_ref": _proofread_item_ref("secondary", idx),
                 **_compact_material_for_proofread(item),
             }
         )
-    for idx, item in enumerate(((draft_section or {}).get("briefs") or [])[:7], 1):
+    for idx, item in enumerate(brief_items, 1):
         draft_items.append(
             {
                 "item_ref": _proofread_item_ref("brief", idx),
@@ -3118,12 +3633,37 @@ def _compact_draft_section_for_proofread(section: str, draft_section: dict, appr
         "section": section,
         "structure": {
             "main_count": 1 if main else 0,
-            "secondary_count": len(((draft_section or {}).get("secondary") or [])[:2]),
-            "brief_count": len(((draft_section or {}).get("briefs") or [])[:7]),
+            "secondary_count": len(secondary_items),
+            "brief_count": len(brief_items),
         },
         "draft_items": draft_items,
-        "approved_materials": approved_materials[:10],
+        "approved_materials": approved_materials,
     }
+
+
+def _compact_draft_section_for_revision(section: str, draft_section: dict) -> dict:
+    compact_section = _compact_draft_section_for_proofread(section, draft_section, [])
+    return {
+        "section": section,
+        "structure": compact_section.get("structure") or {},
+        "draft_items": compact_section.get("draft_items") or [],
+    }
+
+
+def _compact_recheck_evidence(evidence: dict) -> dict:
+    payload = evidence or {}
+    item_snapshot = payload.get("item_snapshot") or {}
+    material_snapshot = payload.get("material_snapshot") or {}
+    compact = {
+        "item_ref": str(item_snapshot.get("item_ref") or "").strip(),
+        "material_id": item_snapshot.get("material_id") or material_snapshot.get("material_id"),
+        "item_title": _truncate(item_snapshot.get("title"), 80),
+        "material_title": _truncate(material_snapshot.get("title"), 80),
+        "patch_instruction": _truncate(payload.get("patch_instruction"), 96),
+        "required_actions": _clean_string_list(payload.get("required_actions"), limit=3),
+        "review_rationale": _truncate(payload.get("review_rationale"), 120),
+    }
+    return {key: value for key, value in compact.items() if value not in ("", [], None)}
 
 
 def _proofread_outline_item(item: dict) -> dict:
@@ -3180,7 +3720,15 @@ def _reject_template_shell(text: str, *, node_type: str, markers: list[str]) -> 
 
 
 def _clean_string_list(values, *, limit: int | None = None) -> list[str]:
-    cleaned = [str(item).strip() for item in (values or []) if str(item).strip()]
+    if values is None:
+        raw_items = []
+    elif isinstance(values, str):
+        raw_items = [values]
+    elif isinstance(values, (list, tuple, set)):
+        raw_items = list(values)
+    else:
+        raw_items = [values]
+    cleaned = [str(item).strip() for item in raw_items if str(item).strip()]
     if limit is not None:
         return cleaned[:limit]
     return cleaned
@@ -3413,6 +3961,44 @@ def _active_blocker_count(run_id: str) -> int:
     return int(row[0] or 0)
 
 
+def _pending_proofread_resolution_count(run_id: str) -> int:
+    row = fetch_one(
+        """
+        SELECT COUNT(*) FROM proofread_issues
+        WHERE run_id=%s AND status IN ('accepted', 'fixed', 'open')
+        """,
+        (run_id,),
+    )
+    return int(row[0] or 0)
+
+
+def _approved_material_lookup_for_sections(run_id: str, sections: list[str]) -> dict[str, dict[int, dict]]:
+    lookup: dict[str, dict[int, dict]] = {}
+    for section in sections:
+        selected_row = fetch_one(
+            """
+            SELECT selected_material_ids::text
+            FROM reviews
+            WHERE run_id=%s AND section=%s
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (run_id, section),
+        )
+        selected_ids = set(_load_json(selected_row[0]) if selected_row and selected_row[0] else [])
+        materials = [
+            item
+            for item in get_materials(run_id, section)
+            if not selected_ids or item["id"] in selected_ids
+        ]
+        lookup[section] = {
+            int(item["id"]): item
+            for item in materials
+            if item.get("id") is not None
+        }
+    return lookup
+
+
 def _proofread_round(run_id: str) -> int:
     row = fetch_one(
         """
@@ -3457,6 +4043,177 @@ def _proofread_gate_settled(run_id: str) -> tuple[str, int, bool]:
     unsettled = sum(counts.get(status, 0) for status in {"pending", "awaiting_ack", "running", "waiting", "failed"})
     settled = int(counts.get("completed", 0)) > 0 and unsettled == 0
     return phase, round_no, settled
+
+
+def _completed_draft_audit_attempts_since_compose(run_id: str, compose_version_no: int) -> int:
+    if compose_version_no <= 0:
+        return 0
+    row = fetch_one(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE run_id=%s
+          AND phase IN ('draft.proofread', 'draft.recheck')
+          AND status='completed'
+          AND COALESCE(
+                NULLIF(result->>'draft_version_no','')::int,
+                NULLIF(payload->>'draft_version_no','')::int,
+                0
+              ) >= %s
+        """,
+        (run_id, compose_version_no),
+    )
+    return _safe_int(row[0] if row else 0)
+
+
+def _draft_compose_redo_exists(run_id: str, compose_version_no: int) -> bool:
+    if compose_version_no <= 0:
+        return False
+    row = fetch_one(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE run_id=%s
+          AND phase='draft.compose'
+          AND COALESCE(NULLIF(payload->>'redo_from_draft_version_no','')::int, 0)=%s
+          AND status IN ('pending', 'awaiting_ack', 'running', 'waiting', 'completed')
+        """,
+        (run_id, compose_version_no),
+    )
+    return _safe_int(row[0] if row else 0) > 0
+
+
+def _dispatch_draft_compose_redo(
+    run_id: str,
+    *,
+    project_id: str,
+    cycle_no: int,
+    trace_ctx: dict,
+    compose_version_no: int,
+    failed_audit_attempts: int,
+    proofread_round: int,
+    pending_resolution_count: int,
+) -> str | None:
+    if compose_version_no <= 0 or _draft_compose_redo_exists(run_id, compose_version_no):
+        return None
+    reason = (
+        f"同一轮 draft 在最近 {failed_audit_attempts} 次审核中仍未通过，"
+        "停止继续 patch revise，改为由 editor 基于批准素材整体重做。"
+    )
+    next_retry = _safe_int(
+        fetch_one(
+            "SELECT COALESCE(MAX(retry_count), -1) FROM tasks WHERE run_id=%s AND phase='draft.compose'",
+            (run_id,),
+        )[0]
+    ) + 1
+    task_id = dispatch_task(
+        run_id,
+        None,
+        EDITOR_AGENT_ID,
+        AGENT_ROLES[EDITOR_AGENT_ID],
+        "全局",
+        "draft.compose",
+        next_retry,
+        {
+            "redo_reason": reason,
+            "redo_from_draft_version_no": compose_version_no,
+            "failed_audit_attempts": failed_audit_attempts,
+            "proofread_round": proofread_round,
+        },
+        trace_ctx,
+        project_id,
+        cycle_no,
+    )
+    _run_current_phase(run_id, "draft.compose")
+    return task_id
+
+
+def _ensure_draft_review_signal(run_id: str) -> dict | None:
+    proofread_phase, proofread_round, proofread_gate_settled = _proofread_gate_settled(run_id)
+    if not proofread_gate_settled:
+        return None
+    proofread_done = fetch_one(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
+        """,
+        (run_id, proofread_phase, proofread_round),
+    )[0]
+    if int(proofread_done or 0) <= 0:
+        return None
+    proofread_input_draft_version_no = _safe_int(
+        fetch_one(
+            """
+            SELECT COALESCE(MAX((result->>'draft_version_no')::int), 0)
+            FROM tasks
+            WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
+            """,
+            (run_id, proofread_phase, proofread_round),
+        )[0]
+    )
+    latest_signal = _latest_manager_signal(run_id, "draft.review")
+    if latest_signal:
+        payload = latest_signal.get("payload") or {}
+        if (
+            _safe_int(payload.get("proofread_round")) == proofread_round
+            and _safe_int(payload.get("draft_version_no")) == proofread_input_draft_version_no
+        ):
+            return latest_signal
+    pending_resolution_count = _pending_proofread_resolution_count(run_id)
+    blocker_count = _active_blocker_count(run_id)
+    latest_compose_version_no = _latest_compose_draft_version_no(run_id)
+    failed_audit_attempts = _completed_draft_audit_attempts_since_compose(run_id, latest_compose_version_no)
+    redo_count = _redo_signal_count_since_progress(run_id, "draft.review")
+    forced_progress_issue = None
+    if pending_resolution_count == 0 and blocker_count == 0:
+        signal = AUDIT_PROCEED
+        reason = "当前 draft audit 已收敛，未解决问题和 blocker 均为 0，可进入下一阶段。"
+    elif failed_audit_attempts >= MAX_DRAFT_AUDIT_FAILURES_BEFORE_REDO:
+        if redo_count >= MAX_AUDIT_REDO_BEFORE_FORCE_PROCEED:
+            signal = AUDIT_FORCED_PROCEED
+            reason = "draft 已连续两次 redo 后仍未通过第三个大版本验收，manager 强制带风险推进并要求在 retrospective 中强制优化。"
+            forced_progress_issue = _record_forced_progress_issue(
+                run_id,
+                stage_name="draft.review",
+                section="全局",
+                title="draft 审核连续 redo 后强制推进",
+                reason=reason,
+                payload={
+                    "draft_version_no": proofread_input_draft_version_no,
+                    "proofread_phase": proofread_phase,
+                    "proofread_round": proofread_round,
+                    "pending_resolution_count": pending_resolution_count,
+                    "blocker_count": blocker_count,
+                    "failed_audit_attempts": failed_audit_attempts,
+                },
+            )
+        else:
+            signal = AUDIT_REDO
+            reason = (
+                f"同一轮 draft 在最近 {failed_audit_attempts} 次审核中仍未通过，"
+                "停止继续 patch revise，改为由 editor 基于批准素材整体重做。"
+            )
+    else:
+        signal = AUDIT_PARTIAL_PASS
+        reason = f"当前 draft 仍有 {pending_resolution_count} 个待解决问题，需按 proofread 意见继续修订。"
+    event = _manager_control_event(
+        run_id=run_id,
+        stage_name="draft.review",
+        signal_type=signal,
+        payload={
+            "proofread_phase": proofread_phase,
+            "proofread_round": proofread_round,
+            "draft_version_no": proofread_input_draft_version_no,
+            "pending_resolution_count": pending_resolution_count,
+            "blocker_count": blocker_count,
+            "failed_audit_attempts": failed_audit_attempts,
+            "reason": reason,
+            "mandatory_retrospective_optimization": bool(forced_progress_issue),
+            "forced_progress_issue": forced_progress_issue or {},
+        },
+    )
+    return event
 
 
 def _mark_task_completed_obsolete(task_id: str, message: str) -> None:
@@ -3545,7 +4302,7 @@ def _prepare_retro_decision_job(
     thread: list[dict],
     owner_agent: str = MANAGER_AGENT_ID,
 ) -> dict:
-    evidence = [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread[:6]]
+    evidence = [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread]
     project_id, cycle_no = get_run_project_context(run_id)
     return {
         "node_type": "retro_decision",
@@ -3593,7 +4350,7 @@ def _apply_retro_decision_result(
             topic_id,
             summary,
             owner_agent,
-            jdump({"title": title, "evidence": [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread[:6]], "message_count": len(thread), **decision}),
+            jdump({"title": title, "evidence": [f"{msg['from_agent']}: {_truncate(msg['body'], 120)}" for msg in thread], "message_count": len(thread), **decision}),
         ),
     )
     return {"decision_id": decision_id, "summary": summary}
@@ -3623,12 +4380,20 @@ def _next_retro_topic_candidate(run_id: str) -> dict:
     return {}
 
 
-def compose_draft(run_id: str) -> dict:
+def compose_draft(run_id: str, task_id: str | None = None) -> dict:
     run_info = _run_row(run_id)
     project_id, cycle_no = run_info[0], run_info[1]
     manager_optimization = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)
     writer_guidance = _writer_guidance_settings(manager_optimization)
-    sections = ["政治经济", "科技", "体育娱乐", "其他"]
+    publication_requirements = _publication_requirements(run_id)
+    slot_counts = publication_requirements.get("slot_counts") or {}
+    total_slots = max(
+        1,
+        _safe_int(slot_counts.get("main"))
+        + _safe_int(slot_counts.get("secondary"))
+        + _safe_int(slot_counts.get("brief")),
+    )
+    sections = publication_requirements.get("section_order") or ["政治经济", "科技", "体育娱乐", "其他"]
     assembled = {}
     for section in sections:
         review = fetch_one(
@@ -3640,8 +4405,13 @@ def compose_draft(run_id: str) -> dict:
             (run_id, section),
         )
         selected = json.loads(review[0])
-        materials = [m for m in get_materials(run_id, section) if m["id"] in selected][:10]
-        assembled[section] = generate_section_content(section, materials, guidance=writer_guidance)
+        materials = [m for m in get_materials(run_id, section) if m["id"] in selected][:total_slots]
+        assembled[section] = generate_section_content(
+            section,
+            materials,
+            guidance=writer_guidance,
+            publication_requirements=publication_requirements,
+        )
     assembled = _apply_writer_guidance(assembled, manager_optimization)
     next_version_no = _next_draft_version_no(run_id)
     draft_render = _render_draft_markdown_via_llm(
@@ -3673,7 +4443,7 @@ def compose_draft(run_id: str) -> dict:
         created_by="editor",
         markdown_text=draft_markdown,
         report_json=assembled,
-        source_task_id=None,
+        source_task_id=task_id,
     )
     execute(
         """
@@ -3718,10 +4488,7 @@ def create_discussion_comment(run_id: str, task_id: str, agent_id: str) -> str:
     memory = get_project_memory(project_id, agent_id) if project_id else {}
     sections = AGENT_SECTIONS.get(agent_id) or ["政治经济", "科技", "体育娱乐", "其他"]
     prompt_sections = _draft_sections_for_prompt(run_id, sections)
-    approved_materials = {
-        section: items[:1]
-        for section, items in _approved_materials_for_prompt(run_id, sections).items()
-    }
+    approved_materials = _approved_materials_for_prompt(run_id, sections)
     draft_reviews = fetch_all(
         "SELECT agent_id, section_scope, review_text FROM draft_reviews WHERE run_id=%s ORDER BY created_at",
         (run_id,),
@@ -3737,7 +4504,7 @@ def create_discussion_comment(run_id: str, task_id: str, agent_id: str) -> str:
         approved_materials=approved_materials,
         existing_draft_reviews=[
             {"agent_id": row[0], "section_scope": row[1], "review_text": _truncate(row[2], 100)}
-            for row in draft_reviews[:1]
+            for row in draft_reviews
         ],
     )
     result = _run_content_request(request)
@@ -3783,6 +4550,7 @@ def start_proofread(run_id: str, task_id: str) -> dict:
 def start_cycle(run_id: str, task_id: str) -> dict:
     project_id, cycle_no = get_run_project_context(run_id)
     optimization = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)
+    workflow_objective = _task_initialization_objective(project_id, cycle_no)
     active_rules = optimization.get("compiled_rules") or []
     previous_run = fetch_one(
         "SELECT run_id FROM workflow_runs WHERE project_id=%s AND cycle_no=%s",
@@ -3799,59 +4567,57 @@ def start_cycle(run_id: str, task_id: str) -> dict:
         (previous_run_id,),
     ) if previous_run_id else []
     previous_rejects = {row[0]: int(row[1]) for row in previous_reject_rows}
-    section_material_requirements = {}
-    for section, owner in ALL_SECTION_ASSIGNMENTS:
-        reject_pressure = previous_rejects.get(section, 0)
-        base_target = 13 if section in {"政治经济", "科技"} else 12
-        section_material_requirements[section] = {
-            "owner": owner,
-            "candidate_target": base_target + min(reject_pressure, 3),
-            "min_approved": 10,
-            "min_with_images": 3 if section in {"政治经济", "科技"} else 2,
-        }
-    plan_json = {
-        "completion_definition": "四个板块均完成主推/副推/简讯结构，proofread blocker 清零，manager 放行，editor 交付正式 final artifact，tester 完成三份成品评估后进入复盘。",
-        "section_material_requirements": section_material_requirements,
-        "top_priorities": [
-            "标题必须自然翻译成中文，不允许直接照搬英文原题。",
-            "主推/副推摘要必须有信息提炼，不接受只写“据xxx报道”。",
-            "图片重复、题材归位错误、来源重复要尽量在 material.review 前段就收紧。",
-        ],
-        "phase_assignments": {
-            "cycle.start": "manager",
-            "material.collect": "worker-33 / worker-xhs",
-            "material.review": "tester",
-            "draft.compose": "editor",
-            "draft.proofread": "tester",
-            "draft.revise": "editor",
-            "publish.decision": "manager",
-            "report.publish": "editor",
-            "product.test": "tester",
-            "product.benchmark": "tester",
-            "product.cross_cycle_compare": "tester",
-            "pre-retro.review": "manager",
-            "retrospective.plan": "manager",
-            "retrospective.discussion": "manager+all",
-            "retrospective.summary": "manager",
-            "agent.optimization": "manager",
+    prepared = content_layer.cycle_start_request(
+        project_id=project_id,
+        cycle_no=cycle_no,
+        workflow_objective=workflow_objective,
+        previous_cycle_context={
+            "previous_run_id": previous_run_id,
+            "previous_reject_counts": previous_rejects,
+            "previous_cycle_summary": workflow_objective.get("previous_cycle_summary", ""),
         },
-        "phase_acceptance": {
-            "material.review": "approved_material_pool 足够支撑完整板块，returned_material_issues 有逐条原因。",
-            "draft.proofread": "issue 必须能定位到具体 draft slice 或素材对象。",
-            "publish.decision": "proofread blocker 清零，recheck 已通过，artifact manifest 可写出。",
-            "pre-retro.review": "tester 的三份报告都基于 final artifact，并给出可执行结论。",
+        active_optimization_context={
+            "compiled_rules": [
+                {
+                    "rule_type": item.get("rule_type"),
+                    "target_agent": item.get("target_agent"),
+                    "target_section": item.get("target_section"),
+                    "rule_payload": item.get("rule_payload") or {},
+                    "rationale": _truncate(item.get("rationale"), 180),
+                }
+                for item in active_rules
+            ],
+            "human_guidance": [
+                {
+                    "category": item.get("category"),
+                    "body": _truncate(item.get("body"), 220),
+                }
+                for item in (optimization.get("human_guidance") or [])
+                if item.get("body")
+            ],
         },
-        "manager_watchpoints": [
-            "不要把 tester 审核退化成预览计数。",
-            "不要让 editor 在 publish approval 前越过 manager gate。",
-            "对上一轮未落地优化建议做追踪，不要只写新建议。",
-        ],
-        "risk_notes": [
-            "外部模型延迟仍可能影响长文本节点，但不应影响结构化 gate。",
-            "若某 section 被退回较多，本轮先提升候选缓冲量再决定是否重采。",
-        ],
-    }
-    files = _write_cycle_task_plan_files(run_id, f"cycle {cycle_no or 1} task plan 已生成。", plan_json)
+    )
+    result = _run_content_request(prepared)
+    summary = _require_llm_visible_text(result, field="summary", node_type="cycle.start.plan")
+    plan_json = _normalize_cycle_task_plan(
+        {
+            "summary": summary,
+            "completion_definition": _require_llm_visible_text(
+                result,
+                field="completion_definition",
+                node_type="cycle.start.plan",
+                aliases=("summary",),
+            ),
+            "section_material_requirements": result.get("section_material_requirements") or {},
+            "publication_requirements": result.get("publication_requirements") or {},
+            "phase_assignments": result.get("phase_assignments") or {},
+            "phase_acceptance": result.get("phase_acceptance") or {},
+            "manager_watchpoints": result.get("manager_watchpoints") or [],
+            "risk_notes": result.get("risk_notes") or [],
+        },
+        workflow_objective=workflow_objective,
+    )
+    files = _write_cycle_task_plan_files(run_id, summary, plan_json)
     execute(
         """
         INSERT INTO cycle_task_plans(project_id, cycle_no, run_id, created_by, summary_text, plan_json)
@@ -3859,7 +4625,7 @@ def start_cycle(run_id: str, task_id: str) -> dict:
         ON CONFLICT (project_id, cycle_no) DO UPDATE
         SET run_id=EXCLUDED.run_id, summary_text=EXCLUDED.summary_text, plan_json=EXCLUDED.plan_json
         """,
-        (project_id, cycle_no, run_id, MANAGER_AGENT_ID, f"cycle {cycle_no or 1} task plan 已生成。", jdump(plan_json | files)),
+        (project_id, cycle_no, run_id, MANAGER_AGENT_ID, summary, jdump(plan_json | files)),
     )
     execute(
         """
@@ -3882,6 +4648,8 @@ def start_cycle(run_id: str, task_id: str) -> dict:
         "active_rule_count": len(active_rules),
         "cycle_task_plan": plan_json,
         "cycle_task_plan_files": files,
+        "generation_mode": result.get("generation_mode", ""),
+        "generation_error": result.get("generation_error", ""),
         "message_body": "",
     }
 
@@ -3945,88 +4713,39 @@ def submit_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
         for row in existing_rows
         if row["section"] in sections and row["status"] != "closed"
     ]
-    section_summaries = []
-    proofread_issues = []
-    for section_payload in prompt_sections:
-        section_name = section_payload["section"]
-        section_existing_open_issues = [
-            issue
-            for issue in existing_open_issues
-            if issue["section"] == section_name
-        ]
-        draft_items = list(section_payload.get("draft_items") or [])
-        draft_outline = [_proofread_outline_item(item) for item in draft_items]
-        batch_size = 1
-        batch_count = max(1, (len(draft_items) + batch_size - 1) // batch_size)
-        for batch_index in range(batch_count):
-            focus_items = draft_items[batch_index * batch_size : (batch_index + 1) * batch_size]
-            focus_refs = {item.get("item_ref") for item in focus_items if item.get("item_ref")}
-            focus_material_ids = {
-                item.get("material_id")
-                for item in focus_items
-                if item.get("material_id") is not None
-            }
-            focus_open_issues = [
-                issue
-                for issue in section_existing_open_issues
-                if issue.get("item_ref") in focus_refs or issue.get("item_ref") == "section"
-            ]
-            request = content_layer.draft_proofread_section_request(
-                run_id=run_id,
-                agent_id=agent_id,
-                draft_version_no=draft.get("version_no"),
-                section_payload={
-                    "section": section_name,
-                    "batch_index": batch_index + 1,
-                    "batch_count": batch_count,
-                    "structure": section_payload.get("structure") or {},
-                    "draft_outline": draft_outline,
-                    "focus_items": focus_items,
-                    "approved_materials": [
-                        item
-                        for item in (section_payload.get("approved_materials") or [])
-                        if item.get("material_id") in focus_material_ids
-                    ],
-                },
-                existing_open_issues=focus_open_issues,
-            )
-            section_result = _run_content_request(request)
-            section_summary = _require_llm_visible_text(
-                section_result,
-                field="section_summary",
-                node_type="draft.proofread",
-            )
-            section_summaries.append(
-                {
-                    "section": section_name,
-                    "batch_index": batch_index + 1,
-                    "section_summary": section_summary,
-                }
-            )
-            for raw_issue in section_result.get("issues") or []:
-                proofread_issues.append(
-                    {
-                        **raw_issue,
-                        "section": (raw_issue.get("section") or section_name).strip() or section_name,
-                    }
-                )
+    total_draft_items = sum(len(section.get("draft_items") or []) for section in prompt_sections)
+    LOGGER.info(
+        "draft.proofread.start run_id=%s agent_id=%s draft_version_no=%s section_count=%s draft_item_count=%s existing_open_issue_count=%s",
+        run_id,
+        agent_id,
+        draft.get("version_no"),
+        len(prompt_sections),
+        total_draft_items,
+        len(existing_open_issues),
+    )
     proofread_result = _run_content_request(
-        content_layer.draft_proofread_rollup_request(
+        content_layer.draft_proofread_request(
             run_id=run_id,
             agent_id=agent_id,
             draft_version_no=draft.get("version_no"),
-            section_summaries=section_summaries,
-            issues=[
-                {
-                    "section": issue.get("section") or "",
-                    "item_ref": issue.get("item_ref") or "",
-                    "severity": issue.get("severity") or "",
-                    "issue_type": issue.get("issue_type") or "",
-                    "description": str(issue.get("description") or "")[:160],
-                }
-                for issue in proofread_issues
-            ],
+            sections=prompt_sections,
+            existing_open_issues=existing_open_issues,
         )
+    )
+    proofread_issues = [
+        {
+            **raw_issue,
+            "section": (raw_issue.get("section") or "").strip(),
+        }
+        for raw_issue in (proofread_result.get("issues") or [])
+    ]
+    LOGGER.info(
+        "draft.proofread.result run_id=%s agent_id=%s draft_version_no=%s generation_mode=%s raw_issue_count=%s",
+        run_id,
+        agent_id,
+        draft.get("version_no"),
+        proofread_result.get("generation_mode"),
+        len(proofread_issues),
     )
     summary_text = _require_llm_visible_text(proofread_result, field="summary", node_type="draft.proofread")
     existing_by_key = {
@@ -4126,50 +4845,30 @@ def _default_patch_instruction_for_issue(issue: dict) -> str:
     explicit = (evidence.get("patch_instruction") or "").strip()
     if explicit:
         return explicit
-    if issue["issue_type"] == "lead_sentence_rule":
-        return f"把 {issue['section']} 主推首句改成先说影响/结果，再说事实；保留原来源、时间、链接。"
-    if issue["issue_type"] in {"structure_count", "section_mismatch"}:
-        return f"修正 {issue['section']} 的结构归位，确保主推 1 条、副推 2 条、简讯 7 条。"
-    if issue["issue_type"] in {"missing_image", "image_missing"}:
-        return f"补齐 {issue['section']} 对应条目的图片，主推需 3 张、副推需 1 张。"
-    if issue["issue_type"] in {"source_mismatch", "title_mismatch", "link_mismatch", "fact_integrity"}:
-        return f"修正 {issue['section']} 的标题、来源、链接与素材事实一致性，并复核发布时间。"
-    return f"修正 {issue['section']} 的 {issue['issue_type']} 问题，确保满足发布规格。"
+    required_actions = _clean_string_list(evidence.get("required_actions"))
+    if required_actions:
+        return f"根据 issue 描述和 required_actions 修正 {issue['section']} 的对应对象。"
+    return f"根据当前 issue 证据与 manager 给定的交付要求，修正 {issue['section']} 的对应对象。"
 
 
 def _proofread_required_actions(issue: dict) -> list[str]:
     evidence = issue.get("evidence") or {}
     explicit = evidence.get("required_actions") or []
-    if explicit:
-        actions = [str(item).strip() for item in explicit if str(item).strip()]
-        if issue["severity"] in {"blocker", "high"} and "进入 recheck" not in actions:
-            actions.append("进入 recheck")
-        return list(dict.fromkeys(actions))
-    actions = []
-    if issue["issue_type"] in {"missing_image", "image_missing"}:
-        actions.append("补齐图片")
-    if issue["issue_type"] in {"source_mismatch", "title_mismatch", "link_mismatch", "fact_integrity"}:
-        actions.append("修正素材字段")
-    if issue["issue_type"] in {"section_mismatch", "structure_count"}:
-        actions.append("修正板块归位")
-    if issue["issue_type"] == "lead_sentence_rule":
-        actions.append("改写主推首句")
-    if issue["severity"] in {"blocker", "high"}:
-        actions.append("进入 recheck")
-    return actions or ["进入 recheck"]
+    actions = [str(item).strip() for item in explicit if str(item).strip()]
+    return list(dict.fromkeys(actions))
 
 
 def _evaluate_proofread_issue(issue: dict) -> dict:
     evidence = issue.get("evidence") or {}
     suggested_actions = _proofread_required_actions(issue)
-    accepted = issue["severity"] in {"blocker", "high", "medium"} or bool(suggested_actions)
+    accepted = issue["severity"] in {"blocker", "high", "medium"}
     reasons = []
     if evidence.get("review_rationale"):
         reasons.append(str(evidence.get("review_rationale")))
     if issue["severity"] == "blocker":
         reasons.append("blocker 未清零前禁止 publish")
     if suggested_actions:
-        reasons.append("tester 已提供可执行修订动作")
+        reasons.append("tester 已提供明确修订动作")
     if evidence.get("required_images") and evidence.get("actual_images", evidence.get("image_count", 0)) < evidence.get("required_images"):
         accepted = True
         reasons.append("evidence 显示仍缺图")
@@ -4536,7 +5235,55 @@ def manager_review_materials(run_id: str, task_id: str, section: str) -> dict:
     )
     if not row:
         raise RuntimeError(f"{section} 尚无 tester material review 结果")
-    signal = "proceed" if row[0] else "manager_requests_redo"
+    review_task = fetch_one(
+        """
+        SELECT retry_count, result::text
+        FROM tasks
+        WHERE task_id=%s
+        """,
+        (row[3],),
+    )
+    retry_count = _safe_int(review_task[0] if review_task else 0)
+    review_result = _load_json(review_task[1]) if review_task and review_task[1] else {}
+    review_decision = str(review_result.get("audit_decision") or review_result.get("gate_decision") or "").strip()
+    thresholds_met = bool(review_result.get("thresholds_met"))
+    returned_material_issues = review_result.get("returned_material_issues") or []
+    gate_deficits = review_result.get("review_gate_deficits") or []
+    partial_pass_count = _consecutive_manager_signal_count(
+        run_id,
+        "material.review",
+        section=section,
+        signal_types=(AUDIT_PARTIAL_PASS,),
+    )
+    redo_count = _redo_signal_count_since_progress(run_id, "material.review", section=section)
+    forced_progress_issue = None
+    if bool(row[0]) and review_decision == AUDIT_PROCEED and thresholds_met:
+        signal = AUDIT_PROCEED
+        decision_reason = row[1]
+    elif redo_count >= MAX_AUDIT_REDO_BEFORE_FORCE_PROCEED:
+        signal = AUDIT_FORCED_PROCEED
+        decision_reason = "同一板块已连续两次 redo，第三个大版本仍未通过，manager 强制带风险推进并要求在 retrospective 中强制优化。"
+        forced_progress_issue = _record_forced_progress_issue(
+            run_id,
+            stage_name="material.review",
+            section=section,
+            title=f"{section} 板块素材审核连续 redo 后强制推进",
+            reason=decision_reason,
+            payload={
+                "review_task_id": row[3],
+                "retry_count": retry_count,
+                "review_decision": review_decision,
+                "thresholds_met": thresholds_met,
+                "returned_material_issues": returned_material_issues,
+                "gate_deficits": gate_deficits,
+            },
+        )
+    elif review_decision == AUDIT_REDO or partial_pass_count >= MAX_AUDIT_PARTIAL_PASS_BEFORE_REDO:
+        signal = AUDIT_REDO
+        decision_reason = row[1]
+    else:
+        signal = AUDIT_PARTIAL_PASS
+        decision_reason = row[1]
     event = _manager_control_event(
         run_id=run_id,
         stage_name="material.review",
@@ -4544,16 +5291,23 @@ def manager_review_materials(run_id: str, task_id: str, section: str) -> dict:
         signal_type=signal,
         payload={
             "approved": bool(row[0]),
-            "reason": row[1],
+            "reason": decision_reason,
+            "review_decision": review_decision,
+            "thresholds_met": thresholds_met,
             "selected_material_ids": _load_json(row[2]),
             "review_task_id": row[3],
+            "retry_count": retry_count,
+            "returned_material_issues": returned_material_issues,
+            "review_gate_deficits": gate_deficits,
+            "mandatory_retrospective_optimization": bool(forced_progress_issue),
+            "forced_progress_issue": forced_progress_issue or {},
         },
     )
     return {
         "status": "completed",
         "signal_type": signal,
         "event_id": event["event_id"],
-        "reason": row[1],
+        "reason": decision_reason,
         "message_body": "",
     }
 
@@ -4569,12 +5323,20 @@ def manager_publish_decision(run_id: str, task_id: str) -> dict:
         (run_id, proofread_phase, proofread_round),
     )[0]
     blocker_count = _active_blocker_count(run_id)
-    approved = proofread_gate_settled and blocker_count == 0 and int(proofread_done or 0) > 0
-    reason = (
-        "all blockers closed and active proofread gate settled"
-        if approved
-        else f"active proofread gate not settled or blockers unresolved ({proofread_phase} round {proofread_round})"
+    draft_review_signal = _latest_manager_signal(run_id, "draft.review")
+    forced_progress = bool(draft_review_signal and draft_review_signal["signal_type"] == AUDIT_FORCED_PROCEED)
+    approved = bool(
+        (proofread_gate_settled and int(proofread_done or 0) > 0 and blocker_count == 0)
+        or forced_progress
     )
+    if forced_progress:
+        reason = "draft.review 已触发 forced_proceed；允许带风险发布，并要求在 retrospective 中强制优化。"
+    else:
+        reason = (
+            "all blockers closed and active proofread gate settled"
+            if approved
+            else f"active proofread gate not settled or blockers unresolved ({proofread_phase} round {proofread_round})"
+        )
     event = _manager_control_event(
         run_id=run_id,
         stage_name="publish.decision",
@@ -4585,6 +5347,8 @@ def manager_publish_decision(run_id: str, task_id: str) -> dict:
             "proofread_round": proofread_round,
             "proofread_gate_settled": proofread_gate_settled,
             "proofread_done": int(proofread_done or 0),
+            "draft_review_signal": (draft_review_signal or {}).get("signal_type", ""),
+            "forced_progress": forced_progress,
             "reason": reason,
         },
     )
@@ -4600,14 +5364,43 @@ def manager_publish_decision(run_id: str, task_id: str) -> dict:
 def manager_pre_retro_review(run_id: str, task_id: str) -> dict:
     reports = {row["report_type"]: row for row in _product_report_rows(run_id)}
     missing = [name for name in ["product_test", "benchmark_report", "cross_cycle_compare_report"] if name not in reports]
-    approved = not missing
-    reason = "tester 三份评估报告齐备，可进入 retrospective" if approved else f"缺少报告：{', '.join(missing)}"
-    signal = "proceed" if approved else "manager_requests_redo"
+    partial_pass_count = _consecutive_manager_signal_count(
+        run_id,
+        "pre-retro.review",
+        signal_types=(AUDIT_PARTIAL_PASS,),
+    )
+    redo_count = _redo_signal_count_since_progress(run_id, "pre-retro.review")
+    forced_progress_issue = None
+    if not missing:
+        signal = AUDIT_PROCEED
+        reason = "tester 三份评估报告齐备，可进入 retrospective"
+    elif redo_count >= MAX_AUDIT_REDO_BEFORE_FORCE_PROCEED:
+        signal = AUDIT_FORCED_PROCEED
+        reason = "pre-retro.review 已连续两次 redo，第三次仍缺少评估报告，manager 强制带风险推进并要求在 retrospective 中强制优化。"
+        forced_progress_issue = _record_forced_progress_issue(
+            run_id,
+            stage_name="pre-retro.review",
+            section="全局",
+            title="评估报告未齐备但被强制推进到 retrospective",
+            reason=reason,
+            payload={"missing_reports": missing},
+        )
+    elif partial_pass_count >= MAX_AUDIT_PARTIAL_PASS_BEFORE_REDO:
+        signal = AUDIT_REDO
+        reason = f"pre-retro.review 连续 partial_pass 达到阈值，升级为 redo；当前缺少报告：{', '.join(missing)}"
+    else:
+        signal = AUDIT_PARTIAL_PASS
+        reason = f"缺少报告：{', '.join(missing)}"
     event = _manager_control_event(
         run_id=run_id,
         stage_name="pre-retro.review",
         signal_type=signal,
-        payload={"missing_reports": missing, "reason": reason},
+        payload={
+            "missing_reports": missing,
+            "reason": reason,
+            "mandatory_retrospective_optimization": bool(forced_progress_issue),
+            "forced_progress_issue": forced_progress_issue or {},
+        },
     )
     return {
         "status": "completed",
@@ -4633,7 +5426,7 @@ def summarize_discussion(run_id: str) -> dict:
         draft_version_no=latest.get("version_no", 0),
         discussion_comments=[
             {"agent_id": agent_id, "comment_text": _truncate(comment_text, 180)}
-            for agent_id, comment_text in comments[:8]
+            for agent_id, comment_text in comments
         ],
         draft_reviews=[
             {
@@ -4641,9 +5434,9 @@ def summarize_discussion(run_id: str) -> dict:
                 "section_scope": section_scope,
                 "review_text": _truncate(review_text, 180),
             }
-            for agent_id, section_scope, review_text in draft_reviews[:6]
+            for agent_id, section_scope, review_text in draft_reviews
         ],
-        top_product_issues=top_issues[:4],
+        top_product_issues=top_issues,
         revision_plan=_truncate(output_bundle.get("revision_plan"), 260),
     )
     result = _run_content_request(request)
@@ -4709,102 +5502,138 @@ def summarize_discussion(run_id: str) -> dict:
     }
 
 
-def _prepare_draft_revise_job(run_id: str) -> dict:
+def _prepare_draft_revise_job(run_id: str, task: dict | None = None) -> dict:
     row = fetch_one("SELECT project_id, cycle_no FROM workflow_runs WHERE run_id=%s", (run_id,))
     project_id, cycle_no = row[0], row[1]
     latest = _latest_draft_version(run_id)
+    task_payload = (task or {}).get("payload") or {}
+    expected_source_draft_version_no = _payload_int(task_payload, "source_draft_version_no")
+    latest_version_no = _safe_int(latest.get("version_no"))
+    if expected_source_draft_version_no and latest_version_no != expected_source_draft_version_no:
+        raise RuntimeError(
+            f"draft.revise stale draft version: expected v{expected_source_draft_version_no}, latest is v{latest_version_no}"
+        )
     sections_payload = latest.get("report_json") or {}
-    revision_patches = fetch_all(
-        """
-        SELECT p.issue_id, p.target_section, p.patch_instruction, p.patch_payload::text, i.description, i.issue_type
-        FROM revision_patches p
-        JOIN proofread_issues i ON i.issue_id=p.issue_id
-        WHERE p.run_id=%s
-        ORDER BY p.created_at, p.patch_id
-        """,
-        (run_id,),
-    )
-    touched_sections = sorted({section for _, section, _, _, _, _ in revision_patches if section})
+    active_issues = _proofread_issue_rows(run_id, ("accepted", "open"))
+    touched_sections = sorted({issue["section"] for issue in active_issues if issue.get("section")})
+    approved_materials = _approved_material_lookup_for_sections(run_id, touched_sections)
     request = content_layer.draft_revise_request(
         run_id=run_id,
         draft_version_no=latest.get("version_no"),
         writer_guidance=_writer_guidance_settings(get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0)),
         current_draft_sections=[
-            {"section": section, "draft": sections_payload.get(section) or {}}
+            _compact_draft_section_for_revision(section, sections_payload.get(section) or {})
             for section in touched_sections
         ],
         revision_patches=[
             {
-                "issue_id": issue_id,
-                "section": section,
-                "patch_instruction": patch_instruction,
-                "description": description,
-                "issue_type": issue_type,
-                "patch_payload": _load_json(patch_payload),
+                "issue_id": issue["issue_id"],
+                "section": issue["section"],
+                "item_ref": issue.get("item_ref"),
+                "severity": issue.get("severity"),
+                "issue_type": issue.get("issue_type"),
+                "status": issue.get("status"),
+                "description": _truncate(issue.get("description"), 96),
+                "patch_instruction": _truncate(_default_patch_instruction_for_issue(issue), 96),
+                "required_actions": _proofread_required_actions(issue),
+                "recheck_note": _truncate(issue.get("resolution_note"), 96),
+                "target_material": _compact_prompt_object(
+                    approved_materials.get(issue["section"], {}).get(
+                        int(
+                            (
+                                (issue.get("evidence") or {}).get("material_snapshot") or {}
+                            ).get("material_id")
+                            or (issue.get("evidence") or {}).get("material_id")
+                            or 0
+                        )
+                    )
+                    or ((issue.get("evidence") or {}).get("material_snapshot") or {}),
+                    title_limit=88,
+                    summary_limit=120,
+                    note_limit=60,
+                ),
+                "current_item": _compact_recheck_evidence(issue.get("evidence") or {}),
             }
-            for issue_id, section, patch_instruction, patch_payload, description, issue_type in revision_patches
+            for issue in active_issues
         ],
     )
     request["project_id"] = project_id
     request["cycle_no"] = cycle_no
     request["task_id"] = None
+    request["source_draft_version_no"] = expected_source_draft_version_no or latest_version_no
     return request
 
 
-def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
+def _apply_draft_revise_result(run_id: str, revise_data: dict, task_id: str | None = None) -> dict:
     row = fetch_one("SELECT project_id, cycle_no FROM workflow_runs WHERE run_id=%s", (run_id,))
     project_id, cycle_no = row[0], row[1]
     latest = _latest_draft_version(run_id)
+    source_draft_version_no = _safe_int(latest.get("version_no"))
     sections_payload = latest.get("report_json") or {}
-    accepted_issues = _proofread_issue_rows(run_id, ("accepted",))
+    active_issues = _proofread_issue_rows(run_id, ("accepted", "open"))
+    approved_materials = _approved_material_lookup_for_sections(run_id, list(sections_payload.keys()))
     updates_by_section = {item["section"]: item for item in (revise_data.get("section_updates") or []) if item.get("section")}
     applied = []
     for section, section_update in updates_by_section.items():
         section_data = json.loads(json.dumps(sections_payload.get(section) or {}, ensure_ascii=False))
         for item_update in section_update.get("item_updates") or []:
             item_ref = (item_update.get("item_ref") or "").strip()
+            material_id_raw = item_update.get("material_id")
+            try:
+                material_id = int(material_id_raw)
+            except Exception:
+                material_id = 0
             title = (item_update.get("title") or "").strip()
             summary_zh = (item_update.get("summary_zh") or "").strip()
+            source_media = (item_update.get("source_media") or "").strip()
+            published_at = (item_update.get("published_at") or "").strip()
+            link = (item_update.get("link") or "").strip()
+
+            def _merge_item(existing_item: dict) -> dict:
+                target = dict(existing_item or {})
+                if material_id:
+                    source_item = approved_materials.get(section, {}).get(material_id)
+                    if source_item:
+                        target = json.loads(json.dumps(source_item, ensure_ascii=False))
+                    target["material_id"] = material_id
+                if title:
+                    target["title"] = title
+                if summary_zh:
+                    target["summary_zh"] = summary_zh
+                if source_media:
+                    target["source_media"] = source_media
+                if published_at:
+                    target["published_at"] = published_at
+                if link:
+                    target["link"] = link
+                return target
+
             if item_ref == "main":
-                main = dict(section_data.get("main") or {})
+                main = _merge_item(section_data.get("main") or {})
                 if not main:
                     continue
-                if title:
-                    main["title"] = title
-                if summary_zh:
-                    main["summary_zh"] = summary_zh
                 section_data["main"] = main
                 continue
-            if item_ref.startswith("secondary:"):
+            if item_ref.startswith("secondary:") or item_ref.startswith("secondary_"):
                 try:
-                    idx = int(item_ref.split(":", 1)[1]) - 1
+                    idx = int(re.split(r"[:_]", item_ref, maxsplit=1)[1]) - 1
                 except Exception:
                     continue
                 items = list(section_data.get("secondary") or [])
                 if idx < 0 or idx >= len(items):
                     continue
-                target = dict(items[idx])
-                if title:
-                    target["title"] = title
-                if summary_zh:
-                    target["summary_zh"] = summary_zh
-                items[idx] = target
+                items[idx] = _merge_item(items[idx])
                 section_data["secondary"] = items
                 continue
-            if item_ref.startswith("brief:"):
+            if item_ref.startswith("brief:") or item_ref.startswith("brief_"):
                 try:
-                    idx = int(item_ref.split(":", 1)[1]) - 1
+                    idx = int(re.split(r"[:_]", item_ref, maxsplit=1)[1]) - 1
                 except Exception:
                     continue
                 items = list(section_data.get("briefs") or [])
                 if idx < 0 or idx >= len(items):
                     continue
-                target = dict(items[idx])
-                if title:
-                    target["title"] = title
-                if summary_zh:
-                    target["summary_zh"] = summary_zh
-                items[idx] = target
+                items[idx] = _merge_item(items[idx])
                 section_data["briefs"] = items
         if section_update.get("main_summary") and (section_data.get("main") or {}):
             main = dict(section_data.get("main") or {})
@@ -4813,11 +5642,6 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
         sections_payload[section] = section_data
         if section_update.get("reason"):
             applied.append(section_update.get("reason"))
-    for issue in accepted_issues:
-        execute(
-            "UPDATE proofread_issues SET status='fixed', updated_at=NOW(), closed_at=NULL, resolution_note='' WHERE issue_id=%s",
-            (issue["issue_id"],),
-        )
     sections_payload = _apply_writer_guidance(sections_payload, get_effective_optimization_log(project_id, MANAGER_AGENT_ID, cycle_no or 0))
     revision_plan = _require_llm_visible_text(revise_data, field="revision_plan", node_type="draft.revise")
     render_data = _render_draft_markdown_via_llm(
@@ -4833,7 +5657,7 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
                 "issue_type": issue["issue_type"],
                 "description": issue["description"],
             }
-            for issue in accepted_issues
+            for issue in active_issues
         ],
     )
     final_markdown = render_data["report_markdown"]
@@ -4859,7 +5683,7 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
         created_by="editor",
         markdown_text=final_markdown,
         report_json=sections_payload,
-        source_task_id=None,
+        source_task_id=task_id,
     )
     html_path = write_product_report_html(
         run_id,
@@ -4883,11 +5707,17 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
         """,
         (str(md_path), str(json_path), str(html_path), run_id),
     )
+    for issue in active_issues:
+        execute(
+            "UPDATE proofread_issues SET status='fixed', updated_at=NOW(), closed_at=NULL, resolution_note='' WHERE issue_id=%s",
+            (issue["issue_id"],),
+        )
     return {
         "markdown_path": str(md_path),
         "json_path": str(json_path),
         "html_path": str(html_path),
         "draft_version_no": version["version_no"],
+        "source_draft_version_no": source_draft_version_no,
         "generation_mode": render_data["generation_mode"],
         "generation_error": render_data.get("generation_error", ""),
         "update_generation_mode": revise_data.get("generation_mode", ""),
@@ -4902,10 +5732,11 @@ def _apply_draft_revise_result(run_id: str, revise_data: dict) -> dict:
     }
 
 
-def revise_draft(run_id: str) -> dict:
-    prepared = _prepare_draft_revise_job(run_id)
+def revise_draft(run_id: str, task_id: str | None = None) -> dict:
+    task = {"task_id": task_id, "payload": _task_payload_json(task_id)} if task_id else None
+    prepared = _prepare_draft_revise_job(run_id, task)
     revise_data = _run_content_request(prepared)
-    return _apply_draft_revise_result(run_id, revise_data)
+    return _apply_draft_revise_result(run_id, revise_data, task_id)
 
 
 def publish_report(run_id: str) -> dict:
@@ -5066,35 +5897,52 @@ def publish_report(run_id: str) -> dict:
 
 def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
     latest = _latest_draft_version(run_id)
+    task_payload = _task_payload_json(task_id)
+    expected_draft_version_no = _payload_int(task_payload, "draft_version_no")
+    latest_version_no = _safe_int(latest.get("version_no"))
+    if expected_draft_version_no and latest_version_no != expected_draft_version_no:
+        return _draft_version_mismatch_result(
+            latest_version_no=latest_version_no,
+            expected_version_no=expected_draft_version_no,
+            version_field="draft_version_no",
+        )
     report_json = latest.get("report_json") or {}
     sections = AGENT_SECTIONS.get(agent_id, [])
     rows = fetch_all(
         """
-        SELECT issue_id, section, issue_type, status, description, evidence::text
+        SELECT issue_id, section, item_ref, severity, issue_type, status, description, evidence::text
         FROM proofread_issues
         WHERE run_id=%s AND section = ANY(%s) AND status IN ('accepted', 'fixed', 'open')
         ORDER BY opened_at
         """,
         (run_id, sections),
     )
+    draft_sections = {}
     prompt_issues = [
         {
             "issue_id": issue_id,
             "section": section,
+            "item_ref": item_ref,
+            "severity": severity,
             "issue_type": issue_type,
             "status": status,
-            "description": description,
-            "evidence": _load_json(evidence_text),
-            "draft_section": report_json.get(section) or {},
+            "description": _truncate(description, 160),
+            "evidence": _compact_recheck_evidence(_load_json(evidence_text)),
         }
-        for issue_id, section, issue_type, status, description, evidence_text in rows
+        for issue_id, section, item_ref, severity, issue_type, status, description, evidence_text in rows
     ]
+    for _, section, _, _, _, _, _, _ in rows:
+        if section not in draft_sections:
+            draft_sections[section] = _compact_draft_section_for_revision(section, report_json.get(section) or {})
     result = _run_content_request(
         content_layer.draft_recheck_request(
             run_id=run_id,
             agent_id=agent_id,
             draft_version_no=latest.get("version_no"),
             issues=prompt_issues,
+            draft_sections=list(draft_sections.values()),
+            reference_time=now_local().isoformat(),
+            publication_requirements=_publication_requirements(run_id),
         )
     )
     summary_text = _require_llm_visible_text(result, field="summary", node_type="draft.recheck")
@@ -5105,7 +5953,7 @@ def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
             decisions[issue_id] = item
     closed = []
     reopened = []
-    for issue_id, section, issue_type, status, description, evidence_text in rows:
+    for issue_id, section, item_ref, severity, issue_type, status, description, evidence_text in rows:
         decision = decisions.get(issue_id, {})
         if not decision:
             raise RuntimeError(f"draft.recheck missing llm decision for issue_id={issue_id}")
@@ -5139,6 +5987,7 @@ def recheck_proofread_issues(run_id: str, task_id: str, agent_id: str) -> dict:
             reopened.append(issue_id)
     return {
         "status": "rechecked",
+        "draft_version_no": latest_version_no,
         "closed_issues": closed,
         "reopened_issues": reopened,
         "generation_mode": result.get("generation_mode", ""),
@@ -5151,21 +6000,26 @@ def _prepare_product_test_job(run_id: str, task_id: str, agent_id: str) -> dict:
     bundle = _load_output_bundle(run_id)
     final_json = bundle.get("final_json") or {}
     evidence = []
-    for section in ["政治经济", "科技", "体育娱乐", "其他"]:
+    for section in (_publication_requirements(run_id).get("section_order") or ["政治经济", "科技", "体育娱乐", "其他"]):
         section_data = final_json.get(section) or {}
+        slot_items = []
         main = section_data.get("main") or {}
-        secondary = section_data.get("secondary") or []
         if main:
+            slot_items.append(("main", main))
+        slot_items.extend(("secondary", item) for item in (section_data.get("secondary") or []))
+        slot_items.extend(("brief", item) for item in (section_data.get("briefs") or []))
+        for kind, item in slot_items:
             evidence.append(
                 {
                     "section": section,
-                    "kind": "main",
-                    "title": main.get("title", ""),
-                    "summary": main.get("summary_zh", "")[:90],
-                    "image_count": len(main.get("images") or []),
+                    "kind": kind,
+                    "title": item.get("title", ""),
+                    "summary": item.get("summary_zh", "")[:140],
+                    "image_count": len(item.get("images") or []),
+                    "source_media": item.get("source_media", ""),
+                    "published_at": item.get("published_at", ""),
                 }
             )
-    evidence = evidence[:4]
     request = content_layer.product_test_request(run_id=run_id, agent_id=agent_id, evidence=evidence)
     request["project_id"] = get_run_project_context(run_id)[0]
     request["cycle_no"] = get_run_project_context(run_id)[1]
@@ -5492,6 +6346,7 @@ def create_retrospective_plan(run_id: str, task_id: str) -> dict:
         cross_cycle_compare=cross_cycle.get("report_json", {}) or {},
         review_rows=[{"section": section, "approved": approved, "reason": reason} for section, approved, reason in review_rows],
         final_artifact=final_artifact,
+        forced_progress_issues=_forced_progress_issues(run_id),
     )
     result = _run_content_request(request)
     product_problems = _normalize_retro_plan_product_problems(result.get("product_problems"))
@@ -5550,17 +6405,16 @@ def _prepare_product_report_job(run_id: str, task_id: str) -> dict:
                 "agent_id": item["agent_id"],
                 "focus": (item.get("report_json") or {}).get("focus", ""),
                 "summary": item["summary_text"],
-                "reader_findings": _product_test_reader_findings(item.get("report_json") or {}, limit=4),
+                "reader_findings": _product_test_reader_findings(item.get("report_json") or {}),
                 "reader_improvement_opportunities": _product_test_reader_improvements(
                     item.get("report_json") or {},
-                    limit=4,
                 ),
                 "report_markdown": _truncate((item.get("report_json") or {}).get("report_markdown"), 400),
             }
             for item in product_tests
         ],
         benchmark_gap=((benchmark or {}).get("report_json", {}) or {}).get("most_visible_gap", ""),
-        benchmark_next=(((benchmark or {}).get("report_json", {}) or {}).get("next_cycle_actions", [])[:3]),
+        benchmark_next=_clean_string_list(((benchmark or {}).get("report_json", {}) or {}).get("next_cycle_actions")),
     )
     request["project_id"] = get_run_project_context(run_id)[0]
     request["cycle_no"] = get_run_project_context(run_id)[1]
@@ -5780,11 +6634,11 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
     product_tests: dict[str, list[str]] = {}
     for report in product_reports:
         if report["report_type"] == "product_test":
-            findings = _product_test_reader_findings(report["report_json"], limit=2)
+            findings = _product_test_reader_findings(report["report_json"])
             product_signals.extend(findings)
             product_tests.setdefault(report["agent_id"], []).extend(findings)
         elif report["report_type"] == "product_evaluation_report":
-            product_signals.extend(report["report_json"].get("top_product_issues", [])[:2])
+            product_signals.extend(_clean_string_list(report["report_json"].get("top_product_issues")))
     benchmark = next((row for row in product_reports if row["report_type"] == "benchmark_report"), None)
     topic_evidence = [
         {
@@ -5792,16 +6646,16 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
             "counterpart": item.get("counterpart") or "",
             "body": _truncate(item.get("body"), 180),
         }
-        for item in ((topic_row or {}).get("evidence_refs") or [])[:4]
+        for item in ((topic_row or {}).get("evidence_refs") or [])
     ]
     relevant_context = {
-        "own_reviews": own_reviews[:4],
-        "other_reviews": other_reviews[:4],
+        "own_reviews": own_reviews,
+        "other_reviews": other_reviews,
         "memory_summary": memory.get("summary"),
         "reply_text": _truncate(reply_text, 200),
         "peer_message": _truncate(peer_msg["body"], 180) if peer_msg else "",
-        "recent_thread": _retro_thread_for_prompt(run_id, limit=6, body_limit=150),
-        "product_signals": list(dict.fromkeys([item for item in product_signals if item]))[:4],
+        "recent_thread": _retro_thread_for_prompt(run_id, body_limit=150),
+        "product_signals": list(dict.fromkeys([item for item in product_signals if item])),
         "product_tests": product_tests,
         "benchmark_summary": _truncate(benchmark["summary_text"], 180) if benchmark else "",
         "final_titles": _main_titles(run_id),
@@ -5823,7 +6677,7 @@ def create_retrospective_comment(run_id: str, task_id: str, agent_id: str, paylo
             "body": _truncate(reply_text, 220),
         },
         responsibility_scope=sections,
-        review_signals={"own": own_reviews[:4], "other": other_reviews[:4]},
+        review_signals={"own": own_reviews, "other": other_reviews},
         product_signals=relevant_context.get("product_signals") or [],
         benchmark_summary=relevant_context.get("benchmark_summary") or "",
         memory_summary=relevant_context.get("memory_summary") or "",
@@ -5903,7 +6757,7 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
     cross_cycle = _product_report_by_type(run_id, "cross_cycle_compare_report")
     retro_plan = _product_report_by_type(run_id, "retrospective_plan")
     applied_rules = get_effective_optimization_log(project_id, MANAGER_AGENT_ID, (cycle_no or 0) + 1).get("compiled_rules") or []
-    thread_rows = _retro_thread_for_prompt(run_id, limit=8, body_limit=170)
+    thread_rows = _retro_thread_for_prompt(run_id, body_limit=170)
     final_json = (_load_output_bundle(run_id).get("final_json") or {})
     final_artifact = []
     for section in ["政治经济", "科技", "体育娱乐", "其他"]:
@@ -5922,21 +6776,22 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
         run_id=run_id,
         product_test={
             "summary": usability.get("summary_text"),
-            "reader_findings": _product_test_reader_findings(usability.get("report_json", {}) or {}, limit=4),
+            "reader_findings": _product_test_reader_findings(usability.get("report_json", {}) or {}),
             "reader_improvement_opportunities": _product_test_reader_improvements(
                 usability.get("report_json", {}) or {},
-                limit=4,
             ),
         },
         benchmark={
             "summary": benchmark.get("summary_text"),
             "most_visible_gap": (benchmark.get("report_json", {}) or {}).get("most_visible_gap", ""),
-            "next_cycle_actions": (benchmark.get("report_json", {}) or {}).get("next_cycle_actions", [])[:3],
+            "next_cycle_actions": _clean_string_list((benchmark.get("report_json", {}) or {}).get("next_cycle_actions")),
         },
         cross_cycle_compare={
             "summary": cross_cycle.get("summary_text"),
-            "improved_issues": (cross_cycle.get("report_json", {}) or {}).get("improved_issues", [])[:3],
-            "unimplemented": (cross_cycle.get("report_json", {}) or {}).get("unimplemented_previous_optimization_suggestions", [])[:3],
+            "improved_issues": _clean_string_list((cross_cycle.get("report_json", {}) or {}).get("improved_issues")),
+            "unimplemented": _clean_string_list(
+                (cross_cycle.get("report_json", {}) or {}).get("unimplemented_previous_optimization_suggestions")
+            ),
         },
         retrospective_plan={
             "summary": retro_plan.get("summary_text"),
@@ -5949,7 +6804,8 @@ def _prepare_retrospective_summary_job(run_id: str) -> dict:
             {"topic_id": topic_id, "title": title, "summary": decision_summary or ""}
             for topic_id, title, decision_summary in topic_rows
         ],
-        applied_rules=applied_rules[:6],
+        applied_rules=applied_rules,
+        forced_progress_issues=_forced_progress_issues(run_id),
     )
     request["project_id"] = project_id
     request["cycle_no"] = cycle_no
@@ -6175,74 +7031,6 @@ def self_optimize_agent(run_id: str, agent_id: str) -> dict:
         """,
         (project_id, agent_id, jdump(memory)),
     )
-    rule_specs = []
-    if memory.get("source_whitelist"):
-        rule_specs.append(
-            (
-                "source_whitelist",
-                {"sources": memory.get("source_whitelist", [])},
-                "根据本轮复盘与产品评估，下一轮优先使用更稳定的来源白名单。",
-            )
-        )
-    if memory.get("source_blacklist"):
-        rule_specs.append(
-            (
-                "source_blacklist",
-                {"sources": memory.get("source_blacklist", [])},
-                "根据本轮复盘与产品评估，下一轮过滤低质量来源。",
-            )
-        )
-    if agent_id in {WORKER_33_AGENT_ID, WORKER_XHS_AGENT_ID}:
-        rule_specs.append(
-            (
-                "image_availability_threshold",
-                {"min_images": 1},
-                "采集阶段优先保留带图候选，降低后续主推图片不足风险。",
-            )
-        )
-        rule_specs.append(
-            (
-                "short_brief_compression_rule",
-                {"max_chars": 44},
-                "短讯继续压缩，优先保留结果、时间与影响范围。",
-            )
-        )
-    if agent_id == MANAGER_AGENT_ID:
-        rule_specs.append(
-            (
-                "lead_sentence_rule",
-                {"style": "impact_first"},
-                "主推首句必须先说影响或结果，再补事实来源。",
-            )
-        )
-        rule_specs.append(
-            (
-                "publish_gate",
-                {"require_zero_proofread_blockers": True},
-                "proofread blocker 未清零时禁止 publish。",
-            )
-        )
-    for rule_type, rule_payload, rationale in rule_specs:
-        execute(
-            """
-            INSERT INTO optimization_rules(
-                rule_id, project_id, run_id, cycle_no, source, owner_scope, target_agent,
-                effective_from_cycle, rule_type, rule_payload, rationale, status
-            )
-            VALUES (%s,%s,%s,%s,'agent.self_optimize','agent',%s,%s,%s,%s::jsonb,%s,'active')
-            """,
-            (
-                f"opr-{uuid.uuid4().hex[:10]}",
-                project_id,
-                run_id,
-                cycle_no,
-                agent_id,
-                cycle_no + 1,
-                rule_type,
-                jdump(rule_payload),
-                rationale,
-            ),
-        )
     return memory
 
 
@@ -6597,16 +7385,22 @@ def resume_from_stage(run_id: str, stage_name: str) -> dict:
     execute(
         """
         UPDATE tasks
-        SET status='pending', started_at=NULL, finished_at=NULL, error_message=NULL
-        WHERE run_id=%s AND phase=%s AND status='failed'
+        SET status='pending',
+            started_at=NULL,
+            finished_at=NULL,
+            error_message=NULL,
+            result=CASE
+                WHEN result ? 'llm_job_id' THEN result - 'llm_job_id'
+                ELSE result
+            END
+        WHERE run_id=%s AND phase=%s AND status IN ('failed','waiting')
         """,
         (run_id, stage_name),
     )
     execute(
         """
-        UPDATE llm_jobs
-        SET status='pending', generation_error=NULL, next_attempt_at=NOW(), started_at=NULL, finished_at=NULL
-        WHERE run_id=%s AND node_type=%s AND status IN ('failed','fallback')
+        DELETE FROM llm_jobs
+        WHERE run_id=%s AND node_type=%s AND status IN ('pending','running','retrying','failed','fallback')
         """,
         (run_id, stage_name),
     )
@@ -6999,7 +7793,7 @@ def _prepare_task_llm_job(task: dict) -> dict:
     if phase == "proofread.decision.explanation":
         return _prepare_proofread_decision_explanation_job(task["run_id"], task["task_id"])
     if phase == "draft.revise":
-        prepared = _prepare_draft_revise_job(task["run_id"])
+        prepared = _prepare_draft_revise_job(task["run_id"], task)
         prepared["task_id"] = task["task_id"]
         return prepared
     if phase == "product.test":
@@ -7055,6 +7849,25 @@ def _complete_noncritical_llm_failure(task: dict, job: dict) -> None:
     fail_task(task["task_id"], job.get("generation_error") or f"llm job failed: {job['node_type']}")
 
 
+def _handle_waiting_llm_apply_failure(task: dict, job: dict, exc: Exception) -> None:
+    message = (
+        f"{task['phase']} result apply failed: {exc.__class__.__name__}: {exc}"
+    )
+    LOGGER.exception(
+        "waiting llm apply failed run_id=%s task_id=%s phase=%s job_id=%s",
+        task["run_id"],
+        task["task_id"],
+        task["phase"],
+        (task.get("result") or {}).get("llm_job_id"),
+    )
+    failed_job = dict(job or {})
+    failed_job["generation_error"] = message
+    if _llm_node_config(task["phase"]).get("critical"):
+        _fail_run_due_to_llm(task, failed_job)
+    else:
+        fail_task(task["task_id"], message)
+
+
 def _progress_waiting_llm_tasks() -> None:
     rows = fetch_all(
         """
@@ -7084,6 +7897,20 @@ def _progress_waiting_llm_tasks() -> None:
         if not job_id:
             continue
         job = _llm_job_row(job_id)
+        if task["phase"] == "draft.revise":
+            expected_source_version = _payload_int(task.get("payload"), "source_draft_version_no")
+            latest_version_no = _safe_int(_latest_draft_version(task["run_id"]).get("version_no"))
+            if expected_source_version and latest_version_no != expected_source_version:
+                complete_task(
+                    task["task_id"],
+                    _draft_version_mismatch_result(
+                        latest_version_no=latest_version_no,
+                        expected_version_no=expected_source_version,
+                        version_field="source_draft_version_no",
+                    )
+                    | {"llm_job_id": job_id},
+                )
+                continue
         if task["phase"] == "draft.revise" and _active_blocker_count(task["run_id"]) == 0:
             complete_task(
                 task["task_id"],
@@ -7105,22 +7932,25 @@ def _progress_waiting_llm_tasks() -> None:
                 _complete_noncritical_llm_failure(task, job)
             continue
         data = job["result_json"] or {}
-        if task["phase"] == "proofread.decision.explanation":
-            result = _apply_proofread_explanation_result(task["run_id"], task["task_id"], data)
-            complete_task(task["task_id"], result)
-        elif task["phase"] == "draft.revise":
-            result = _apply_draft_revise_result(task["run_id"], data)
-            complete_task(task["task_id"], result | {"status": "revised"})
-        elif task["phase"] == "product.test":
-            prepared = _prepare_product_test_job(task["run_id"], task["task_id"], task["agent_id"])
-            result = _apply_product_test_result(task["run_id"], task["task_id"], task["agent_id"], prepared["evidence"], data)
-            complete_task(task["task_id"], result | {"status": "tested", "message_body": result["summary"]})
-        elif task["phase"] == "product.report":
-            result = _apply_product_report_result(task["run_id"], task["task_id"], data)
-            complete_task(task["task_id"], result | {"status": "reported", "message_body": result["summary"]})
-        elif task["phase"] == "retrospective.summary":
-            result = _apply_retrospective_summary_result(task["run_id"], data)
-            complete_task(task["task_id"], {"status": "summarized", "message_body": result["summary"], **result})
+        try:
+            if task["phase"] == "proofread.decision.explanation":
+                result = _apply_proofread_explanation_result(task["run_id"], task["task_id"], data)
+                complete_task(task["task_id"], result)
+            elif task["phase"] == "draft.revise":
+                result = _apply_draft_revise_result(task["run_id"], data, task["task_id"])
+                complete_task(task["task_id"], result | {"status": "revised"})
+            elif task["phase"] == "product.test":
+                prepared = _prepare_product_test_job(task["run_id"], task["task_id"], task["agent_id"])
+                result = _apply_product_test_result(task["run_id"], task["task_id"], task["agent_id"], prepared["evidence"], data)
+                complete_task(task["task_id"], result | {"status": "tested", "message_body": result["summary"]})
+            elif task["phase"] == "product.report":
+                result = _apply_product_report_result(task["run_id"], task["task_id"], data)
+                complete_task(task["task_id"], result | {"status": "reported", "message_body": result["summary"]})
+            elif task["phase"] == "retrospective.summary":
+                result = _apply_retrospective_summary_result(task["run_id"], data)
+                complete_task(task["task_id"], {"status": "summarized", "message_body": result["summary"], **result})
+        except Exception as exc:
+            _handle_waiting_llm_apply_failure(task, job, exc)
 
 
 def _ensure_retro_decision_job(run_id: str, *, topic_id: str, title: str, thread: list[dict], owner_agent: str = MANAGER_AGENT_ID) -> dict:
@@ -7224,6 +8054,7 @@ def orchestrator_tick():
     _progress_waiting_llm_tasks()
     _progress_retro_decision_jobs()
     _recover_stalled_agent_acks()
+    _recover_stale_running_tasks()
     runs = fetch_all(
         """
         SELECT run_id, project_id, cycle_no, status, discussion_seconds, current_phase, started_at
@@ -7235,44 +8066,48 @@ def orchestrator_tick():
     for run_id, project_id, cycle_no, _, discussion_seconds, _, _ in runs:
         trace_ctx = get_run_trace_context(run_id)
         cycle_started = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='cycle.start' AND status='completed'", (run_id,))[0]
-        if cycle_started > 0:
-            for section, agent_id in ALL_SECTION_ASSIGNMENTS:
-                collect_exists = fetch_one(
-                    """
-                    SELECT COUNT(*) FROM tasks
-                    WHERE run_id=%s AND section=%s AND agent_id=%s AND phase='material.collect'
-                    """,
-                    (run_id, section, agent_id),
-                )[0]
-                if collect_exists == 0:
-                    requirement = _section_requirement(run_id, section)
-                    collect_task_id = dispatch_task(
-                        run_id=run_id,
-                        parent_task_id=None,
-                        agent_id=agent_id,
-                        agent_role=AGENT_ROLES[agent_id],
-                        section=section,
-                        phase="material.collect",
-                        retry_count=0,
-                        payload={"target_count": requirement["candidate_target"], "cycle_task_plan": (_cycle_task_plan_row(run_id) or {}).get("plan_json", {})},
-                        parent_trace=trace_ctx,
-                        project_id=project_id,
-                        cycle_no=cycle_no,
-                    )
-                    dispatch_task(
-                        run_id=run_id,
-                        parent_task_id=collect_task_id,
-                        agent_id=agent_id,
-                        agent_role=AGENT_ROLES[agent_id],
-                        section=section,
-                        phase="material.submit",
-                        retry_count=0,
-                        payload={},
-                        parent_trace=trace_ctx,
-                        project_id=project_id,
-                        cycle_no=cycle_no,
-                    )
-        for section, agent_id in ALL_SECTION_ASSIGNMENTS:
+        if cycle_started <= 0:
+            continue
+        for section, _default_agent_id in ALL_SECTION_ASSIGNMENTS:
+            requirement = _section_requirement(run_id, section)
+            agent_id = requirement["owner"]
+            collect_exists = fetch_one(
+                """
+                SELECT COUNT(*) FROM tasks
+                WHERE run_id=%s AND section=%s AND agent_id=%s AND phase='material.collect'
+                """,
+                (run_id, section, agent_id),
+            )[0]
+            if collect_exists == 0:
+                collect_task_id = dispatch_task(
+                    run_id=run_id,
+                    parent_task_id=None,
+                    agent_id=agent_id,
+                    agent_role=AGENT_ROLES[agent_id],
+                    section=section,
+                    phase="material.collect",
+                    retry_count=0,
+                    payload={"target_count": requirement["candidate_target"], "cycle_task_plan": (_cycle_task_plan_row(run_id) or {}).get("plan_json", {})},
+                    parent_trace=trace_ctx,
+                    project_id=project_id,
+                    cycle_no=cycle_no,
+                )
+                dispatch_task(
+                    run_id=run_id,
+                    parent_task_id=collect_task_id,
+                    agent_id=agent_id,
+                    agent_role=AGENT_ROLES[agent_id],
+                    section=section,
+                    phase="material.submit",
+                    retry_count=0,
+                    payload={},
+                    parent_trace=trace_ctx,
+                    project_id=project_id,
+                    cycle_no=cycle_no,
+                )
+        for section, _default_agent_id in ALL_SECTION_ASSIGNMENTS:
+            requirement = _section_requirement(run_id, section)
+            agent_id = requirement["owner"]
             latest_collect = fetch_one(
                 """
                 SELECT task_id, retry_count
@@ -7342,7 +8177,9 @@ def orchestrator_tick():
                         cycle_no,
                     )
 
-        for section, agent_id in ALL_SECTION_ASSIGNMENTS:
+        for section, _default_agent_id in ALL_SECTION_ASSIGNMENTS:
+            requirement = _section_requirement(run_id, section)
+            agent_id = requirement["owner"]
             signal = _latest_manager_signal(run_id, "material.review", section)
             latest_review = fetch_one(
                 """
@@ -7359,7 +8196,7 @@ def orchestrator_tick():
             if (
                 latest_review
                 and signal
-                and signal["signal_type"] == "manager_requests_redo"
+                and signal["signal_type"] in {AUDIT_PARTIAL_PASS, AUDIT_REDO}
                 and signal_review_task_id == latest_review[3]
             ):
                 newer_collect_exists = fetch_one(
@@ -7371,7 +8208,6 @@ def orchestrator_tick():
                 )[0]
                 if newer_collect_exists == 0:
                     retry = latest_review[2] + 1
-                    requirement = _section_requirement(run_id, section)
                     collect_task_id = dispatch_task(
                         run_id,
                         None,
@@ -7403,7 +8239,7 @@ def orchestrator_tick():
         approved_count = 0
         for section in ["政治经济", "科技", "体育娱乐", "其他"]:
             signal = _latest_manager_signal(run_id, "material.review", section)
-            if signal and signal["signal_type"] == "proceed":
+            if signal and signal["signal_type"] in {AUDIT_PROCEED, AUDIT_FORCED_PROCEED}:
                 approved_count += 1
         compose_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.compose'", (run_id,))[0]
         if approved_count == 4 and compose_exists == 0:
@@ -7412,16 +8248,51 @@ def orchestrator_tick():
 
         if project_id:
             compose_done = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='draft.compose' AND status='completed'", (run_id,))[0]
+            latest_draft = _latest_draft_version(run_id)
+            latest_draft_version_no = _safe_int(latest_draft.get("version_no"))
+            latest_draft_stage = str(latest_draft.get("stage") or "")
             proofread_round = _proofread_round(run_id)
-            proofread_exists = fetch_one(
+            any_proofread_round_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
-                WHERE run_id=%s AND phase IN ('draft.proofread','draft.recheck') AND retry_count=%s
+                WHERE run_id=%s AND phase IN ('draft.proofread','draft.recheck')
                 """,
-                (run_id, proofread_round),
+                (run_id,),
             )[0]
-            if compose_done > 0 and proofread_exists == 0:
-                dispatch_task(run_id, None, "tester", "tester", "全局", "draft.proofread", 0, {}, trace_ctx, project_id, cycle_no)
+            proofread_for_latest_draft_exists = fetch_one(
+                """
+                SELECT COUNT(*)
+                FROM tasks
+                WHERE run_id=%s
+                  AND phase IN ('draft.proofread','draft.recheck')
+                  AND COALESCE(
+                        NULLIF(result->>'draft_version_no','')::int,
+                        NULLIF(payload->>'draft_version_no','')::int,
+                        0
+                      )=%s
+                """,
+                (run_id, latest_draft_version_no),
+            )[0]
+            if (
+                compose_done > 0
+                and latest_draft_stage == "draft"
+                and latest_draft_version_no > 0
+                and proofread_for_latest_draft_exists == 0
+            ):
+                next_proofread_round = 0 if int(any_proofread_round_exists or 0) == 0 else proofread_round + 1
+                dispatch_task(
+                    run_id,
+                    None,
+                    "tester",
+                    "tester",
+                    "全局",
+                    "draft.proofread",
+                    next_proofread_round,
+                    {"draft_version_no": latest_draft_version_no},
+                    trace_ctx,
+                    project_id,
+                    cycle_no,
+                )
                 _run_current_phase(run_id, "draft.proofread")
 
             proofread_gate_phase, proofread_gate_round, proofread_gate_settled = _proofread_gate_settled(run_id)
@@ -7433,6 +8304,16 @@ def orchestrator_tick():
                 """,
                 (run_id, proofread_gate_phase, proofread_gate_round),
             )[0]
+            proofread_input_draft_version_no = _safe_int(
+                fetch_one(
+                    """
+                    SELECT COALESCE(MAX((result->>'draft_version_no')::int), 0)
+                    FROM tasks
+                    WHERE run_id=%s AND phase=%s AND retry_count=%s AND status='completed'
+                    """,
+                    (run_id, proofread_gate_phase, proofread_gate_round),
+                )[0]
+            )
             explanation_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
@@ -7444,37 +8325,96 @@ def orchestrator_tick():
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='draft.revise' AND retry_count=%s
+                  AND COALESCE(NULLIF(payload->>'source_draft_version_no','')::int, %s)=%s
                 """,
-                (run_id, proofread_gate_round),
+                (run_id, proofread_gate_round, proofread_input_draft_version_no, proofread_input_draft_version_no),
             )[0]
             blocker_count = _active_blocker_count(run_id)
-            if proofread_gate_settled and proofread_done > 0 and blocker_count > 0 and revise_exists == 0:
-                dispatch_task(run_id, None, "editor", "editor", "全局", "draft.revise", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
+            pending_proofread_resolution_count = _pending_proofread_resolution_count(run_id)
+            draft_review_signal = _ensure_draft_review_signal(run_id)
+            draft_review_signal_type = (draft_review_signal or {}).get("signal_type", "")
+            draft_review_payload = (draft_review_signal or {}).get("payload") or {}
+            if draft_review_signal_type == AUDIT_REDO:
+                _dispatch_draft_compose_redo(
+                    run_id,
+                    project_id=project_id,
+                    cycle_no=cycle_no,
+                    trace_ctx=trace_ctx,
+                    compose_version_no=_safe_int(draft_review_payload.get("draft_version_no")),
+                    failed_audit_attempts=_safe_int(draft_review_payload.get("failed_audit_attempts")),
+                    proofread_round=_safe_int(draft_review_payload.get("proofread_round")),
+                    pending_resolution_count=_safe_int(draft_review_payload.get("pending_resolution_count")),
+                )
+            if (
+                draft_review_signal_type == AUDIT_PARTIAL_PASS
+                and proofread_input_draft_version_no > 0
+                and pending_proofread_resolution_count > 0
+                and revise_exists == 0
+            ):
+                dispatch_task(
+                    run_id,
+                    None,
+                    "editor",
+                    "editor",
+                    "全局",
+                    "draft.revise",
+                    proofread_gate_round,
+                    {"source_draft_version_no": proofread_input_draft_version_no},
+                    trace_ctx,
+                    project_id,
+                    cycle_no,
+                )
                 _run_current_phase(run_id, "draft.revise")
-            if proofread_gate_settled and proofread_done > 0 and explanation_exists == 0:
+            if draft_review_signal_type in {AUDIT_PROCEED, AUDIT_PARTIAL_PASS, AUDIT_REDO, AUDIT_FORCED_PROCEED} and explanation_exists == 0:
                 dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "proofread.decision.explanation", proofread_gate_round, {}, trace_ctx, project_id, cycle_no)
 
-            revise_done = fetch_one(
+            revised_draft_version_no = fetch_one(
                 """
-                SELECT COUNT(*) FROM tasks
+                SELECT COALESCE(MAX((result->>'draft_version_no')::int), 0)
+                FROM tasks
                 WHERE run_id=%s AND phase='draft.revise' AND retry_count=%s AND status='completed'
+                  AND COALESCE(NULLIF(payload->>'source_draft_version_no','')::int, %s)=%s
                 """,
-                (run_id, proofread_gate_round),
+                (
+                    run_id,
+                    proofread_gate_round,
+                    proofread_input_draft_version_no,
+                    proofread_input_draft_version_no,
+                ),
             )[0]
             next_recheck_exists = fetch_one(
                 """
                 SELECT COUNT(*) FROM tasks
                 WHERE run_id=%s AND phase='draft.recheck' AND retry_count>%s
+                  AND COALESCE(NULLIF(payload->>'draft_version_no','')::int, %s)=%s
                 """,
-                (run_id, proofread_gate_round),
+                (run_id, proofread_gate_round, _safe_int(revised_draft_version_no), _safe_int(revised_draft_version_no)),
             )[0]
-            if revise_done > 0 and next_recheck_exists == 0:
+            if (
+                _safe_int(revised_draft_version_no) > proofread_input_draft_version_no
+                and next_recheck_exists == 0
+            ):
                 next_round = proofread_gate_round + 1
-                dispatch_task(run_id, None, "tester", "tester", "全局", "draft.recheck", next_round, {}, trace_ctx, project_id, cycle_no)
+                dispatch_task(
+                    run_id,
+                    None,
+                    "tester",
+                    "tester",
+                    "全局",
+                    "draft.recheck",
+                    next_round,
+                    {"draft_version_no": _safe_int(revised_draft_version_no)},
+                    trace_ctx,
+                    project_id,
+                    cycle_no,
+                )
                 _run_current_phase(run_id, "draft.recheck")
 
             publish_decision_exists = fetch_one("SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='publish.decision'", (run_id,))[0]
-            if proofread_gate_settled and proofread_done > 0 and blocker_count == 0 and publish_decision_exists == 0:
+            if (
+                draft_review_signal_type in {AUDIT_PROCEED, AUDIT_FORCED_PROCEED}
+                and publish_decision_exists == 0
+            ):
                 dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "publish.decision", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "publish.decision")
 
@@ -7535,11 +8475,56 @@ def orchestrator_tick():
                 _run_current_phase(run_id, "pre-retro.review")
 
             pre_retro_signal = _latest_manager_signal(run_id, "pre-retro.review")
+            if pre_retro_signal and pre_retro_signal["signal_type"] in {AUDIT_PARTIAL_PASS, AUDIT_REDO}:
+                missing_reports = ((pre_retro_signal.get("payload") or {}).get("missing_reports") or [])
+                source_event_id = pre_retro_signal.get("event_id")
+                for report_name, phase_name in {
+                    "product_test": "product.test",
+                    "benchmark_report": "product.benchmark",
+                    "cross_cycle_compare_report": "product.cross_cycle_compare",
+                }.items():
+                    if report_name not in missing_reports:
+                        continue
+                    existing_recovery = fetch_one(
+                        """
+                        SELECT COUNT(*)
+                        FROM tasks
+                        WHERE run_id=%s AND phase=%s
+                          AND COALESCE(payload->>'source_pre_retro_event_id','')=%s
+                        """,
+                        (run_id, phase_name, source_event_id),
+                    )[0]
+                    if int(existing_recovery or 0) > 0:
+                        continue
+                    next_retry = _safe_int(
+                        fetch_one(
+                            "SELECT COALESCE(MAX(retry_count), -1) FROM tasks WHERE run_id=%s AND phase=%s",
+                            (run_id, phase_name),
+                        )[0]
+                    ) + 1
+                    dispatch_task(
+                        run_id,
+                        None,
+                        TESTER_AGENT_ID,
+                        AGENT_ROLES[TESTER_AGENT_ID],
+                        "全局",
+                        phase_name,
+                        next_retry,
+                        {
+                            "source_pre_retro_event_id": source_event_id,
+                            "redo_reason": (pre_retro_signal.get("payload") or {}).get("reason", ""),
+                            "missing_reports": missing_reports,
+                        },
+                        trace_ctx,
+                        project_id,
+                        cycle_no,
+                    )
+                    _run_current_phase(run_id, phase_name)
             retro_plan_exists = fetch_one(
                 "SELECT COUNT(*) FROM tasks WHERE run_id=%s AND phase='retrospective.plan'",
                 (run_id,),
             )[0]
-            if pre_retro_signal and pre_retro_signal["signal_type"] == "proceed" and retro_plan_exists == 0:
+            if pre_retro_signal and pre_retro_signal["signal_type"] in {AUDIT_PROCEED, AUDIT_FORCED_PROCEED} and retro_plan_exists == 0:
                 dispatch_task(run_id, None, MANAGER_AGENT_ID, AGENT_ROLES[MANAGER_AGENT_ID], "全局", "retrospective.plan", 0, {}, trace_ctx, project_id, cycle_no)
                 _run_current_phase(run_id, "retrospective.plan")
 
@@ -7728,6 +8713,15 @@ def run_worker(agent_id: str):
         if not task:
             time.sleep(2)
             continue
+        LOGGER.info(
+            "worker.task.claimed agent_id=%s task_id=%s run_id=%s phase=%s section=%s retry_count=%s",
+            agent_id,
+            task["task_id"],
+            task["run_id"],
+            task["phase"],
+            task["section"],
+            task["retry_count"],
+        )
         attrs = {
             "workflow_id": WORKFLOW_ID,
             "project_id": task["project_id"],
@@ -7757,6 +8751,7 @@ def run_worker(agent_id: str):
                         target_count=target_count,
                         quality_requirements=task["payload"].get("quality_requirements") or {},
                         manager_watchpoints=task["payload"].get("manager_watchpoints") or [],
+                        copy_requirements=task["payload"].get("copy_requirements") or {},
                         memory_summary=memory_note,
                         optimization_log=optimization_log,
                     )
@@ -7772,6 +8767,15 @@ def run_worker(agent_id: str):
                             "target_count": target_count,
                             "message_body": "",
                         },
+                    )
+                    LOGGER.info(
+                        "worker.task.completed agent_id=%s task_id=%s run_id=%s phase=%s section=%s source_count=%s",
+                        agent_id,
+                        task["task_id"],
+                        task["run_id"],
+                        task["phase"],
+                        task["section"],
+                        len(items),
                     )
                 elif task["phase"] == "cycle.start":
                     result = start_cycle(task["run_id"], task["task_id"])
@@ -7833,15 +8837,47 @@ def run_worker(agent_id: str):
                             "detail_url": f"{SETTINGS.public_base_url}:5555/newsflow/runs/{task['run_id']}/material-review.html",
                         },
                     )
+                    LOGGER.info(
+                        "worker.task.completed agent_id=%s task_id=%s run_id=%s phase=%s section=%s approved=%s selected_material_count=%s",
+                        agent_id,
+                        task["task_id"],
+                        task["run_id"],
+                        task["phase"],
+                        task["section"],
+                        result["approved"],
+                        len(result["selected_material_ids"]),
+                    )
                 elif task["phase"] == "material.review.decision":
                     result = manager_review_materials(task["run_id"], task["task_id"], task["section"])
                     span.set_attribute("status", result["signal_type"])
                     complete_task(task["task_id"], result)
+                    LOGGER.info(
+                        "worker.task.completed agent_id=%s task_id=%s run_id=%s phase=%s section=%s signal_type=%s reason=%s",
+                        agent_id,
+                        task["task_id"],
+                        task["run_id"],
+                        task["phase"],
+                        task["section"],
+                        result.get("signal_type", ""),
+                        _truncate(result.get("reason", ""), 96),
+                    )
                 elif task["phase"] == "draft.compose":
-                    result = compose_draft(task["run_id"])
+                    result = compose_draft(task["run_id"], task["task_id"])
                     span.set_attribute("status", "drafted")
                     complete_task(task["task_id"], result | {"status": "drafted", "draft_len": len(result["draft_markdown"])})
                 elif task["phase"] == "draft.proofread":
+                    expected_draft_version_no = _payload_int(task.get("payload"), "draft_version_no")
+                    latest_draft_version_no = _safe_int(_latest_draft_version(task["run_id"]).get("version_no"))
+                    if expected_draft_version_no and latest_draft_version_no != expected_draft_version_no:
+                        complete_task(
+                            task["task_id"],
+                            _draft_version_mismatch_result(
+                                latest_version_no=latest_draft_version_no,
+                                expected_version_no=expected_draft_version_no,
+                                version_field="draft_version_no",
+                            ),
+                        )
+                        continue
                     result = submit_proofread_issues(task["run_id"], task["task_id"], task["agent_id"])
                     decision = decide_proofread_issues(task["run_id"], task["task_id"])
                     result = result | {
@@ -7862,10 +8898,34 @@ def run_worker(agent_id: str):
                     span.set_attribute("status", "waiting_llm")
                     span.set_attribute("llm.job_id", job["job_id"])
                 elif task["phase"] == "draft.revise":
+                    expected_source_draft_version_no = _payload_int(task.get("payload"), "source_draft_version_no")
+                    latest_draft_version_no = _safe_int(_latest_draft_version(task["run_id"]).get("version_no"))
+                    if expected_source_draft_version_no and latest_draft_version_no != expected_source_draft_version_no:
+                        complete_task(
+                            task["task_id"],
+                            _draft_version_mismatch_result(
+                                latest_version_no=latest_draft_version_no,
+                                expected_version_no=expected_source_draft_version_no,
+                                version_field="source_draft_version_no",
+                            ),
+                        )
+                        continue
                     job = _ensure_task_llm_job(task)
                     span.set_attribute("status", "waiting_llm")
                     span.set_attribute("llm.job_id", job["job_id"])
                 elif task["phase"] == "draft.recheck":
+                    expected_draft_version_no = _payload_int(task.get("payload"), "draft_version_no")
+                    latest_draft_version_no = _safe_int(_latest_draft_version(task["run_id"]).get("version_no"))
+                    if expected_draft_version_no and latest_draft_version_no != expected_draft_version_no:
+                        complete_task(
+                            task["task_id"],
+                            _draft_version_mismatch_result(
+                                latest_version_no=latest_draft_version_no,
+                                expected_version_no=expected_draft_version_no,
+                                version_field="draft_version_no",
+                            ),
+                        )
+                        continue
                     result = recheck_proofread_issues(task["run_id"], task["task_id"], task["agent_id"])
                     span.set_attribute("status", "rechecked")
                     complete_task(
@@ -8026,5 +9086,13 @@ def run_worker(agent_id: str):
                 else:
                     raise RuntimeError(f"unknown phase {task['phase']}")
         except Exception as exc:
+            LOGGER.exception(
+                "worker.task.failed agent_id=%s task_id=%s run_id=%s phase=%s section=%s",
+                agent_id,
+                task["task_id"],
+                task["run_id"],
+                task["phase"],
+                task["section"],
+            )
             fail_task(task["task_id"], str(exc))
             time.sleep(1)

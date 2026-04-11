@@ -37,36 +37,91 @@ def _request(
     return request
 
 
+def cycle_start_request(
+    *,
+    project_id: str | None,
+    cycle_no: int | None,
+    workflow_objective: dict,
+    previous_cycle_context: dict,
+    active_optimization_context: dict,
+) -> dict:
+    return _request(
+        "cycle.start.plan",
+        (
+            "你是 newsflow 的 manager。server 只提供本轮任务目标、交付要求、推进规范和上一轮上下文。"
+            "你要把这些要求拆成可执行的 cycle_task_plan。"
+            "返回 JSON：summary,completion_definition,section_material_requirements,publication_requirements,"
+            "phase_assignments,phase_acceptance,manager_watchpoints,risk_notes。"
+            "section_material_requirements 必须覆盖四个板块，每项都要包含 owner,candidate_target,min_approved,min_with_images。"
+            "publication_requirements 必须明确本轮稿件结构、图片约束和 copy 要求。"
+            "不要替 worker/editor/tester 直接写阶段正文。"
+        ),
+        {
+            "project_id": project_id,
+            "cycle_no": cycle_no,
+            "workflow_objective": workflow_objective,
+            "previous_cycle_context": previous_cycle_context,
+            "active_optimization_context": active_optimization_context,
+        },
+        {
+            "summary": "",
+            "completion_definition": "",
+            "section_material_requirements": {},
+            "publication_requirements": {},
+            "phase_assignments": {},
+            "phase_acceptance": {},
+            "manager_watchpoints": [],
+            "risk_notes": [],
+        },
+        evidence_object_count=3,
+        timeout_ms=180000,
+        max_completion_tokens=2200,
+        max_attempts=2,
+    )
+
+
 def material_collect_request(
     *,
     section: str,
     target_count: int,
     quality_requirements: dict,
     manager_watchpoints: list[str],
+    copy_requirements: dict,
     memory_summary: str,
     optimization_hints: list[str],
     items: list[dict],
 ) -> dict:
+    expected_source_indexes = [item.get("source_index") for item in items]
     return _request(
         "material.collect.enrichment",
         (
             "你是负责当前板块的 worker。读取当前候选对象后，为每条素材生成真正可交接的中文候选说明。"
+            "这是严格的一对一逐条转写任务，不是筛选、排序、去重、合并或改写任务范围。"
+            "输入 items 中出现的每个 source_index，都必须在输出 items 中恰好出现一次。"
+            "不要删除任何 source_index，不要跳过任何 source_index，不要把多个 source_index 合并成一条。"
+            "即使你认为某条素材质量差、重复、相关性弱，也必须保留该 source_index，并在 relevance_note 中明确写出问题。"
             "不要套统一摘要壳，不要用固定句式。"
             "返回 JSON：items。每项必须包含 "
-            "source_index,title_zh,summary_zh,brief_zh,relevance_note,is_primary_candidate,candidate_rank。"
-            "candidate_rank 必须返回整数。"
+            "source_index,title_zh,summary_zh,brief_zh,relevance_note。"
+            "严格遵守 manager 提供的 copy_requirements。"
+            "不要额外解释，不要返回排序建议。"
         ),
         {
             "section": section,
             "target_count": target_count,
+            "expected_source_indexes": expected_source_indexes,
             "quality_requirements": quality_requirements or {},
             "manager_watchpoints": manager_watchpoints or [],
+            "copy_requirements": copy_requirements or {},
             "memory_summary": memory_summary,
             "optimization_hints": optimization_hints,
             "items": items,
         },
         {"items": []},
         evidence_object_count=len(items),
+        timeout_ms=300000,
+        max_completion_tokens=2600,
+        max_attempts=2,
     )
 
 
@@ -82,9 +137,13 @@ def material_review_request(
         (
             "你是 newsflow 的 tester。基于当前板块的全量素材对象做逐条审核。"
             "不要退化成计数检查，不要用统一短句。"
-            "返回 JSON：review_summary,gate_reason,selected_material_ids,items。"
+            "返回 JSON：review_summary,gate_reason,gate_decision,selected_material_ids,items。"
             "items 每项必须包含 material_id,verdict,reason,recommended_slot,selection_priority。"
             "verdict 只能是 approved 或 rejected。"
+            "gate_decision 只能是 proceed、partial_pass、redo。"
+            "proceed 表示当前素材包可直接进入下一阶段；"
+            "partial_pass 表示当前素材包主体成立，但必须按审核意见调整后再复审；"
+            "redo 表示当前素材包整体不成立，需要 manager 发起重做。"
         ),
         {
             "run_id": run_id,
@@ -95,10 +154,14 @@ def material_review_request(
         {
             "review_summary": "",
             "gate_reason": "",
+            "gate_decision": "",
             "selected_material_ids": [],
             "items": [],
         },
         evidence_object_count=len(materials),
+        timeout_ms=300000,
+        max_completion_tokens=2400,
+        max_attempts=2,
     )
 
 
@@ -111,34 +174,7 @@ def material_review_batch_request(
     batch_count: int,
     materials: list[dict],
 ) -> dict:
-    return _request(
-        "material.review",
-        (
-            "你是 newsflow 的 tester。基于当前板块的一批素材对象做逐条审核。"
-            "不要退化成计数检查，不要用统一短句。"
-            "返回 JSON：batch_summary,items。"
-            "batch_summary 用 1-2 句中文，控制在 120 字内。"
-            "items 每项必须包含 material_id,verdict,reason,recommended_slot,selection_priority。"
-            "verdict 只能是 approved 或 rejected。"
-            "reason 必须具体，但控制在 60 字内。"
-        ),
-        {
-            "run_id": run_id,
-            "section": section,
-            "requirements": requirements,
-            "batch_index": batch_index,
-            "batch_count": batch_count,
-            "materials": materials,
-        },
-        {
-            "batch_summary": "",
-            "items": [],
-        },
-        evidence_object_count=len(materials),
-        timeout_ms=120000,
-        max_completion_tokens=220,
-        max_attempts=1,
-    )
+    raise RuntimeError("legacy batched material.review request is disabled; use material_review_request")
 
 
 def material_review_rollup_request(
@@ -152,37 +188,7 @@ def material_review_rollup_request(
     rejected_count: int,
     selected_material_ids: list[int],
 ) -> dict:
-    return _request(
-        "material.review",
-        (
-            "你是 newsflow 的 tester。基于当前板块已经完成的逐条审核结果，"
-            "生成本板块最终 review summary 和 gate_reason。"
-            "不要固定套话，不要复述 checklist。"
-            "review_summary 用 2-3 句中文，控制在 180 字内。"
-            "gate_reason 控制在 100 字内。"
-            "另返回 machine-readable 字段 gate_decision，值只能是 proceed 或 redo。"
-            "返回 JSON：review_summary,gate_reason,gate_decision。"
-        ),
-        {
-            "run_id": run_id,
-            "section": section,
-            "requirements": requirements,
-            "approved_count": approved_count,
-            "rejected_count": rejected_count,
-            "selected_material_ids": selected_material_ids,
-            "batch_summaries": batch_summaries,
-            "review_items": review_items,
-        },
-        {
-            "review_summary": "",
-            "gate_reason": "",
-            "gate_decision": "",
-        },
-        evidence_object_count=len(batch_summaries) + len(review_items),
-        timeout_ms=120000,
-        max_completion_tokens=180,
-        max_attempts=1,
-    )
+    raise RuntimeError("legacy material.review rollup request is disabled; use material_review_request")
 
 
 def compose_translation_request(
@@ -295,6 +301,9 @@ def draft_proofread_request(
         },
         {"summary": "", "issues": []},
         evidence_object_count=len(sections) + len(existing_open_issues),
+        timeout_ms=360000,
+        max_completion_tokens=3200,
+        max_attempts=4,
     )
 
 
@@ -306,34 +315,7 @@ def draft_proofread_section_request(
     section_payload: dict,
     existing_open_issues: list[dict],
 ) -> dict:
-    return _request(
-        "draft.proofread",
-        (
-            "你是 newsflow 的 tester，正在做 correctness proofread。"
-            "基于当前单个 section 的 draft 概览、当前 focus items 与对应素材摘要视图，提出真正需要修的 issue。"
-            "不要泛泛而谈，不要用模板问题。"
-            "返回 JSON：section_summary,issues。"
-            "section_summary 控制在 120 字内。"
-            "issues 每项必须包含 "
-            "item_ref,severity,issue_type,description,required_actions,patch_instruction。"
-            "item_ref 只能使用 section、main、secondary_1、secondary_2、brief_1 到 brief_7。"
-            "severity 只能是 blocker、high、medium、low。"
-            "description 控制在 80 字内，required_actions 最多 3 项，patch_instruction 控制在 60 字内。"
-            "如果当前 section 没有需要修的问题，issues 返回空数组。"
-        ),
-        {
-            "run_id": run_id,
-            "agent_id": agent_id,
-            "draft_version_no": draft_version_no,
-            "section_payload": section_payload,
-            "existing_open_issues": existing_open_issues,
-        },
-        {"section_summary": "", "issues": []},
-        evidence_object_count=1 + len(existing_open_issues),
-        timeout_ms=240000,
-        max_completion_tokens=240,
-        max_attempts=2,
-    )
+    raise RuntimeError("legacy section-batched draft.proofread request is disabled; use draft_proofread_request")
 
 
 def draft_proofread_rollup_request(
@@ -344,27 +326,7 @@ def draft_proofread_rollup_request(
     section_summaries: list[dict],
     issues: list[dict],
 ) -> dict:
-    return _request(
-        "draft.proofread",
-        (
-            "你是 newsflow 的 tester。基于已经完成的分 section proofread 结果，"
-            "收敛出本轮 proofread 总结。"
-            "不要写流程回执，不要复读模板。"
-            "返回 JSON：summary。summary 控制在 180 字内。"
-        ),
-        {
-            "run_id": run_id,
-            "agent_id": agent_id,
-            "draft_version_no": draft_version_no,
-            "section_summaries": section_summaries,
-            "issues": issues,
-        },
-        {"summary": ""},
-        evidence_object_count=len(section_summaries) + len(issues),
-        timeout_ms=120000,
-        max_completion_tokens=180,
-        max_attempts=2,
-    )
+    raise RuntimeError("legacy draft.proofread rollup request is disabled; use draft_proofread_request")
 
 
 def proofread_explanation_request(
@@ -467,7 +429,8 @@ def draft_revise_request(
             "不要复读问题，不要只改固定句式，也不要生成整篇全文。"
             "返回 JSON：section_updates,revision_plan。"
             "section_updates 每项字段为 section,item_updates,reason；"
-            "item_updates 每项字段为 item_ref,title,summary_zh。"
+            "item_updates 每项字段为 item_ref,material_id,title,summary_zh,source_media,published_at,link。"
+            "如果需要把当前条目重新对齐到批准素材，直接填写 material_id；系统会用该素材同步可见元数据和图片。"
         ),
         {
             "run_id": run_id,
@@ -495,7 +458,9 @@ def draft_render_request(
         (
             "你是 newsflow 的 editor。基于已经完成层级编排的结构化 section 对象，输出前台可见的中文成品 markdown。"
             "不要写 workflow_id/project_id/run_id/时区 这类机器头，"
-            "不要套“### 主推 | / ### 副推 / ### 其他 7 条”固定槽位壳。"
+            "不要套“### 主推 / ### 副推 / ### 其他 7 条 / ### 简讯”固定槽位壳。"
+            "禁止出现任何把 main/secondary/brief 直接翻成栏目名的三级标题。"
+            "只能按板块组织内容，板块内用自然段和列表自然展开，不要按槽位标签回填。"
             "要忠实使用当前对象里的标题、摘要、来源、时间、链接与配图信息。"
             "返回 JSON：summary,report_markdown。"
         ),
@@ -518,14 +483,24 @@ def draft_recheck_request(
     agent_id: str,
     draft_version_no: int,
     issues: list[dict],
+    draft_sections: list[dict],
+    reference_time: str,
+    publication_requirements: dict,
 ) -> dict:
     return _request(
         "draft.recheck",
         (
             "你是 newsflow 的 tester。你现在要对修订稿逐项 recheck，判断上一轮 issue 是否真的解决。"
             "不要默认通过，不要拿固定句式回执冒充复查。"
+            "给你的 issues 是待复查的问题列表，draft_sections 是当前修订稿的板块快照。"
+            "reference_time 是当前复查时间，published_at 只有晚于它才算未来时间；同一天更早的时间不算未来。"
+            "publication_requirements 是 manager 给定的前台结构与图片约束。"
+            "不要拿批准素材的原始图片数直接要求 draft 必须一字不差复制。"
+            "source_media 只在前台可见标签事实错误时 reopen，不因后台 taxonomy 命名不理想 reopen。"
+            "material_id / approved consistency 只有在当前 draft 明显指向未批准素材时才 reopen。"
             "decisions 必须覆盖输入里的每个 issue_id，且每项都必须包含非空的 resolution_note，"
             "明确说明当前 draft 为什么算解决或为什么仍未解决。"
+            "resolution_note 控制在 36 个字内，直接说明是否解决及依据。"
             "返回 JSON：summary,decisions。decisions 每项字段必须包含 issue_id,resolved,resolution_note。"
         ),
         {
@@ -533,9 +508,15 @@ def draft_recheck_request(
             "agent_id": agent_id,
             "draft_version_no": draft_version_no,
             "issues": issues,
+            "draft_sections": draft_sections,
+            "reference_time": reference_time,
+            "publication_requirements": publication_requirements,
         },
         {"summary": "", "decisions": []},
         evidence_object_count=len(issues),
+        timeout_ms=210000,
+        max_completion_tokens=1800,
+        max_attempts=2,
     )
 
 
@@ -679,6 +660,7 @@ def retrospective_plan_request(
     cross_cycle_compare: dict,
     review_rows: list[dict],
     final_artifact: list[dict],
+    forced_progress_issues: list[dict],
 ) -> dict:
     return _request(
         "retrospective.plan",
@@ -686,6 +668,7 @@ def retrospective_plan_request(
             "你是 newsflow 的 manager。基于 tester 的三份报告、已发布成品摘要和执行证据生成 retrospective plan。"
             "保留 topics 的 machine-readable 字段，但不要用固定争论脚本或固定栏目模板。"
             "topics 不能为空；只要证据支持，给出 1 个或多个可讨论 topic 都可以。每个 topic 都要包含 title、body、owner、counterpart。"
+            "forced_progress_issues 是本轮被 manager 强制带风险推进的问题，必须明确纳入 retrospective plan，不能忽略。"
             "plan_markdown 必须是一份面向团队的自然中文讨论启动文本，可以自然分段，但不要使用"
             "“开场提醒 / 第一个讨论点 / 第二个讨论点 / 收尾 / 散会 / 行动项认领”这类固定章节名。"
             "返回 JSON：product_problems,behavior_problems,topics,summary,plan_markdown。"
@@ -697,6 +680,7 @@ def retrospective_plan_request(
             "cross_cycle_compare": cross_cycle_compare,
             "review_rows": review_rows,
             "final_artifact": final_artifact,
+            "forced_progress_issues": forced_progress_issues,
         },
         {
             "product_problems": [],
@@ -803,12 +787,14 @@ def retrospective_summary_request(
     retro_thread: list[dict],
     retro_decisions: list[dict],
     applied_rules: list[dict],
+    forced_progress_issues: list[dict],
 ) -> dict:
     return _request(
         "retrospective.summary",
         (
             "你是 newsflow 的 manager。基于 retro topics、retro decisions、产品评估、benchmark、最终成品和已应用规则，输出正式 retrospective summary。"
             "不要固定栏目拼装，也不要拼接线程原文。summary_markdown 必须是一份自然收敛的中文结论备忘。"
+            "forced_progress_issues 是本轮被 manager 强制带风险推进的问题，必须明确复盘并转化为后续优化要求。"
             "不要使用“Discussion Summary / Product Problems / Root Causes / Accepted / Next Cycle”这类固定栏目名。"
             "返回 JSON：summary,summary_markdown。"
         ),
@@ -822,6 +808,7 @@ def retrospective_summary_request(
             "retro_thread": retro_thread,
             "retro_decisions": retro_decisions,
             "applied_rules": applied_rules,
+            "forced_progress_issues": forced_progress_issues,
         },
         {"summary": "", "summary_markdown": ""},
         evidence_object_count=len(retro_thread) + len(retro_decisions) + len(applied_rules) + len(final_artifact) + 4,
