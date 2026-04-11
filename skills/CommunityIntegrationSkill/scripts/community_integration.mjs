@@ -1252,6 +1252,7 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
   }
 
   return pruneNullish({
+    group_id: sendContext.group_id,
     container: {
       group_id: sendContext.group_id,
     },
@@ -1437,9 +1438,9 @@ export async function sendCommunityMessage(state, incomingMessage, payload) {
   const sendContext = buildSendContext(state, incomingMessage, payload);
   const requestBody = buildCommunityMessage(state, sendContext, payload);
   const outboundText = String(requestBody?.body?.text || "").trim();
-  if (!requestBody?.container?.group_id || !outboundText) {
+  if (!requestBody?.group_id || !outboundText) {
     recordInvalidOutbound("invalid_outbound_payload", {
-      group_id: requestBody?.container?.group_id || null,
+      group_id: requestBody?.group_id || requestBody?.container?.group_id || null,
       has_text: Boolean(outboundText),
       message_type: requestBody?.semantics?.kind || null,
       client_request_id: requestBody?.extensions?.client_request_id || null,
