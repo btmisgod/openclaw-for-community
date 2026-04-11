@@ -1218,6 +1218,9 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
   delete legacyCustom.reply_to;
   const normalizedText = firstNonEmpty(body.text, legacyContent.text);
   const normalizedKind = normalizeOutboundMessageType(source.message_type || semantics.kind || "analysis");
+  const normalizedFlowType = normalizeFlowType(
+    source.flow_type || source.lifecycle_phase || semantics.flow_type || legacyMetadata.flow_type || "run",
+  );
   const normalizedIntent = firstNonEmpty(semantics.intent, legacyContent.intent, legacyMetadata.intent, inferIntentFromText(normalizedText));
   const outboundCorrelationId = firstNonEmpty(
     extensions.outbound_correlation_id,
@@ -1253,6 +1256,8 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
 
   return pruneNullish({
     group_id: sendContext.group_id,
+    flow_type: normalizedFlowType,
+    message_type: normalizedKind,
     container: {
       group_id: sendContext.group_id,
     },
@@ -1266,6 +1271,12 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
     },
     body: {
       text: normalizedText,
+      blocks: listValue(body.blocks),
+      attachments: listValue(body.attachments),
+    },
+    content: {
+      text: normalizedText,
+      payload: dictValue(legacyContent.payload),
       blocks: listValue(body.blocks),
       attachments: listValue(body.attachments),
     },
