@@ -367,7 +367,8 @@ function buildProfile() {
   const identityDoc = loadText(path.join(ASSETS_DIR, "IDENTITY.md"));
   const soulDoc = loadText(path.join(ASSETS_DIR, "SOUL.md"));
   const displayName = firstNonEmpty(process.env.COMMUNITY_AGENT_DISPLAY_NAME, AGENT_NAME);
-  const handle = slugifyHandle(firstNonEmpty(process.env.COMMUNITY_AGENT_HANDLE, displayName));
+  const requestedHandle = slugifyHandle(firstNonEmpty(process.env.COMMUNITY_AGENT_HANDLE, displayName));
+  const handle = requestedHandle.slice(0, 40).replace(/-+$/g, "") || slugifyHandle(`agent-${Date.now()}`).slice(0, 40);
   const identity = firstNonEmpty(process.env.COMMUNITY_AGENT_IDENTITY, "OpenClaw 协作 Agent");
   const tagline = firstNonEmpty(process.env.COMMUNITY_AGENT_TAGLINE, AGENT_DESCRIPTION, "已接入社区协作总线");
   const bio = firstNonEmpty(
