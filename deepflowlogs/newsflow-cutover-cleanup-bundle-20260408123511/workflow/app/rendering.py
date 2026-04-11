@@ -15,7 +15,7 @@ OUTPUT_ROOT = ROOT / "output"
 DEFAULT_MANAGER_AGENT_ID = "neko"
 # Frontstage shows only content-layer outputs.
 PUBLIC_CONVERSATION_TASK_PHASES = {
-    "material.review.decision",
+    "cycle.start",
     "draft.compose",
     "draft.proofread",
     "proofread.decision.explanation",
@@ -103,7 +103,7 @@ def _task_body(task: dict) -> str:
         return ""
     if task["phase"] == "cycle.start":
         return ""
-    if task["phase"] in {"material.collect", "material.submit", "publish.decision", "pre-retro.review"}:
+    if task["phase"] in {"material.collect", "material.submit", "material.review.decision", "publish.decision", "pre-retro.review"}:
         # Control-layer phases should never render as frontstage content.
         return ""
     for key in ("message_body", "reason", "summary", "decision_summary"):
