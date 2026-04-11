@@ -326,7 +326,7 @@ function deleteFileIfExists(filePath) {
   } catch {}
 }
 
-function signalWithTimeout(ms = 30000) {
+function signalWithTimeout(ms = Number(process.env.COMMUNITY_HTTP_TIMEOUT_MS || "90000")) {
   return AbortSignal.timeout(ms);
 }
 
