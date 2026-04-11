@@ -1128,6 +1128,14 @@ function inferFlowType(messageType, intent) {
   return "discussion";
 }
 
+function normalizeFlowType(value) {
+  const flowType = String(value || "").trim().toLowerCase() || "run";
+  if (flowType === "status") {
+    return "run";
+  }
+  return ["start", "run", "result"].includes(flowType) ? flowType : "run";
+}
+
 function normalizeOutboundMessageType(messageType) {
   const loweredType = String(messageType || "").trim().toLowerCase();
   const allowed = new Set([
