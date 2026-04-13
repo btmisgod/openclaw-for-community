@@ -92,6 +92,115 @@ if data.get("hasToken") is not True:
 PY
 }
 
+state_json_value() {
+  local state_path="$1"
+  local key="$2"
+  python3 - "$state_path" "$key" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+key = sys.argv[2]
+try:
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except (FileNotFoundError, json.JSONDecodeError):
+    print("")
+    raise SystemExit(0)
+print(data.get(key, "") or "")
+PY
+}
+
+wait_for_agent_webhook() {
+  local base_url="$1"
+  local state_path="$2"
+  local attempts="${3:-120}"
+  local delay="${4:-0.5}"
+  local i token output_path
+  output_path="$(mktemp)"
+
+  for ((i=1; i<=attempts; i+=1)); do
+    token="$(state_json_value "$state_path" token)"
+    if [[ -n "$token" ]] && curl -fsS -H "X-Agent-Token: ${token}" "${base_url}/agents/me/webhook" >"$output_path" 2>/dev/null; then
+      if python3 - "$output_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    payload = json.load(fh)
+data = payload.get("data")
+if not isinstance(data, dict):
+    raise SystemExit(1)
+if not data.get("target_url"):
+    raise SystemExit(1)
+PY
+      then
+        WEBHOOK_WAIT_POLLS="$i"
+        WEBHOOK_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
+        rm -f "$output_path"
+        return 0
+      fi
+    fi
+    sleep "$delay"
+  done
+
+  WEBHOOK_WAIT_POLLS="$attempts"
+  WEBHOOK_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
+  rm -f "$output_path"
+  return 1
+}
+
+wait_for_canonical_message() {
+  local base_url="$1"
+  local state_path="$2"
+  local expected_text="$3"
+  local output_path="$4"
+  local attempts="${5:-30}"
+  local delay="${6:-0.5}"
+  local i token group_id agent_id
+
+  for ((i=1; i<=attempts; i+=1)); do
+    token="$(state_json_value "$state_path" token)"
+    group_id="$(state_json_value "$state_path" groupId)"
+    agent_id="$(state_json_value "$state_path" agentId)"
+    if [[ -n "$token" && -n "$group_id" ]] && curl -fsS -H "X-Agent-Token: ${token}" "${base_url}/messages?group_id=${group_id}&limit=50&offset=0" >"$output_path" 2>/dev/null; then
+      if python3 - "$output_path" "$expected_text" "$agent_id" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+expected_text = sys.argv[2]
+agent_id = sys.argv[3]
+with open(path, "r", encoding="utf-8") as fh:
+    payload = json.load(fh)
+items = (((payload.get("data") or {}).get("items")) or [])
+for item in items:
+    if not isinstance(item, dict):
+        continue
+    content = item.get("content") or {}
+    author = item.get("author") or {}
+    if content.get("text") != expected_text:
+        continue
+    if agent_id and str(author.get("agent_id") or "") != agent_id:
+        continue
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+      then
+        CANONICAL_WAIT_POLLS="$i"
+        CANONICAL_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${i} * ${delay} }")"
+        return 0
+      fi
+    fi
+    sleep "$delay"
+  done
+
+  CANONICAL_WAIT_POLLS="$attempts"
+  CANONICAL_WAIT_SECONDS="$(awk "BEGIN { printf \"%.1f\", ${attempts} * ${delay} }")"
+  return 1
+}
+
 cleanup_agent_service() {
   local service_name="$1"
   local service_path="/etc/systemd/system/${service_name}"
@@ -240,6 +349,8 @@ TEMPLATE_HOME="${WORKSPACE_ROOT}/.openclaw/community-agent-template"
 STATE_PATH="${TEMPLATE_HOME}/state/community-webhook-state.json"
 CLI_STATUS_OUTPUT="/tmp/${TEST_SLUG}.cli-status.json"
 SEND_RESPONSE_BODY="/tmp/${TEST_SLUG}.send.out"
+MESSAGES_RESPONSE_BODY="/tmp/${TEST_SLUG}.messages.out"
+AGENT_WEBHOOK_RESPONSE_BODY="/tmp/${TEST_SLUG}.agent-webhook.out"
 WEBHOOK_RESPONSE_BODY="/tmp/${TEST_SLUG}.webhook.out"
 HEALTHZ_RESPONSE_BODY="/tmp/${TEST_SLUG}.healthz.json"
 INSTALL_LOG="/tmp/${TEST_SLUG}.install.log"
@@ -253,11 +364,15 @@ SOCKET_WAIT_POLLS=0
 SOCKET_WAIT_SECONDS=0
 STATE_WAIT_POLLS=0
 STATE_WAIT_SECONDS=0
+WEBHOOK_WAIT_POLLS=0
+WEBHOOK_WAIT_SECONDS=0
+CANONICAL_WAIT_POLLS=0
+CANONICAL_WAIT_SECONDS=0
 
 cleanup_agent_service "$AGENT_SERVICE_NAME"
 remove_route_slug "$ROUTE_REGISTRY" "$TEST_SLUG"
 rm -rf "$TEST_ROOT"
-rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY" "$INSTALL_LOG" "$CLI_STATUS_OUTPUT"
+rm -f "$SOCKET_PATH" "$SEND_RESPONSE_BODY" "$MESSAGES_RESPONSE_BODY" "$AGENT_WEBHOOK_RESPONSE_BODY" "$WEBHOOK_RESPONSE_BODY" "$HEALTHZ_RESPONSE_BODY" "$INSTALL_LOG" "$CLI_STATUS_OUTPUT"
 systemctl daemon-reload >/dev/null 2>&1 || true
 log_pass "fresh workspace prepared"
 
@@ -286,6 +401,7 @@ if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$ENV_FILE"
 fi
+COMMUNITY_API_BASE_URL="${COMMUNITY_BASE_URL:-$(json_get "$BOOTSTRAP_METADATA" community_base_url)}"
 TEMPLATE_HOME="${COMMUNITY_TEMPLATE_HOME:-$TEMPLATE_HOME}"
 STATE_PATH="${TEMPLATE_HOME}/state/community-webhook-state.json"
 
@@ -337,6 +453,13 @@ else
   log_fail "community state not ready"
 fi
 
+if [[ -n "$COMMUNITY_API_BASE_URL" ]] && wait_for_agent_webhook "$COMMUNITY_API_BASE_URL" "$STATE_PATH" "${VERIFY_WEBHOOK_WAIT_ATTEMPTS:-120}" "${VERIFY_WEBHOOK_WAIT_DELAY:-0.5}"; then
+  curl -fsS -H "X-Agent-Token: $(state_json_value "$STATE_PATH" token)" "${COMMUNITY_API_BASE_URL}/agents/me/webhook" >"$AGENT_WEBHOOK_RESPONSE_BODY" 2>/dev/null || true
+  log_pass "agent webhook registered after ${WEBHOOK_WAIT_SECONDS}s (${WEBHOOK_WAIT_POLLS} polls)"
+else
+  log_fail "agent webhook not registered"
+fi
+
 if node "$WORKSPACE_ROOT/skills/CommunityIntegrationSkill/scripts/community-agent-cli.mjs" status >"$CLI_STATUS_OUTPUT" 2>/dev/null && cli_status_has_token "$CLI_STATUS_OUTPUT"; then
   log_pass "cli status has token"
 else
@@ -350,16 +473,22 @@ else
 fi
 
 SEND_CODE="000"
+SEND_TEXT="server verify onboarding smoke ${TEST_SLUG} $(date +%s)"
+SEND_GROUP_ID="$(state_json_value "$STATE_PATH" groupId)"
 if [[ "$SOCKET_READY" == "1" && -n "$SEND_PATH" ]]; then
   SEND_CODE="$(curl -sS -o "$SEND_RESPONSE_BODY" -w "%{http_code}" \
     -H 'Content-Type: application/json' \
     -X POST "${INGRESS_BASE_URL}${SEND_PATH}" \
-    -d '{"group_id":"54b12c32-dbd3-46d8-97ee-22bf8a499709","content":{"text":"server verify onboarding smoke"}}' || true)"
+    -d "{\"group_id\":\"${SEND_GROUP_ID}\",\"content\":{\"text\":\"${SEND_TEXT}\"}}" || true)"
 fi
 if [[ "$SOCKET_READY" != "1" ]]; then
   log_fail "send route skipped because socket never became ready"
+elif [[ -z "$SEND_GROUP_ID" ]]; then
+  log_fail "send route missing state group id"
+elif [[ "$SEND_CODE" == "202" ]] && [[ -n "$COMMUNITY_API_BASE_URL" ]] && wait_for_canonical_message "$COMMUNITY_API_BASE_URL" "$STATE_PATH" "$SEND_TEXT" "$MESSAGES_RESPONSE_BODY" "${VERIFY_CANONICAL_WAIT_ATTEMPTS:-30}" "${VERIFY_CANONICAL_WAIT_DELAY:-0.5}"; then
+  log_pass "send route accepted and canonical message materialized after ${CANONICAL_WAIT_SECONDS}s (${CANONICAL_WAIT_POLLS} polls)"
 elif [[ "$SEND_CODE" == "202" ]]; then
-  log_pass "send route"
+  log_fail "send route accepted but canonical message never materialized"
 else
   log_fail "send route expected 202 got ${SEND_CODE}"
 fi
@@ -400,6 +529,10 @@ echo "INFO verify_socket_wait_seconds ${SOCKET_WAIT_SECONDS}"
 echo "INFO verify_socket_wait_polls ${SOCKET_WAIT_POLLS}"
 echo "INFO verify_state_wait_seconds ${STATE_WAIT_SECONDS}"
 echo "INFO verify_state_wait_polls ${STATE_WAIT_POLLS}"
+echo "INFO verify_webhook_wait_seconds ${WEBHOOK_WAIT_SECONDS}"
+echo "INFO verify_webhook_wait_polls ${WEBHOOK_WAIT_POLLS}"
+echo "INFO verify_canonical_wait_seconds ${CANONICAL_WAIT_SECONDS}"
+echo "INFO verify_canonical_wait_polls ${CANONICAL_WAIT_POLLS}"
 echo "INFO warnings ${WARNINGS}"
 
 if [[ "$FAILURES" -eq 0 ]]; then

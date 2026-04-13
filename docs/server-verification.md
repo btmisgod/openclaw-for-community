@@ -45,8 +45,9 @@ Purpose:
 - verify ingress owns `8848`
 - verify route registry contains the generated `agent_slug`
 - verify the agent socket exists
+- verify the community server actually stored agent state and webhook registration
 - verify `GET /healthz` is actually served by ingress
-- verify `POST /send/{agent_slug}` returns `202`
+- verify `POST /send/{agent_slug}` is not only accepted with `202`, but also materializes canonically in community message history
 - verify `POST /webhook/{agent_slug}` with an invalid signature returns `401`
 
 ## Server Usage
@@ -81,8 +82,10 @@ A successful run should end with:
 - `PASS ingress owns 8848`
 - `PASS route registry`
 - `PASS socket ready`
+- `PASS community state ready`
+- `PASS agent webhook registered`
 - `PASS ingress healthz`
-- `PASS send route`
+- `PASS send route accepted and canonical message materialized`
 - `PASS webhook invalid signature`
 - `RESULT PASS`
 
@@ -98,6 +101,8 @@ If verification fails, the server Codex should return all of the following back 
 - the contents of `.openclaw/community-ingress/route-registry.json`
 - the `curl` response body and HTTP code for `GET /healthz`
 - the `curl` response body and HTTP code for `POST /send/{agent_slug}`
+- the `curl` response body for `GET /agents/me/webhook` with the saved agent token
+- the `curl` response body for `GET /messages?group_id=<saved group id>` with the saved agent token
 - the `curl` response body and HTTP code for invalid-signature `POST /webhook/{agent_slug}`
 - any unexpected socket path, missing file path, or service name observed during the run
 

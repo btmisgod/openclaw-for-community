@@ -9,10 +9,13 @@ TARGET_STATE_DIR="${TARGET_WORKSPACE}/.openclaw"
 TARGET_TEMPLATE_HOME="${TARGET_STATE_DIR}/community-agent-template"
 TARGET_ASSETS="${TARGET_TEMPLATE_HOME}/assets"
 TARGET_SKILLS="${TARGET_WORKSPACE}/skills"
+TARGET_SKILL_DIR="${TARGET_SKILLS}/CommunityIntegrationSkill"
 BOOTSTRAP_METADATA_PATH="${TARGET_STATE_DIR}/community-agent.bootstrap.json"
 ENV_FILE_PATH="${TARGET_STATE_DIR}/community-agent.env"
 AGENT_RUN_DIR="${TARGET_STATE_DIR}/run"
 INGRESS_HOME_VALUE="${COMMUNITY_INGRESS_HOME:-/root/.openclaw/community-ingress}"
+COMMUNITY_SKILL_GIT_URL="${COMMUNITY_SKILL_GIT_URL:-https://github.com/btmisgod/community-skill.git}"
+COMMUNITY_SKILL_GIT_REF="${COMMUNITY_SKILL_GIT_REF:-main}"
 
 declare -A EXPLICIT_ENV_KEYS=()
 while IFS='=' read -r env_key _; do
@@ -42,6 +45,17 @@ source_env_defaults() {
 }
 
 source_env_defaults "${BOOTSTRAP_CONFIG}"
+
+clone_fresh_community_skill() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "git is required to install fresh community-skill from GitHub" >&2
+    exit 1
+  fi
+
+  rm -rf "${TARGET_SKILL_DIR}"
+  git clone --depth 1 --branch "${COMMUNITY_SKILL_GIT_REF}" "${COMMUNITY_SKILL_GIT_URL}" "${TARGET_SKILL_DIR}"
+  rm -rf "${TARGET_SKILL_DIR}/.git"
+}
 
 derive_agent_slug() {
   local candidate
@@ -94,14 +108,20 @@ AGENT_SLUG="${COMMUNITY_AGENT_HANDLE:-$(derive_agent_slug)}"
 AGENT_NAME="${COMMUNITY_AGENT_NAME:-${AGENT_SLUG}}"
 SOCKET_PATH_VALUE="$(compute_socket_path "${INGRESS_HOME_VALUE}" "${AGENT_SLUG}")"
 COMMUNITY_SERVICE_NAME_VALUE="${COMMUNITY_SERVICE_NAME:-openclaw-community-webhook-${AGENT_SLUG}.service}"
-COMMUNITY_BASE_URL_VALUE="${COMMUNITY_BASE_URL:-http://127.0.0.1:8000/api/v1}"
+COMMUNITY_BASE_URL_VALUE="${COMMUNITY_BASE_URL:-http://43.130.233.109:8000/api/v1}"
 COMMUNITY_GROUP_SLUG_VALUE="${COMMUNITY_GROUP_SLUG:-public-lobby}"
 COMMUNITY_WEBHOOK_HOST_VALUE="${COMMUNITY_WEBHOOK_HOST:-0.0.0.0}"
 COMMUNITY_WEBHOOK_PORT_VALUE="${COMMUNITY_WEBHOOK_PORT:-8848}"
-COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE="${COMMUNITY_WEBHOOK_PUBLIC_HOST:-host.docker.internal}"
+COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE="${COMMUNITY_WEBHOOK_PUBLIC_HOST:-}"
 COMMUNITY_WEBHOOK_PATH_VALUE="${COMMUNITY_WEBHOOK_PATH:-/webhook/${AGENT_SLUG}}"
 COMMUNITY_SEND_PATH_VALUE="${COMMUNITY_SEND_PATH:-/send/${AGENT_SLUG}}"
-COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE="${COMMUNITY_WEBHOOK_PUBLIC_URL:-http://${COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE}:${COMMUNITY_WEBHOOK_PORT_VALUE}${COMMUNITY_WEBHOOK_PATH_VALUE}}"
+if [[ -n "${COMMUNITY_WEBHOOK_PUBLIC_URL:-}" ]]; then
+  COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE="${COMMUNITY_WEBHOOK_PUBLIC_URL}"
+elif [[ -n "${COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE}" ]]; then
+  COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE="http://${COMMUNITY_WEBHOOK_PUBLIC_HOST_VALUE}:${COMMUNITY_WEBHOOK_PORT_VALUE}${COMMUNITY_WEBHOOK_PATH_VALUE}"
+else
+  COMMUNITY_WEBHOOK_PUBLIC_URL_VALUE=""
+fi
 COMMUNITY_AGENT_DESCRIPTION_VALUE="${COMMUNITY_AGENT_DESCRIPTION:-OpenClaw community-connected agent}"
 COMMUNITY_AGENT_DISPLAY_NAME_VALUE="${COMMUNITY_AGENT_DISPLAY_NAME:-${AGENT_NAME}}"
 COMMUNITY_AGENT_IDENTITY_VALUE="${COMMUNITY_AGENT_IDENTITY:-OpenClaw community agent}"
@@ -113,6 +133,8 @@ MODEL_ID_VALUE="${MODEL_ID:-}"
 mkdir -p "${TARGET_SCRIPTS}" "${TARGET_STATE_DIR}" "${TARGET_TEMPLATE_HOME}" "${TARGET_ASSETS}" "${TARGET_SKILLS}"
 mkdir -p "${AGENT_RUN_DIR}"
 
+clone_fresh_community_skill
+
 install -m 0644 "${TEMPLATE_ROOT}/scripts/community-webhook-server.mjs" "${TARGET_SCRIPTS}/community-webhook-server.mjs"
 install -m 0644 "${TEMPLATE_ROOT}/scripts/community-ingress-server.mjs" "${TARGET_SCRIPTS}/community-ingress-server.mjs"
 install -m 0755 "${TEMPLATE_ROOT}/scripts/install-community-webhook-service.sh" "${TARGET_SCRIPTS}/install-community-webhook-service.sh"
@@ -123,8 +145,6 @@ install -m 0644 "${TEMPLATE_ROOT}/community-agent.env.example" "${TARGET_STATE_D
 install -m 0644 "${TEMPLATE_ROOT}/assets/IDENTITY.md" "${TARGET_ASSETS}/IDENTITY.md"
 install -m 0644 "${TEMPLATE_ROOT}/assets/SOUL.md" "${TARGET_ASSETS}/SOUL.md"
 install -m 0644 "${TEMPLATE_ROOT}/assets/USER.md" "${TARGET_ASSETS}/USER.md"
-rm -rf "${TARGET_SKILLS}/CommunityIntegrationSkill"
-cp -R "${TEMPLATE_ROOT}/skills/CommunityIntegrationSkill" "${TARGET_SKILLS}/CommunityIntegrationSkill"
 install -m 0644 "${TEMPLATE_ROOT}/community-agent.env.example" "${TARGET_STATE_DIR}/community-agent.env.example"
 
 {
@@ -170,7 +190,7 @@ cat >"${BOOTSTRAP_METADATA_PATH}" <<EOF
 }
 EOF
 
-install -m 0644 "${TEMPLATE_ROOT}/community-bootstrap.env" "${TARGET_STATE_DIR}/community-bootstrap.env"
+install -m 0644 "${TARGET_SKILL_DIR}/community-bootstrap.env" "${TARGET_STATE_DIR}/community-bootstrap.env"
 
 cat <<EOF
 Template installed.
@@ -185,7 +205,7 @@ Scripts:
   ${TARGET_SCRIPTS}/install-agent-protocol.sh
 
 Skill:
-  ${TARGET_SKILLS}/CommunityIntegrationSkill
+  ${TARGET_SKILL_DIR}
 
 Env file:
   ${ENV_FILE_PATH}
@@ -205,7 +225,9 @@ Next:
   1. Run: bash ${TARGET_SCRIPTS}/install-community-webhook-service.sh
 
 Important:
-  - Current bootstrap config came from ${BOOTSTRAP_CONFIG}
+  - Fresh community-skill was cloned from ${COMMUNITY_SKILL_GIT_URL} (${COMMUNITY_SKILL_GIT_REF})
+  - Current bootstrap defaults came from ${BOOTSTRAP_CONFIG}
+  - Workspace bootstrap config came from ${TARGET_SKILL_DIR}/community-bootstrap.env
   - Override values by editing ${TARGET_STATE_DIR}/community-bootstrap.env before rerunning bootstrap
   - Webhook uses unified port 8848 by default
   - Open TCP port 8848 in firewall/security group before testing webhook delivery

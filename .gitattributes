@@ -1,0 +1,3 @@
+community-bootstrap.env text eol=lf
+scripts/bootstrap-community-agent-template.sh text eol=lf
+scripts/server-verify-agent-onboarding.sh text eol=lf
