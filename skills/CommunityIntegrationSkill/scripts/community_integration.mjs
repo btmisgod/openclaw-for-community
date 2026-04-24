@@ -326,7 +326,7 @@ function deleteFileIfExists(filePath) {
   } catch {}
 }
 
-function signalWithTimeout(ms = 30000) {
+function signalWithTimeout(ms = Number(process.env.COMMUNITY_HTTP_TIMEOUT_MS || "90000")) {
   return AbortSignal.timeout(ms);
 }
 
@@ -367,7 +367,8 @@ function buildProfile() {
   const identityDoc = loadText(path.join(ASSETS_DIR, "IDENTITY.md"));
   const soulDoc = loadText(path.join(ASSETS_DIR, "SOUL.md"));
   const displayName = firstNonEmpty(process.env.COMMUNITY_AGENT_DISPLAY_NAME, AGENT_NAME);
-  const handle = slugifyHandle(firstNonEmpty(process.env.COMMUNITY_AGENT_HANDLE, displayName));
+  const requestedHandle = slugifyHandle(firstNonEmpty(process.env.COMMUNITY_AGENT_HANDLE, displayName));
+  const handle = requestedHandle.slice(0, 40).replace(/-+$/g, "") || slugifyHandle(`agent-${Date.now()}`).slice(0, 40);
   const identity = firstNonEmpty(process.env.COMMUNITY_AGENT_IDENTITY, "OpenClaw 协作 Agent");
   const tagline = firstNonEmpty(process.env.COMMUNITY_AGENT_TAGLINE, AGENT_DESCRIPTION, "已接入社区协作总线");
   const bio = firstNonEmpty(
@@ -677,14 +678,344 @@ function loadModelConfig() {
   return { baseUrl: baseUrl.replace(/\/$/, ""), apiKey, modelId };
 }
 
+function normalizeRecord(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function normalizeList(value) {
+  return Array.isArray(value) ? value.filter((item) => item !== null && item !== undefined && item !== "") : [];
+}
+
+function compactText(value, maxLength = 180) {
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) {
+    return "";
+  }
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}?` : text;
+}
+
+function compactList(value, maxItems = 8, itemMaxLength = 64) {
+  return normalizeList(value)
+    .slice(0, maxItems)
+    .map((item) => compactText(item, itemMaxLength))
+    .filter(Boolean);
+}
+
+function compactRecord(record) {
+  return Object.fromEntries(
+    Object.entries(normalizeRecord(record)).filter(([, value]) => {
+      if (value === null || value === undefined || value === "") {
+        return false;
+      }
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      if (value && typeof value === "object") {
+        return Object.keys(value).length > 0;
+      }
+      return true;
+    }),
+  );
+}
+
+function unwrapSuccessPayload(payload) {
+  const record = normalizeRecord(payload);
+  if (Object.prototype.hasOwnProperty.call(record, "success") && Object.prototype.hasOwnProperty.call(record, "data")) {
+    return record.data;
+  }
+  return record;
+}
+
+function normalizeProtocolPayload(payload) {
+  const record = normalizeRecord(unwrapSuccessPayload(payload));
+  return normalizeRecord(record.group_protocol || record.protocol || record);
+}
+
+function normalizeSessionPayload(payload) {
+  const record = normalizeRecord(unwrapSuccessPayload(payload));
+  return normalizeRecord(record.group_session || record.session || record);
+}
+
+function resolveWorkflowDefinition(protocol, workflowId) {
+  const workflow = normalizeRecord(protocol?.workflow);
+  const bootstrap = normalizeRecord(workflow.bootstrap_workflow);
+  const formal = normalizeRecord(workflow.formal_workflow);
+  const targetWorkflowId = String(workflowId || "").trim();
+  if (targetWorkflowId && String(bootstrap.workflow_id || "").trim() === targetWorkflowId) {
+    return bootstrap;
+  }
+  if (targetWorkflowId && String(formal.workflow_id || "").trim() === targetWorkflowId) {
+    return formal;
+  }
+  return bootstrap.workflow_id ? bootstrap : formal;
+}
+
+function resolveExecutionSpec(protocol, workflowId) {
+  const targetWorkflowId = String(workflowId || "").trim();
+  const topLevel = normalizeRecord(protocol?.execution_spec);
+  if (targetWorkflowId && String(topLevel.workflow_id || "").trim() === targetWorkflowId) {
+    return topLevel;
+  }
+  const formalTemplate = normalizeRecord(protocol?.workflow?.formal_workflow?.execution_spec_template);
+  if (targetWorkflowId && String(formalTemplate.workflow_id || "").trim() === targetWorkflowId) {
+    return formalTemplate;
+  }
+  return topLevel.execution_spec_id ? topLevel : formalTemplate;
+}
+
+function resolveTaskBrief(protocol, workflowDefinition) {
+  const workflowBrief = normalizeRecord(workflowDefinition?.bootstrap_task_brief || workflowDefinition?.task_brief);
+  if (Object.keys(workflowBrief).length > 0) {
+    return workflowBrief;
+  }
+  return compactRecord({
+    task_goal: protocol?.group_identity?.group_objective,
+    role_assignments: protocol?.members?.role_assignments,
+  });
+}
+
+function resolveStageDefinition(workflowDefinition, currentStage) {
+  const stages = normalizeRecord(workflowDefinition?.stages);
+  return normalizeRecord(stages[currentStage]);
+}
+
+function agentAliases(state) {
+  const aliases = new Set();
+  const candidates = [state?.agentName, state?.profile?.handle, state?.profile?.display_name, state?.profile?.identity];
+  for (const candidate of candidates) {
+    const text = String(candidate || "").trim();
+    if (!text) {
+      continue;
+    }
+    aliases.add(text);
+    aliases.add(text.toLowerCase());
+    if (text.toLowerCase().startsWith("openclaw-")) {
+      aliases.add(text.slice("openclaw-".length));
+      aliases.add(text.slice("openclaw-".length).toLowerCase());
+    }
+  }
+  return aliases;
+}
+
+function resolveCurrentRole(state, runtimeContext) {
+  const agentId = String(state?.agentId || "").trim();
+  const aliases = agentAliases(state);
+  const roleDirectory = normalizeRecord(runtimeContext?.role_directory);
+  const managerIds = normalizeList(roleDirectory.manager_agent_ids).map((item) => String(item).trim());
+  const workerIds = normalizeList(roleDirectory.worker_agent_ids).map((item) => String(item).trim());
+  const roleAssignments = normalizeRecord(runtimeContext?.role_assignments);
+  if (managerIds.includes(agentId)) {
+    return { group_role: "manager", assignment: "manager" };
+  }
+  if (workerIds.includes(agentId)) {
+    for (const [assignment, detail] of Object.entries(roleAssignments)) {
+      const configuredAgent = String(normalizeRecord(detail).agent_id || "").trim();
+      if (!configuredAgent) {
+        continue;
+      }
+      if (aliases.has(configuredAgent) || aliases.has(configuredAgent.toLowerCase())) {
+        return { group_role: "worker", assignment };
+      }
+    }
+    const stageWorkerAgent = String(runtimeContext?.stage_worker_agent_id || "").trim();
+    if (stageWorkerAgent && (aliases.has(stageWorkerAgent) || aliases.has(stageWorkerAgent.toLowerCase()))) {
+      return { group_role: "worker", assignment: stageWorkerAgent };
+    }
+    return { group_role: "worker", assignment: "worker" };
+  }
+  return { group_role: "observer", assignment: "unknown" };
+}
+
+function appendChannelRole(entries, seen, agent, role) {
+  const agentValue = String(agent || "").trim();
+  const roleValue = String(role || "").trim();
+  if (!agentValue || !roleValue) {
+    return;
+  }
+  const key = `${agentValue.toLowerCase()}::${roleValue.toLowerCase()}`;
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+  entries.push({ agent: agentValue, role: roleValue });
+}
+
+function synthesizeChannelRoles(protocol, executionSpec, taskBrief, stageDefinition) {
+  const directRoles = normalizeList(protocol?.channel?.roles || protocol?.channel_roles || protocol?.members?.channel_roles);
+  const directEntries = [];
+  const directSeen = new Set();
+  for (const item of directRoles) {
+    const record = normalizeRecord(item);
+    appendChannelRole(
+      directEntries,
+      directSeen,
+      firstNonEmpty(record.agent, record.agent_id, record.handle, record.name),
+      firstNonEmpty(record.role, record.assignment, record.group_role),
+    );
+  }
+  if (directEntries.length) {
+    return directEntries;
+  }
+
+  const entries = [];
+  const seen = new Set();
+  const roleDirectory = normalizeRecord(executionSpec?.role_directory);
+  for (const managerAgent of normalizeList(roleDirectory.manager_agent_ids)) {
+    appendChannelRole(entries, seen, managerAgent, "manager");
+  }
+  for (const workerAgent of normalizeList(roleDirectory.worker_agent_ids)) {
+    appendChannelRole(entries, seen, workerAgent, "worker");
+  }
+
+  const roleAssignments = normalizeRecord(taskBrief?.role_assignments || protocol?.members?.role_assignments);
+  for (const [assignment, detail] of Object.entries(roleAssignments)) {
+    const record = normalizeRecord(detail);
+    const configuredAgent = firstNonEmpty(record.agent_id, record.agent, record.handle, record.name);
+    if (!configuredAgent) {
+      continue;
+    }
+    appendChannelRole(entries, seen, configuredAgent, assignment);
+    appendChannelRole(entries, seen, configuredAgent, firstNonEmpty(record.group_role, assignment === "manager" ? "manager" : "worker"));
+  }
+
+  appendChannelRole(entries, seen, stageDefinition?.worker_agent_id, "worker");
+  return entries;
+}
+
+function runtimeRuleCard(runtimeContext) {
+  const transitionRules = normalizeRecord(runtimeContext?.transition_rules);
+  const roleRules = normalizeRecord(runtimeContext?.role_rules);
+  return compactRecord({
+    manager_only_transition:
+      transitionRules.manager_is_single_formal_transition_authority !== false &&
+      roleRules.manager_holds_decision_authority_for_step_transition !== false,
+    worker_evidence_only:
+      transitionRules.worker_inputs_are_evidence_not_transition_gates !== false &&
+      roleRules.workers_may_submit_evidence_but_must_not_directly_advance_workflow !== false,
+    plain_text_no_progress:
+      transitionRules.plain_text_cannot_replace_manager_formal_signal !== false &&
+      runtimeContext?.plain_text_requires_formal_signal !== false,
+    server_projection_authoritative: true,
+  });
+}
+
+function taskBriefCard(runtimeContext) {
+  const brief = normalizeRecord(runtimeContext?.task_brief);
+  const deliveryDefinition = normalizeRecord(brief.delivery_definition || brief.delivery_contract);
+  return compactRecord({
+    task_goal: compactText(brief.task_goal, 160),
+    time_scope: brief.time_scope,
+    topic_scope: brief.topic_scope,
+    target_count: brief.target_count,
+    per_item_brief_length: brief.per_item_brief_length,
+    per_item_requires_image: brief.per_item_requires_image,
+    renderable_body_any_of: compactList(deliveryDefinition.final_body_required_any_of, 4, 32),
+    per_item_required_fields: compactList(deliveryDefinition.per_item_required_fields, 6, 24),
+    role_assignments: compactRecord(brief.role_assignments),
+  });
+}
+
+function stateCard(runtimeContext) {
+  return compactRecord({
+    group_slug: runtimeContext?.group_slug,
+    workflow_id: runtimeContext?.workflow_id,
+    execution_spec_id: runtimeContext?.execution_spec_id,
+    current_stage: runtimeContext?.current_stage,
+    group_session_version: runtimeContext?.group_session_version,
+  });
+}
+
+function roleCard(state, runtimeContext) {
+  const currentRole = resolveCurrentRole(state, runtimeContext);
+  const roleLabel =
+    currentRole.group_role === "manager" ? "formal_controller" : currentRole.group_role === "worker" ? "evidence_submitter" : "observer";
+  const forbidden =
+    currentRole.group_role === "manager"
+      ? ["do_not_use_plain_text_as_formal_close", "do_not_skip_server_projection"]
+      : currentRole.group_role === "worker"
+        ? ["do_not_directly_advance_stage", "do_not_emit_manager_signal"]
+        : ["do_not_invent_authority"];
+  return compactRecord({
+    agent_id: state?.agentId,
+    agent_name: state?.agentName || state?.profile?.display_name,
+    group_role: currentRole.group_role,
+    assignment: currentRole.assignment,
+    output_mode: roleLabel,
+    forbidden,
+  });
+}
+
+function stageCard(state, runtimeContext) {
+  const currentRole = resolveCurrentRole(state, runtimeContext);
+  const stage = normalizeRecord(runtimeContext?.current_stage_spec);
+  const workerHints = normalizeRecord(stage.worker_instruction_hint);
+  const aliasList = Array.from(agentAliases(state));
+  const matchingHint = workerHints[currentRole.assignment] || aliasList.map((alias) => workerHints[alias]).find(Boolean) || "";
+  return compactRecord({
+    stage_id: runtimeContext?.current_stage,
+    goal: compactText(stage.goal, 180),
+    owner: stage.owner,
+    output_consumer: stage.output_consumer,
+    current_job:
+      currentRole.group_role === "manager"
+        ? compactText(stage.manager_formal_output || stage.manager_formal_signal, 72)
+        : compactText(matchingHint || stage.goal, 120),
+    manager_formal_signal: stage.manager_formal_signal,
+    worker_evidence_expected: compactList(stage.worker_evidence_expected, 4, 32),
+  });
+}
+
+function schemaCard(state, runtimeContext) {
+  const currentRole = resolveCurrentRole(state, runtimeContext);
+  const stage = normalizeRecord(runtimeContext?.current_stage_spec);
+  const statusFields = compactList(runtimeContext?.status_block_required_fields, 10, 24);
+  if (currentRole.group_role === "manager") {
+    const managerContract = normalizeRecord(stage.manager_formal_payload_contract);
+    return compactRecord({
+      status_block_required_fields: statusFields,
+      lifecycle_phase: stage.manager_formal_signal === "task_start" ? "start" : "result",
+      step_status: stage.manager_formal_signal,
+      payload_kind: managerContract.kind,
+      payload_required_fields: compactList(managerContract.required_fields, 12, 28),
+    });
+  }
+  const workerContract = normalizeRecord(stage.worker_evidence_payload_contract);
+  return compactRecord({
+    status_block_required_fields: statusFields,
+    lifecycle_phase: "run",
+    step_status: compactList(stage.worker_evidence_expected, 1, 48)[0],
+    payload_kind: workerContract.kind,
+    payload_required_fields: compactList(workerContract.required_fields, 12, 28),
+  });
+}
+
+function buildRuntimeCardsText(runtimeContext, state) {
+  const cards = [
+    ["运行规则卡", runtimeRuleCard(runtimeContext)],
+    ["任务简报卡", taskBriefCard(runtimeContext)],
+    ["状态卡", stateCard(runtimeContext)],
+    ["角色卡", roleCard(state, runtimeContext)],
+    ["阶段卡", stageCard(state, runtimeContext)],
+    ["Schema 卡", schemaCard(state, runtimeContext)],
+  ]
+    .map(([title, payload]) => {
+      const compactPayload = compactRecord(payload);
+      return Object.keys(compactPayload).length > 0 ? `【${title}】\n${JSON.stringify(compactPayload)}` : "";
+    })
+    .filter(Boolean);
+  if (!cards.length) {
+    return "当前没有可用的社区运行卡，请仅根据入站消息做最小安全回应。";
+  }
+  return ["以下是当前社区运行卡，请严格按这些约束执行：", ...cards].join("\n\n");
+}
+
 function runtimeInstructions(runtimeContext) {
   if (!runtimeContext || typeof runtimeContext !== "object") {
-    return "当前未能从 Community 获取运行时上下文。你只能基于明确任务，给出简洁、公开、可回到社区的执行结果。";
+    return "当前没有可用的社区运行卡，请仅根据入站消息做最小安全回应。";
   }
-  return [
-    "以下是 Community 侧返回的运行时上下文摘要。你只需要据此完成当前任务，不要复述协议。",
-    JSON.stringify(runtimeContext, null, 2),
-  ].join("\n\n");
+  return buildRuntimeCardsText(runtimeContext, runtimeContext?.agent_state || {});
 }
 
 function installedAgentProtocolText() {
@@ -692,33 +1023,28 @@ function installedAgentProtocolText() {
 }
 
 function workflowContractInstructions(groupId) {
-  const stored = storedPayloadForGroup(WORKFLOW_CONTRACT_PATH, groupId);
-  const contract = stored?.contract || null;
-  if (!contract) {
-    return "";
-  }
-  return [
-    "以下是当前执行阶段的临时 workflow contract。它只在本次任务执行上下文中生效，不是永久身份设定。",
-    JSON.stringify(contract, null, 2),
-  ].join("\n\n");
+  void groupId;
+  return "";
 }
 
 function channelContextInstructions(groupId) {
-  const stored = storedPayloadForGroup(CHANNEL_CONTEXT_PATH, groupId);
-  if (!stored) {
-    return "";
-  }
-  return [
-    "以下是当前频道的本地 channel context 缓存摘要。仅在当前执行中参考。",
-    JSON.stringify(stored, null, 2),
-  ].join("\n\n");
+  void groupId;
+  return "";
 }
 
-function buildExecutionPrompt(message, state, runtimeContext) {
+export function buildExecutionPrompt(message, state, runtimeContext) {
   const identity = loadText(path.join(ASSETS_DIR, "IDENTITY.md"));
   const soul = loadText(path.join(ASSETS_DIR, "SOUL.md"));
   const user = loadText(path.join(ASSETS_DIR, "USER.md"));
   const agentProtocol = installedAgentProtocolText();
+  const runtimeContextWithState = {
+    ...normalizeRecord(runtimeContext),
+    agent_state: {
+      agentId: state?.agentId || "",
+      agentName: state?.agentName || "",
+      profile: normalizeRecord(state?.profile),
+    },
+  };
 
   return [
     {
@@ -729,9 +1055,7 @@ function buildExecutionPrompt(message, state, runtimeContext) {
         "你只负责产出公开可回传到社区频道的执行结果，不要输出内部推理过程。",
         "不要虚构消息来源。当前消息来源就是 Agent Community webhook。",
         agentProtocol,
-        runtimeInstructions(runtimeContext),
-        channelContextInstructions(message?.group_id),
-        workflowContractInstructions(message?.group_id),
+        runtimeInstructions(runtimeContextWithState),
         "以下是你的身份和工作上下文：",
         identity,
         soul,
@@ -769,22 +1093,68 @@ async function executeTask(message, state, runtimeContext) {
   return payload.choices?.[0]?.message?.content?.trim() || "我已收到社区消息，正在跟进。";
 }
 
-async function fetchRuntimeContext(groupId, state) {
-  const [protocolData, channelData] = await Promise.all([
+export async function fetchRuntimeContext(groupId, state) {
+  const [protocolData, sessionData] = await Promise.all([
     request(`/groups/${groupId}/protocol`, { method: "GET", token: state.token }),
-    request(`/groups/${groupId}/channel-context`, { method: "GET", token: state.token }),
+    request(`/groups/${groupId}/session`, { method: "GET", token: state.token }),
   ]);
-  await loadChannelContext(state, groupId, channelData);
-  const protocol = protocolData?.protocol || protocolData || null;
-  const channel = channelData?.channel_protocol || channelData?.channel || channelData || null;
-  const channelConfig = channel?.channel || {};
+  const protocolEnvelope = normalizeRecord(unwrapSuccessPayload(protocolData));
+  const sessionEnvelope = normalizeRecord(unwrapSuccessPayload(sessionData));
+  const protocol = normalizeProtocolPayload(protocolData);
+  const session = normalizeSessionPayload(sessionData);
+  const workflowId = String(session.workflow_id || protocol?.execution_spec?.workflow_id || "").trim();
+  const executionSpec = resolveExecutionSpec(protocol, workflowId);
+  const workflowDefinition = resolveWorkflowDefinition(protocol, workflowId);
+  const currentStage = String(session.current_stage || executionSpec.initial_stage || "").trim();
+  const stageDefinition = resolveStageDefinition(workflowDefinition, currentStage);
+  const taskBrief = resolveTaskBrief(protocol, workflowDefinition);
+  const channelRoles = synthesizeChannelRoles(protocol, executionSpec, taskBrief, stageDefinition);
   return {
-    protocol_version: protocol?.version || protocol?.protocol_version || "unknown",
-    group_slug: channelData?.group_slug || channelConfig?.group_slug || "",
-    channel_summary: channel?.summary || protocol?.channel?.summary || "",
-    channel_boundaries: channel?.boundaries || protocol?.channel?.boundaries || [],
-    channel_roles: channel?.roles || protocol?.channel?.roles || [],
-    applicable_rule_ids: protocolData?.applicable_rule_ids || [],
+    protocol_version:
+      session.protocol_version || protocolEnvelope.protocol_version || protocol?.protocol_meta?.protocol_version || protocol?.protocol_meta?.protocol_id || "unknown",
+    group_slug:
+      session.group_slug ||
+      sessionEnvelope.group_slug ||
+      protocolEnvelope.group_slug ||
+      protocol?.group_identity?.group_slug ||
+      state?.groupSlug ||
+      "",
+    workflow_id: workflowId,
+    execution_spec_id: String(executionSpec.execution_spec_id || "").trim(),
+    current_stage: currentStage,
+    group_session_version: String(session.group_session_version || "").trim(),
+    role_directory: normalizeRecord(executionSpec.role_directory),
+    role_assignments: normalizeRecord(taskBrief.role_assignments || protocol?.members?.role_assignments),
+    channel_roles: channelRoles,
+    task_brief: compactRecord({
+      task_goal: taskBrief.task_goal,
+      time_scope: taskBrief.time_scope,
+      topic_scope: taskBrief.topic_scope,
+      target_count: taskBrief.target_count,
+      per_item_brief_length: taskBrief.per_item_brief_length,
+      per_item_requires_image: taskBrief.per_item_requires_image,
+      delivery_definition: normalizeRecord(taskBrief.delivery_definition || taskBrief.delivery_contract),
+      role_assignments: normalizeRecord(taskBrief.role_assignments || protocol?.members?.role_assignments),
+    }),
+    current_stage_spec: compactRecord({
+      stage_id: currentStage,
+      goal: stageDefinition.goal,
+      owner: stageDefinition.owner,
+      output_consumer: stageDefinition.output_consumer,
+      worker_agent_id: stageDefinition.worker_agent_id,
+      worker_instruction_hint: normalizeRecord(stageDefinition.worker_instruction_hint),
+      worker_evidence_expected: normalizeList(stageDefinition.worker_evidence_expected),
+      worker_evidence_payload_contract: normalizeRecord(stageDefinition.worker_evidence_payload_contract),
+      manager_formal_output: stageDefinition.manager_formal_output,
+      manager_formal_signal: stageDefinition.manager_formal_signal,
+      manager_formal_payload_contract: normalizeRecord(stageDefinition.manager_formal_payload_contract),
+    }),
+    status_block_required_fields: normalizeList(protocol?.status_block_rules?.required_fields),
+    transition_rules: normalizeRecord(protocol?.transition_rules),
+    role_rules: normalizeRecord(protocol?.members?.role_rules),
+    plain_text_requires_formal_signal: protocol?.communication_rules?.plain_text_is_allowed_for_collaboration_but_not_for_formal_transition !== false,
+    applicable_rule_ids: compactList(protocolEnvelope.applicable_rule_ids, 8, 48),
+    stage_worker_agent_id: stageDefinition.worker_agent_id || "",
   };
 }
 
@@ -814,6 +1184,14 @@ function inferFlowType(messageType, intent) {
     return "chat";
   }
   return "discussion";
+}
+
+function normalizeFlowType(value) {
+  const flowType = String(value || "").trim().toLowerCase() || "run";
+  if (flowType === "status") {
+    return "run";
+  }
+  return ["start", "run", "result"].includes(flowType) ? flowType : "run";
 }
 
 function normalizeOutboundMessageType(messageType) {
@@ -906,6 +1284,9 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
   delete legacyCustom.reply_to;
   const normalizedText = firstNonEmpty(body.text, legacyContent.text);
   const normalizedKind = normalizeOutboundMessageType(source.message_type || semantics.kind || "analysis");
+  const normalizedFlowType = normalizeFlowType(
+    source.flow_type || source.lifecycle_phase || semantics.flow_type || legacyMetadata.flow_type || "run",
+  );
   const normalizedIntent = firstNonEmpty(semantics.intent, legacyContent.intent, legacyMetadata.intent, inferIntentFromText(normalizedText));
   const outboundCorrelationId = firstNonEmpty(
     extensions.outbound_correlation_id,
@@ -940,6 +1321,9 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
   }
 
   return pruneNullish({
+    group_id: sendContext.group_id,
+    flow_type: normalizedFlowType,
+    message_type: normalizedKind,
     container: {
       group_id: sendContext.group_id,
     },
@@ -953,6 +1337,12 @@ function canonicalMessageFromPayload(sendContext, payload, state) {
     },
     body: {
       text: normalizedText,
+      blocks: listValue(body.blocks),
+      attachments: listValue(body.attachments),
+    },
+    content: {
+      text: normalizedText,
+      payload: dictValue(legacyContent.payload),
       blocks: listValue(body.blocks),
       attachments: listValue(body.attachments),
     },
@@ -1125,9 +1515,9 @@ export async function sendCommunityMessage(state, incomingMessage, payload) {
   const sendContext = buildSendContext(state, incomingMessage, payload);
   const requestBody = buildCommunityMessage(state, sendContext, payload);
   const outboundText = String(requestBody?.body?.text || "").trim();
-  if (!requestBody?.container?.group_id || !outboundText) {
+  if (!requestBody?.group_id || !outboundText) {
     recordInvalidOutbound("invalid_outbound_payload", {
-      group_id: requestBody?.container?.group_id || null,
+      group_id: requestBody?.group_id || requestBody?.container?.group_id || null,
       has_text: Boolean(outboundText),
       message_type: requestBody?.semantics?.kind || null,
       client_request_id: requestBody?.extensions?.client_request_id || null,
@@ -1138,6 +1528,9 @@ export async function sendCommunityMessage(state, incomingMessage, payload) {
   const result = await request("/messages", {
     method: "POST",
     token: state.token,
+    headers: {
+      "X-Community-Skill-Channel": "community-skill-v1",
+    },
     body: JSON.stringify(requestBody),
   });
   resetOutboundGuard();
