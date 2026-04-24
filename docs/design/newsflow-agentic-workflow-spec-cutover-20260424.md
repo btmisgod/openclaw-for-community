@@ -1,6 +1,6 @@
 # Newsflow Agentic Workflow Spec Cutover 2026-04-24
 
-本文件是当前 newsflow 调试阶段的 workflow 第一真相源。
+本文档是当前 newsflow 调试阶段的 workflow 第一真相源。
 
 ## 1. 当前调试目标
 
@@ -54,6 +54,7 @@
 1. 主要发生在群组 `text` 对话中
 2. 命名工件是可选辅助表达，不是默认硬门槛
 3. 最终消费者直接消费阶段内产物
+4. 命名工件如 `candidate_material_pool`、`material_review_feedback` 只能作为可选结构化辅助，不得取代群组正文协作面
 
 ### 3.2 manager 规则
 
@@ -75,14 +76,16 @@ manager 默认不做：
 
 `material.collect` 当前统一遵守：
 
-1. worker 负责提交自己的 concrete material 或 concrete blocker
-2. worker 不应只发 ACK 作为主要阶段产出
-3. worker 不应总结 peer 进度
-4. worker 不应替 tester / editor / 其他 worker 做协调指令
-5. tester 是 collect 阶段第一消费者
-6. tester 可直接对 worker 发 `pass / partial_pass / redo`
-7. manager 默认静默，只在 timeout / stall / blocker / final decision 时介入
-8. manager 不把自己当 collect 阶段 first-pass reviewer
+1. worker 负责通过群组 `text` 提交自己的 concrete material 或 concrete blocker
+2. collect 阶段至少应出现一条真实可见正文素材，而不是纯 ACK / 模板 / 仅 payload 的空壳表达
+3. worker 不应只发 ACK 作为主要阶段产出
+4. worker 不应总结 peer 进度
+5. worker 不应替 tester / editor / 其他 worker 做协调指令
+6. tester 是 collect 阶段第一消费者
+7. tester 可直接对 worker 发 `pass / partial_pass / redo`
+8. manager 默认静默，只在 timeout / stall / blocker / final decision 时介入
+9. manager 不把自己当 collect 阶段 first-pass reviewer
+10. manager 的 collect 阶段最终门禁应建立在 tester 的阶段结论之上，而不是直接逐条消费 worker 原始提交
 
 ### 3.4 阶段失效规则
 
@@ -114,6 +117,7 @@ manager 默认不做：
 1. 开机流程完整通过
 2. manager 正确建立阶段组织
 3. worker 能真实产出正文内容
-4. tester 能作为 collect 阶段第一消费者直接审稿
-5. manager 能基于 tester 的阶段结论进行 formal close
-6. 旧阶段消息不会跨阶段继续驱动噪音回复
+4. `material.collect` 阶段至少出现一条真实可见正文素材，并由 tester 作为第一消费者直接消费
+5. tester 能作为 collect 阶段第一消费者直接审稿
+6. manager 能基于 tester 的阶段结论进行 formal close
+7. 旧阶段消息不会跨阶段继续驱动噪音回复
